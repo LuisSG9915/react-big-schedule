@@ -50,7 +50,10 @@ import { styled } from "@mui/material/styles";
 import { Box, Typography, Modal } from "@mui/material";
 import Draggable from "react-draggable";
 import debounce from "lodash.debounce";
-
+import { IoIosAddCircle } from "react-icons/io";
+import { IoListCircle } from "react-icons/io5";
+import { FaEye } from "react-icons/fa6";
+import { IoRefreshCircle } from "react-icons/io5";
 let schedulerData;
 
 const initialState = {
@@ -858,7 +861,7 @@ function Basic() {
     conflicto: {
       backgroundColor: "#E0E0E0",
       padding: "10px",
-      color: "white",
+      color: "black",
     },
   };
   const editCita2 = async (eventItem) => {
@@ -2706,9 +2709,16 @@ function Basic() {
   };
   return (
     <>
+
+<div className="barra-titulo">
+<h1 className="logoBar">Peinados Express</h1>
+</div>
       <div className="contenedor-principal">
-        <div>
+        <div className="timer">
+            <div className="estilo-timer">
           <Timer />
+        </div>
+        
         </div>
         <Row>
           {/* <Col>
@@ -2771,50 +2781,11 @@ function Basic() {
           </h5>
         </div> */}
 
-        <Row>
-          <Col>
-            <Button
-              size="sm"
-              onClick={() => {
-                setModalCrear(true);
-                return;
-                handleOpenNewWindowNewSchedule();
-                setIsModalActualizarOpen(true);
-              }}
-            >
-              Nueva Cita
-            </Button>
-            <Button
-              size="sm"
-              color={"primary"}
-              onClick={() => {
-                handleOpenNewWindowListaEspera();
-                setIsModalActualizarOpen(true);
-              }}
-            >
-              Lista de espera
-            </Button>
-            <Button
-              size="sm"
-              color={"success"}
-              onClick={() => {
-                window.location.reload();
-              }}
-            >
-              Actualizar sitio
-            </Button>
-            <Button
-              size="sm"
-              color={"success"}
-              onClick={() => {
-                setModalCitas(true);
-              }}
-            >
-              Mostrar citas
-            </Button>
-          </Col>
-        </Row>
+       
       </div>
+
+
+     
 
       <div style={{ flex: 1, justifyContent: "right", alignContent: "right", alignItems: "right", display: "flex" }}></div>
       {/* <div style={{ height: "2%", display: "table", tableLayout: "fixed", width: "100%" }}>
@@ -2833,6 +2804,65 @@ function Basic() {
           }}
         />
       </div> */}
+
+<div className="container">
+
+<div className="nBarra" > 
+  <div className="botones-barra">
+<ButtonGroup variant="contained" aria-label="outlined primary button group">
+<Button
+              size="sm"
+              onClick={() => {
+                setModalCrear(true);
+                return;
+                handleOpenNewWindowNewSchedule();
+                setIsModalActualizarOpen(true);
+              }}
+            >             <IoIosAddCircle size={20}></IoIosAddCircle>
+
+              
+               Nueva Cita
+            </Button>
+ 
+
+            <Button
+              size="sm"
+              color={"primary"}
+              onClick={() => {
+                handleOpenNewWindowListaEspera();
+                setIsModalActualizarOpen(true);
+              }}
+            >
+                <IoListCircle  size={20}></IoListCircle >
+              Lista de espera
+            </Button>
+            <Button
+              size="sm"
+              color={"success"}
+              onClick={() => {
+                window.location.reload();
+              }}
+            >
+                 <IoRefreshCircle   size={20}></IoRefreshCircle  >
+              Actualizar sitio
+            </Button>
+            <Button
+              size="sm"
+              color={"success"}
+              onClick={() => {
+                setModalCitas(true);
+              }}
+            >
+              <FaEye    size={20}></FaEye   >
+              Mostrar citas
+            </Button>
+ 
+</ButtonGroup>
+</div>
+      </div>
+      </div>
+
+
       <div style={{ marginLeft: "0%" }}>
         {state.showScheduler && (
           <Scheduler
@@ -2858,7 +2888,8 @@ function Basic() {
           />
         )}
       </div>
-      <div style={{ marginBottom: "10%", marginTop: "2%", display: "flex", justifyItems: "center", alignItems: "center", flexDirection: "column" }}>
+      <div className="cardEstatus">
+      <div style={{ marginBottom: "10px", marginTop: "2%", display: "flex", justifyItems: "center", alignItems: "center", flexDirection: "column" }}>
         <div style={statusBoxStyle}>
           <div style={boxStyles.noDisponible}>NO DISPONIBLE</div>
           <div style={boxStyles.requerido}>REQUERIDO</div>
@@ -2867,6 +2898,7 @@ function Basic() {
           <div style={boxStyles.domicilio}>DOMICILIO</div>
           <div style={boxStyles.conflicto}>CONFLICTO</div>
         </div>
+      </div>
       </div>
       {isModalOpen && (
         <div className="modal-overlay">
