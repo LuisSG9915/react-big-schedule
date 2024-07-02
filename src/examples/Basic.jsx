@@ -29,6 +29,7 @@ import { FaMoneyBillAlt } from "react-icons/fa";
 
 import Swal from "sweetalert2";
 import "../css/style.css";
+
 import { es } from "date-fns/locale";
 import { MdOutlineFolder, MdOutlineFreeCancellation } from "react-icons/md";
 import { MaterialReactTable } from "material-react-table";
@@ -58,6 +59,8 @@ import { FaEye } from "react-icons/fa6";
 import { IoRefreshCircle } from "react-icons/io5";
 let schedulerData;
 
+
+
 const initialState = {
   showScheduler: false,
   viewModel: {},
@@ -76,7 +79,21 @@ function reducer(state, action) {
   }
 }
 
+
+
+
 function Basic() {
+
+  useEffect(() => {
+    // Añadir la clase al body
+    document.body.classList.add('special-body');
+
+    // Quitar la clase del body cuando el componente se desmonte
+    return () => {
+      document.body.classList.remove('special-body');
+    };
+  }, []);
+  
   const [arreglo, setArreglo] = useState([]);
 
   const [arregloCitaDia, setArregloCitaDia] = useState([]);
@@ -2812,6 +2829,10 @@ function Basic() {
     // Aquí puedes poner la acción que quieras realizar.
     console.log({ params });
   };
+
+
+
+
   return (
     <>
 

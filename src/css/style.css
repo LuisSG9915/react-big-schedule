@@ -8,14 +8,10 @@ html {
   height:100%;
 }
 
-body {
-  margin:0;
-/*   background-image: linear-gradient(to right top, #d16ba5, #c777b9, #ba83ca, #aa8fd8, #9a9ae1, #8aa7ec, #79b3f4, #69bff8, #52cffe, #41dfff, #46eefa, #5ffbf1);
-   */
-   background-image: linear-gradient(to right top, #853f67, #7f4976, #785383, #6e5c8d, #656594, #5a6d9a, #4f749e, #467b9f, #38829f, #2e899c, #2f8f96, #3b948e);
+body.special-body {
+  margin: 0;
+  background-image: linear-gradient(to right top, #853f67, #7f4976, #785383, #6e5c8d, #656594, #5a6d9a, #4f749e, #467b9f, #38829f, #2e899c, #2f8f96, #3b948e);
 }
-
-
 
 
 /* .bg2 {
