@@ -552,7 +552,7 @@ function ListaEspera() {
   const timeZone = "America/Mexico_City"; // Ajusta esto a tu zona horaria
 
   return (
-    <div>
+    <>
       <Container>
         <h1>Lista de espera</h1>
         <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "end" }}>
@@ -569,8 +569,7 @@ function ListaEspera() {
 
         <DataGrid rows={dataListaEspera} columns={columnListaEspera} />
       </Container>
-
-      <Modal isOpen={openListaEspera} toggle={() => setOpenListaEspera(false)} size="xl">
+      <Modal isOpen={openListaEspera} toggle={() => setOpenListaEspera(false)} size="md">
         <ModalHeader toggle={() => setOpenListaEspera(false)}>Agregar listas de espera</ModalHeader>
         <ModalBody>
           <Row>
@@ -650,16 +649,16 @@ function ListaEspera() {
                   />
                 </LocalizationProvider>
                 {/* <Input
-                  type="time"
-                  name="hora_estimada"
-                  id="hora_estimada"
-                  onChange={(param) => {
-                    const now = new Date();
-                    const [hours, minutes] = param.target.value.split(":").map(Number);
-                    now.setHours(hours, minutes, 0); // Asume que los segundos y milisegundos son 0
-                    setformClienteEspera({ ...formClienteEspera, hora_estimada: now });
-                  }}
-                /> */}
+      type="time"
+      name="hora_estimada"
+      id="hora_estimada"
+      onChange={(param) => {
+        const now = new Date();
+        const [hours, minutes] = param.target.value.split(":").map(Number);
+        now.setHours(hours, minutes, 0); // Asume que los segundos y milisegundos son 0
+        setformClienteEspera({ ...formClienteEspera, hora_estimada: now });
+      }}
+    /> */}
               </FormGroup>
             </Col>
             <Col md={6}>
@@ -748,7 +747,7 @@ function ListaEspera() {
           </Button>
         </ModalFooter>
       </Modal>
-      <Modal isOpen={productosModal} toggle={() => setProductosModal(!productosModal)} size="xl">
+      <Modal isOpen={productosModal} toggle={() => setProductosModal(!productosModal)} size="xl" centered>
         <ModalHeader toggle={() => setProductosModal(!productosModal)}>Agregar producto</ModalHeader>
         <ModalBody>
           {/* <DataGrid rows={dataProductos} columns={columnsProductosMRT} /> */}
@@ -765,7 +764,7 @@ function ListaEspera() {
           </Button>
         </ModalFooter>
       </Modal>
-      <Modal isOpen={estilistasModal} toggle={() => setEstilistasModal(!estilistasModal)} size="lg">
+      <Modal isOpen={estilistasModal} toggle={() => setEstilistasModal(!estilistasModal)} size="xl">
         <ModalHeader toggle={() => setEstilistasModal(!estilistasModal)}>Agregar estilista</ModalHeader>
         <ModalBody>
           <DataGrid rows={dataEstilistas} columns={columnsEstilistas} />
@@ -776,7 +775,7 @@ function ListaEspera() {
           </Button>
         </ModalFooter>
       </Modal>
-      <Modal isOpen={modalCitaServicio} toggle={() => setModalCitaServicio(!modalCitaServicio)} size="lg">
+      <Modal isOpen={modalCitaServicio} toggle={() => setModalCitaServicio(!modalCitaServicio)} size="xl">
         <ModalHeader toggle={() => setModalCitaServicio(!modalCitaServicio)}>Folio y Hora</ModalHeader>
         <ModalBody>
           <FormGroup>
@@ -800,16 +799,15 @@ function ListaEspera() {
             ></input>
           </FormGroup>
           {/* <FormGroup>
-            <Label>Folio</Label>
-            <Input disabled type="text" value={formListaEsperaVerificacion?.max_detalle_venta_id}></Input>
-          </FormGroup> */}
+      <Label>Folio</Label>
+      <Input disabled type="text" value={formListaEsperaVerificacion?.max_detalle_venta_id}></Input>
+    </FormGroup> */}
         </ModalBody>
         <ModalFooter>
           <Button
             color="primary"
             onClick={() => {
               //listaEsperaPost(formListaEsperaVerificacion.id, 2);
-
               listaEsperaPost(
                 formListaEsperaVerificacion.id,
                 2,
@@ -828,7 +826,7 @@ function ListaEspera() {
           </Button>
         </ModalFooter>
       </Modal>
-    </div>
+    </>
   );
 }
 

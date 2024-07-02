@@ -25,7 +25,7 @@ import {
   ButtonGroup,
   InputGroupText,
 } from "reactstrap";
-import { FaMoneyBillAlt } from "react-icons/fa";
+import { FaMoneyBillAlt, FaTrash } from "react-icons/fa";
 
 import Swal from "sweetalert2";
 import "../css/style.css";
@@ -585,13 +585,13 @@ function Basic() {
     {
       field: "accion",
       headerName: "Accion",
-      width: 70,
+      width: 85,
       align: "center",
       sortable: false,
       renderCell: (params) => (
         <div>
           <FaMoneyBillAlt
-            size={20}
+            size={23}
             disabled
             onClick={() => {
               setEvent({
@@ -620,7 +620,8 @@ function Basic() {
           >
             AS
           </FaMoneyBillAlt>
-          <Button
+          <FaTrash
+            size={23}
             onClick={() => {
               setEvent({
                 fecha: params.row.fecha,
@@ -631,14 +632,28 @@ function Basic() {
                 idCita: params.row.id,
                 no_estilista: params.row.idEstilista,
               });
-              setModalEdicionServicios(true);
+              setFormCitaServicio({
+                ...formCitaServicio,
+                idCita: params.row.id,
+              });
+              setFormDetalleCitasServicios({
+                fecha: params.row.dia_cita,
+                idEstilista: params.row.idEstilista,
+                d_clave_prod: params.row.descripcion,
+                cantidad: params.row.cantidad,
+                idServicio: params.row.idServicio,
+                precio: params.row.importe,
+                id: params.row.no_cliente,
+                tiempo: params.row.tiempo,
+                idCita: params.row.id,
+                estatusCita: params.row.estatusCita,
+              });
+              setModalEdicionServicios2(true);
             }}
-          >
-            E
-          </Button>
+          ></FaTrash>
           <MdOutlineFreeCancellation
             disabled
-            size={20}
+            size={23}
             onClick={() => putDetalleCitasServiciosUpd4(0, params.row.sucursal, params.row.id, 0, params.row.idEstilista, 0, 0, 1, 0, 0, new Date())}
           >
             Cancelar
@@ -712,6 +727,12 @@ function Basic() {
       renderCell: (params) => <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>{params.row.tiempo + " min"}</p>,
     },
     {
+      field: "cantidad",
+      headerName: "Cantidad",
+      width: 130,
+      renderCell: (params) => <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>{params.row.cantidad}</p>,
+    },
+    {
       field: "importe",
       headerName: "Total",
       width: 130,
@@ -724,7 +745,7 @@ function Basic() {
   ];
 
   const ligaPruebas = "http://localhost:5173/";
-  //const ligaPruebas = "http://cbinfo.no-ip.info:9019/";
+  // const ligaPruebas = "http://cbinfo.no-ip.info:9019/";
   const handleOpenNewWindow = ({ idCita, idUser, idCliente, fecha, flag }) => {
     const url = `${ligaPruebas}miliga/crearcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idSuc=${1}&idRec=${1}&flag=${flag}`; // Reemplaza esto con la URL que desees abrir
     const width = 390;
@@ -1075,6 +1096,7 @@ function Basic() {
   const [ProductosModalEdicion, setProductosModalEdicion] = useState(false);
   const [ProductosModalEdicionServicios, setProductosModalEdicionServicios] = useState(false);
   const [modalEdicionServicios, setModalEdicionServicios] = useState(false);
+  const [modalEdicionServicios2, setModalEdicionServicios2] = useState(false);
   const [productosModal, setProductosModal] = useState(false);
   const [modalCitasObservaciones, setModalCitasObservaciones] = useState(false);
   const [verificarContraModal, setVerificarContraModal] = useState(false);
@@ -1859,11 +1881,7 @@ function Basic() {
           setFormCitaServicio({ ...formCitaServicio, idCita: response.data.mensaje2 });
           setOpen(true);
           setAgregarServicios(true);
-          Swal.fire({
-            icon: "success",
-            text: "Registro creado con éxito",
-            confirmButtonColor: "#3085d6",
-          });
+
           return response.data.mensaje2;
         } catch (error) {
           alert(`Hubo un error, ${error}`);
@@ -2359,12 +2377,67 @@ function Basic() {
           text: "Registro Realizado ",
           confirmButtonColor: "#3085d6",
           confirmButtonText: "Recargar pagina",
+          cancelButtonText: "No",
+          showCancelButton: true,
         }).then((result) => {
           if (result.isConfirmed) {
             window.location.reload();
           }
         });
         setModalEdicionServicios(false);
+        getCitasDia();
+      });
+  };
+  const putDetalleCitasServiciosUpd7 = async (
+    id,
+    sucursal,
+    idCita,
+    tiempo,
+    idEstilista,
+    mostrar,
+    idServicio,
+    usuario,
+    cantidad,
+    precio,
+    fechaCita,
+    estatusCita
+  ) => {
+    const contraseñaValidada = await validarContraseña();
+    if (!contraseñaValidada) return;
+
+    peinadosApi
+      .put(`/sp_DetalleCitasServiciosUpd7`, null, {
+        params: {
+          id: id,
+          sucursal: sucursal,
+          idCita: idCita,
+          tiempo: tiempo,
+          idEstilista: idEstilista,
+          mostrar: mostrar,
+          idServicio: idServicio,
+          usuario: usuario,
+          cantidad: cantidad,
+          precio: precio,
+          fechaCita: fechaCita ? fechaCita : formCita.fecha,
+          estatusCita: estatusCita,
+        },
+      })
+      .then((response) => {
+        fetchDetalleCitasServicios();
+        Swal.fire({
+          icon: "success",
+          text: "Registro Realizado ",
+          confirmButtonColor: "#3085d6",
+          confirmButtonText: "Recargar pagina",
+          cancelButtonText: "No",
+          showCancelButton: true,
+        }).then((result) => {
+          getCitasDia();
+          if (result.isConfirmed) {
+            window.location.reload();
+          }
+        });
+        setModalEdicionServicios2(false);
       });
   };
 
@@ -3053,77 +3126,79 @@ function Basic() {
           />
         </Box>
       </Modal>
+      <Draggable>
+        <Modal open={modalCitas} onClose={() => setModalCitas(false)} disableAutoFocus disableEnforceFocus>
+          <Box sx={style}>
+            <div style={{ height: "2%", display: "table", tableLayout: "fixed", width: "100%" }}>
+              <h3>Tabla de citas</h3>
+              <Col sm={6}>
+                <InputGroup style={{ marginBottom: "5px" }}>
+                  <Label className="label-fixed-width" style={{ fontSize: "0.8rem" }}>
+                    Tipo de cita:
+                  </Label>
+                  <Input style={{ fontSize: "0.8rem" }} type="select" size={"sm"} value={tipoCita} onChange={(e) => setTipoCita(e.target.value)}>
+                    <option value={"%"}>Todos</option>
+                    <option value={"1"}>Cita</option>
+                    <option value={"2"}>Servicio</option>
+                    <option value={"3"}>Pagado</option>
+                  </Input>
+                </InputGroup>
 
-      <Modal open={modalCitas} onClose={() => setModalCitas(false)} disableAutoFocus disableEnforceFocus>
-        <Box sx={style}>
-          <div style={{ height: "2%", display: "table", tableLayout: "fixed", width: "100%" }}>
-            <h3>Tabla de citas</h3>
-            <Col sm={6}>
-              <InputGroup style={{ marginBottom: "5px" }}>
-                <Label className="label-fixed-width" style={{ fontSize: "0.8rem" }}>
-                  Tipo de cita:
-                </Label>
-                <Input style={{ fontSize: "0.8rem" }} type="select" size={"sm"} value={tipoCita} onChange={(e) => setTipoCita(e.target.value)}>
-                  <option value={"%"}>Todos</option>
-                  <option value={"1"}>Cita</option>
-                  <option value={"2"}>Servicio</option>
-                  <option value={"3"}>Pagado</option>
-                </Input>
-              </InputGroup>
-              <div>
-                <InputGroup style={{ marginBottom: "5px" }}>
-                  <Label className="label-fixed-width" style={{ fontSize: "0.8rem" }}>
-                    Nombre cliente:
-                  </Label>
-                  <Input
-                    style={{ fontSize: "0.8rem" }}
-                    onChange={(v) => setDatosParametros({ ...datosParametros, nombreCliente: v.target.value })}
-                    size={"sm"}
-                    value={datosParametros.nombreCliente}
-                  ></Input>
-                </InputGroup>
-                <InputGroup style={{ marginBottom: "5px" }}>
-                  <Label className="label-fixed-width" style={{ fontSize: "0.8rem" }}>
-                    Nombre estilista:
-                  </Label>
-                  <Input
-                    style={{ fontSize: "0.8rem" }}
-                    onChange={(v) => setDatosParametros({ ...datosParametros, nombreEstilista: v.target.value })}
-                    size={"sm"}
-                    value={datosParametros.nombreEstilista}
-                  ></Input>
-                  <Button color="primary" size="sm">
-                    <AiOutlineSearch size={19} onClick={() => getCitasDia()} />
-                  </Button>
-                  <Button color="secondary" size="sm">
-                    <AiOutlineReload
-                      size={19}
-                      onClick={() => {
-                        setDatosParametros({ ...datosParametros, nombreCliente: "", nombreEstilista: "" });
-                        getCitasDia(1);
-                      }}
-                    />
-                  </Button>
-                </InputGroup>
-              </div>
-            </Col>
-            <br />
-            <DataGrid
-              rows={arregloCitaDia}
-              columns={columns}
-              getRowId={(row) => row.id + row.importe + row.tiempo + row.descripcion}
-              onCellDoubleClick={handleCellDoubleClick}
-              rowHeight={28}
-              columnHeaderHeight={28}
-              sx={{
-                "& .MuiDataGrid-pagination": {
-                  height: "10px",
-                },
-              }}
-            />
-          </div>
-        </Box>
-      </Modal>
+                <div>
+                  <InputGroup style={{ marginBottom: "5px" }}>
+                    <Label className="label-fixed-width" style={{ fontSize: "0.8rem" }}>
+                      Nombre cliente:
+                    </Label>
+                    <Input
+                      style={{ fontSize: "0.8rem" }}
+                      onChange={(v) => setDatosParametros({ ...datosParametros, nombreCliente: v.target.value })}
+                      size={"sm"}
+                      value={datosParametros.nombreCliente}
+                    ></Input>
+                  </InputGroup>
+                  <InputGroup style={{ marginBottom: "5px" }}>
+                    <Label className="label-fixed-width" style={{ fontSize: "0.8rem" }}>
+                      Nombre estilista:
+                    </Label>
+                    <Input
+                      style={{ fontSize: "0.8rem" }}
+                      onChange={(v) => setDatosParametros({ ...datosParametros, nombreEstilista: v.target.value })}
+                      size={"sm"}
+                      value={datosParametros.nombreEstilista}
+                    ></Input>
+                    <Button color="primary" size="sm">
+                      <AiOutlineSearch size={19} onClick={() => getCitasDia()} />
+                    </Button>
+                    <Button color="secondary" size="sm">
+                      <AiOutlineReload
+                        size={19}
+                        onClick={() => {
+                          setDatosParametros({ ...datosParametros, nombreCliente: "", nombreEstilista: "" });
+                          getCitasDia(1);
+                        }}
+                      />
+                    </Button>
+                  </InputGroup>
+                </div>
+              </Col>
+              <br />
+              <DataGrid
+                rows={arregloCitaDia}
+                columns={columns}
+                getRowId={(row) => row.id + row.importe + row.tiempo + row.descripcion}
+                onCellDoubleClick={handleCellDoubleClick}
+                rowHeight={28}
+                columnHeaderHeight={28}
+                sx={{
+                  "& .MuiDataGrid-pagination": {
+                    height: "10px",
+                  },
+                }}
+              />
+            </div>
+          </Box>
+        </Modal>
+      </Draggable>
 
       <Modal open={modalServicioUso} onClose={() => setModalServicioUso(false)} disableAutoFocus disableRestoreFocus disableEnforceFocus>
         <Box sx={styleAltaServicio}>
@@ -3537,20 +3612,6 @@ function Basic() {
           ) : null}
         </Box>
       </Modal>
-      {/* 
-      <Draggable>
-        <div>
-          <Modal open={movableReactPrueba}>
-            <Box sx={style}>
-              <Draggable>
-                <div>
-                  <h1>Hola mundo</h1>
-                </div>
-              </Draggable>
-            </Box>
-          </Modal>
-        </div>
-      </Draggable> */}
 
       {/* Hazme un modal como lo he estado haciendo para que edite el estilista y el servicio, ingresando a su vez una cantidad */}
       <Modal
@@ -3566,7 +3627,9 @@ function Basic() {
           <Row form>
             <Col md={6}>
               <FormGroup>
-                <Label for="atiende">Seleccione un estilista</Label>
+                <Label style={{ fontSize: "1.2rem" }} for="atiende">
+                  Seleccione un estilista
+                </Label>
                 <Input
                   type="select"
                   name="atiende"
@@ -3590,7 +3653,9 @@ function Basic() {
             </Col>
             <Col md={6}>
               <FormGroup>
-                <Label for="cliente">Producto</Label>
+                <Label for="cliente" style={{ fontSize: "1.2rem" }}>
+                  Producto
+                </Label>
                 <InputGroup addonType="append">
                   <Input bsSize="sm" disabled value={formDetalleCitasServicios.d_clave_prod} type="text" name="cliente" id="cliente" size={"small"} />
                   <Button size="sm" onClick={() => setProductosModalEdicion(true)}>
@@ -3599,9 +3664,9 @@ function Basic() {
                 </InputGroup>
               </FormGroup>
             </Col>
-            <Col md={4}>
+            <Col md={3}>
               <FormGroup>
-                <Label>Ingrese la cantidad a modificiar</Label>
+                <Label style={{ fontSize: "1.2rem" }}>Cantidad</Label>
                 <Input
                   value={formDetalleCitasServicios.cantidad}
                   onChange={(v) => {
@@ -3610,112 +3675,115 @@ function Basic() {
                 ></Input>
               </FormGroup>
             </Col>
+            <Col md={3}>
+              <FormGroup>
+                <Label for="fecha" style={{ fontSize: "1.2rem" }}>
+                  Fecha cita:
+                </Label>
+
+                <LocalizationProvider dateAdapter={AdapterDateFns}>
+                  <DatePicker
+                    disabled
+                    openPickerIcon={<Box />} // Aquí se elimina el ícono
+                    slotProps={{ textField: { size: "small" } }}
+                    style={{ height: 20 }}
+                    value={formDetalleCitasServicios.fecha ? new Date(formDetalleCitasServicios.fecha) : null}
+                    onChange={(fecha) => handleChangeFechaServicio("fecha", fecha)}
+                    format="dd/MM/yyyy"
+                    sx={{
+                      "& .MuiInputBase-input": {
+                        width: "128px",
+                      },
+                      "& .MuiPickersDay-dayWithMargin": {
+                        // Oculta el ícono del DatePicker
+                        display: "none",
+                      },
+                      "& .MuiSvgIcon-root": {
+                        // Aquí se oculta el ícono
+                        width: "0.8rem",
+                        backgroundColor: "transparent",
+                      },
+                      "& .MuiIconButton-root": {
+                        marginRight: "-16px",
+                      },
+                    }}
+                    renderInput={(props) => (
+                      <TextField
+                        {...props}
+                        size="small"
+                        InputProps={{ endAdornment: null }} // Aquí se elimina el ícono
+                        sx={{
+                          fontSize: "0.8rem",
+                          backgroundColor: "#ffccac",
+                          "& .MuiInputBase-input": {
+                            height: "30px", // Ajusta la altura aquí
+                            padding: "0 14px", // Ajusta el padding para centrar el texto
+                          },
+                          "& .MuiOutlinedInput-root": {
+                            height: "30px", // Ajusta la altura aquí
+                            padding: "0px", // Remueve el padding interno
+                          },
+                          "& .MuiOutlinedInput-input": {
+                            height: "30px", // Ajusta la altura aquí
+                            display: "flex",
+                            alignItems: "center",
+                          },
+                          "& .MuiInputAdornment-root": {
+                            height: "30px", // Asegura que los adornos tengan la misma altura
+                            "& button": {
+                              height: "30px", // Ajusta la altura del botón del ícono
+                            },
+                          },
+                        }}
+                      />
+                    )}
+                  />
+                </LocalizationProvider>
+              </FormGroup>
+            </Col>
+            <Col md={3}>
+              <FormGroup>
+                <Label for="fecha" style={{ fontSize: "1.2rem", marginRight: "5px" }}>
+                  Hora de cita:
+                </Label>
+                <LocalizationProvider dateAdapter={AdapterDateFns}>
+                  <TimePicker
+                    timeSteps={15}
+                    slotProps={{ textField: { size: "small" } }}
+                    value={formDetalleCitasServicios.fecha ? new Date(decodeURIComponent(formDetalleCitasServicios.fecha)) : null}
+                    // value={formCita.fecha ? new Date(formCita.fecha).toTimeString().substring(0, 5) : null}
+                    onChange={(hora) => handleChangeFechaServicio("hora", hora)}
+                    sx={{
+                      "& .MuiInputBase-input": {
+                        width: "128px",
+                      },
+                      "& .MuiPickersDay-dayWithMargin": {
+                        // Oculta el ícono del DatePicker
+                        display: "none",
+                      },
+                      "& .MuiSvgIcon-root": {
+                        // Aquí se oculta el ícono
+                        width: "0.8rem",
+                        backgroundColor: "#ffccac",
+                      },
+                    }}
+                    renderInput={(props) => (
+                      <Input
+                        {...props}
+                        size="small"
+                        style={{
+                          fontSize: "0.8rem",
+                          backgroundColor: "#ffccac",
+                        }}
+                      />
+                    )}
+                  />
+                </LocalizationProvider>
+              </FormGroup>
+            </Col>
             <Col md="8">
               <FormGroup style={{ display: "flex", alignItems: "center", marginBottom: "0px" }}>
-                <Row>
-                  <Col md={6}>
-                    <Label for="fecha" style={{ fontSize: "0.8rem", marginRight: "5px" }}>
-                      Fecha cita:
-                    </Label>
-
-                    <LocalizationProvider dateAdapter={AdapterDateFns}>
-                      <DatePicker
-                        disabled
-                        openPickerIcon={<Box />} // Aquí se elimina el ícono
-                        slotProps={{ textField: { size: "small" } }}
-                        style={{ height: 20 }}
-                        value={formDetalleCitasServicios.fecha ? new Date(formDetalleCitasServicios.fecha) : null}
-                        onChange={(fecha) => handleChangeFechaServicio("fecha", fecha)}
-                        format="dd/MM/yyyy"
-                        sx={{
-                          "& .MuiInputBase-input": {
-                            width: "128px",
-                          },
-                          "& .MuiPickersDay-dayWithMargin": {
-                            // Oculta el ícono del DatePicker
-                            display: "none",
-                          },
-                          "& .MuiSvgIcon-root": {
-                            // Aquí se oculta el ícono
-                            width: "0.8rem",
-                            backgroundColor: "transparent",
-                          },
-                          "& .MuiIconButton-root": {
-                            marginRight: "-16px",
-                          },
-                        }}
-                        renderInput={(props) => (
-                          <TextField
-                            {...props}
-                            size="small"
-                            InputProps={{ endAdornment: null }} // Aquí se elimina el ícono
-                            sx={{
-                              fontSize: "0.8rem",
-                              backgroundColor: "#ffccac",
-                              "& .MuiInputBase-input": {
-                                height: "30px", // Ajusta la altura aquí
-                                padding: "0 14px", // Ajusta el padding para centrar el texto
-                              },
-                              "& .MuiOutlinedInput-root": {
-                                height: "30px", // Ajusta la altura aquí
-                                padding: "0px", // Remueve el padding interno
-                              },
-                              "& .MuiOutlinedInput-input": {
-                                height: "30px", // Ajusta la altura aquí
-                                display: "flex",
-                                alignItems: "center",
-                              },
-                              "& .MuiInputAdornment-root": {
-                                height: "30px", // Asegura que los adornos tengan la misma altura
-                                "& button": {
-                                  height: "30px", // Ajusta la altura del botón del ícono
-                                },
-                              },
-                            }}
-                          />
-                        )}
-                      />
-                    </LocalizationProvider>
-                  </Col>
-                  <Col md={6}>
-                    <Label for="fecha" style={{ fontSize: "0.8rem", marginRight: "5px" }}>
-                      Hora de cita:
-                    </Label>
-                    <LocalizationProvider dateAdapter={AdapterDateFns}>
-                      <TimePicker
-                        timeSteps={15}
-                        slotProps={{ textField: { size: "small" } }}
-                        value={formDetalleCitasServicios.fecha ? new Date(decodeURIComponent(formDetalleCitasServicios.fecha)) : null}
-                        // value={formCita.fecha ? new Date(formCita.fecha).toTimeString().substring(0, 5) : null}
-                        onChange={(hora) => handleChangeFechaServicio("hora", hora)}
-                        sx={{
-                          "& .MuiInputBase-input": {
-                            width: "128px",
-                          },
-                          "& .MuiPickersDay-dayWithMargin": {
-                            // Oculta el ícono del DatePicker
-                            display: "none",
-                          },
-                          "& .MuiSvgIcon-root": {
-                            // Aquí se oculta el ícono
-                            width: "0.8rem",
-                            backgroundColor: "#ffccac",
-                          },
-                        }}
-                        renderInput={(props) => (
-                          <Input
-                            {...props}
-                            size="small"
-                            style={{
-                              fontSize: "0.8rem",
-                              backgroundColor: "#ffccac",
-                            }}
-                          />
-                        )}
-                      />
-                    </LocalizationProvider>
-                  </Col>
-                </Row>
+                <Row></Row>
               </FormGroup>
             </Col>
 
@@ -3735,6 +3803,225 @@ function Basic() {
                       formDetalleCitasServicios.cantidad,
                       formDetalleCitasServicios.precio,
                       formDetalleCitasServicios.fecha
+                    );
+                  }}
+                >
+                  Guardar
+                </Button>
+              </FormGroup>
+            </Col>
+          </Row>
+        </Box>
+      </Modal>
+      <Modal
+        open={modalEdicionServicios2}
+        onClose={() => setModalEdicionServicios2(false)}
+        disableAutoFocus
+        disableEnforceFocus
+        disableEscapeKeyDown
+        disableRestoreFocus
+        disableScrollLock
+      >
+        <Box sx={styleObservaciones}>
+          <Row form>
+            <Col md={3}>
+              <FormGroup>
+                <Label style={{ fontSize: "1.2rem" }} for="atiende">
+                  Seleccione un estilista
+                </Label>
+                <Input
+                  type="select"
+                  name="atiende"
+                  disabled
+                  id="atiende"
+                  value={formDetalleCitasServicios.idEstilista}
+                  onChange={(valor) => {
+                    setFormDetalleCitasServicios({ ...formDetalleCitasServicios, idEstilista: valor.target.value });
+                  }}
+                >
+                  <option value="0">Seleccione un estilista</option>
+                  {dataEstilistas.map((opcion, index) => {
+                    return (
+                      <option value={opcion.id} key={index}>
+                        {opcion.estilista}
+                      </option>
+                    );
+                  })}
+                </Input>
+              </FormGroup>
+            </Col>
+            <Col md={6}>
+              <FormGroup>
+                <Label for="cliente" style={{ fontSize: "1.2rem" }}>
+                  Producto
+                </Label>
+                <InputGroup addonType="append">
+                  <Input bsSize="sm" disabled value={formDetalleCitasServicios.d_clave_prod} type="text" name="cliente" id="cliente" size={"small"} />
+                  <Button size="sm" onClick={() => setProductosModalEdicion(true)}>
+                    Buscar
+                  </Button>
+                </InputGroup>
+              </FormGroup>
+            </Col>
+            <Col md={3}>
+              <FormGroup>
+                <Label for="cliente" style={{ fontSize: "1.2rem" }}>
+                  Cantidad
+                </Label>
+                <InputGroup addonType="append">
+                  <Input bsSize="sm" value={formDetalleCitasServicios.cantidad} type="text" name="cliente" id="cliente" size={"small"} />
+                </InputGroup>
+              </FormGroup>
+            </Col>
+
+            <Col md={3}>
+              <FormGroup>
+                <Label style={{ fontSize: "1.2rem" }}>Tiempo</Label>
+                <Input
+                  value={formDetalleCitasServicios.tiempo}
+                  onChange={(v) => {
+                    setFormDetalleCitasServicios({ ...formDetalleCitasServicios, tiempo: v.target.value });
+                  }}
+                ></Input>
+              </FormGroup>
+            </Col>
+            <Col md={3}>
+              <FormGroup>
+                <Label for="fecha" style={{ fontSize: "1.2rem" }}>
+                  Fecha cita:
+                </Label>
+
+                <LocalizationProvider dateAdapter={AdapterDateFns}>
+                  <DatePicker
+                    disabled
+                    openPickerIcon={<Box />} // Aquí se elimina el ícono
+                    slotProps={{ textField: { size: "small" } }}
+                    style={{ height: 20 }}
+                    value={formDetalleCitasServicios.fecha ? new Date(formDetalleCitasServicios.fecha) : null}
+                    onChange={(fecha) => handleChangeFechaServicio("fecha", fecha)}
+                    format="dd/MM/yyyy"
+                    sx={{
+                      "& .MuiInputBase-input": {
+                        width: "128px",
+                      },
+                      "& .MuiPickersDay-dayWithMargin": {
+                        // Oculta el ícono del DatePicker
+                        display: "none",
+                      },
+                      "& .MuiSvgIcon-root": {
+                        // Aquí se oculta el ícono
+                        width: "0.8rem",
+                        backgroundColor: "transparent",
+                      },
+                      "& .MuiIconButton-root": {
+                        marginRight: "-16px",
+                      },
+                    }}
+                    renderInput={(props) => (
+                      <TextField
+                        {...props}
+                        size="small"
+                        InputProps={{ endAdornment: null }} // Aquí se elimina el ícono
+                        sx={{
+                          fontSize: "0.8rem",
+                          backgroundColor: "#ffccac",
+                          "& .MuiInputBase-input": {
+                            height: "30px", // Ajusta la altura aquí
+                            padding: "0 14px", // Ajusta el padding para centrar el texto
+                          },
+                          "& .MuiOutlinedInput-root": {
+                            height: "30px", // Ajusta la altura aquí
+                            padding: "0px", // Remueve el padding interno
+                          },
+                          "& .MuiOutlinedInput-input": {
+                            height: "30px", // Ajusta la altura aquí
+                            display: "flex",
+                            alignItems: "center",
+                          },
+                          "& .MuiInputAdornment-root": {
+                            height: "30px", // Asegura que los adornos tengan la misma altura
+                            "& button": {
+                              height: "30px", // Ajusta la altura del botón del ícono
+                            },
+                          },
+                        }}
+                      />
+                    )}
+                  />
+                </LocalizationProvider>
+              </FormGroup>
+            </Col>
+            <Col md={3}>
+              <FormGroup>
+                <Label for="fecha" style={{ fontSize: "1.2rem", marginRight: "5px" }}>
+                  Hora de cita:
+                </Label>
+                <LocalizationProvider dateAdapter={AdapterDateFns}>
+                  <TimePicker
+                    timeSteps={15}
+                    slotProps={{ textField: { size: "small" } }}
+                    value={formDetalleCitasServicios.fecha ? new Date(decodeURIComponent(formDetalleCitasServicios.fecha)) : null}
+                    // value={formCita.fecha ? new Date(formCita.fecha).toTimeString().substring(0, 5) : null}
+                    onChange={(hora) => handleChangeFechaServicio("hora", hora)}
+                    sx={{
+                      "& .MuiInputBase-input": {
+                        width: "128px",
+                      },
+                      "& .MuiPickersDay-dayWithMargin": {
+                        // Oculta el ícono del DatePicker
+                        display: "none",
+                      },
+                      "& .MuiSvgIcon-root": {
+                        // Aquí se oculta el ícono
+                        width: "0.8rem",
+                        backgroundColor: "#ffccac",
+                      },
+                    }}
+                    renderInput={(props) => (
+                      <Input
+                        {...props}
+                        size="small"
+                        style={{
+                          fontSize: "0.8rem",
+                          backgroundColor: "#ffccac",
+                        }}
+                      />
+                    )}
+                  />
+                </LocalizationProvider>
+              </FormGroup>
+            </Col>
+            <Col md="3">
+              <Label>Estatus Cita</Label>
+              <ButtonGroup>
+                <Input disabled value={formDetalleCitasServicios.estatusCita == 2 ? "A" : "R"}></Input>
+                <Button
+                  onClick={() =>
+                    setFormDetalleCitasServicios({ ...formDetalleCitasServicios, estatusCita: formDetalleCitasServicios.estatusCita == 2 ? 3 : 2 })
+                  }
+                >
+                  Editar
+                </Button>
+              </ButtonGroup>
+            </Col>
+
+            <Col md={6}>
+              <FormGroup>
+                <Button
+                  onClick={() => {
+                    putDetalleCitasServiciosUpd7(
+                      formDetalleCitasServicios.id,
+                      1, //SUCURSAL: 1 SUCURSAL: 2
+                      formCitaServicio.idCita,
+                      formDetalleCitasServicios.tiempo,
+                      formDetalleCitasServicios.idEstilista,
+                      1,
+                      formDetalleCitasServicios.idServicio,
+                      0,
+                      formDetalleCitasServicios.cantidad,
+                      formDetalleCitasServicios.precio,
+                      formDetalleCitasServicios.fecha,
+                      formDetalleCitasServicios.estatusCita
                     );
                   }}
                 >
