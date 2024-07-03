@@ -59,8 +59,6 @@ import { FaEye } from "react-icons/fa6";
 import { IoRefreshCircle } from "react-icons/io5";
 let schedulerData;
 
-
-
 const initialState = {
   showScheduler: false,
   viewModel: {},
@@ -79,21 +77,17 @@ function reducer(state, action) {
   }
 }
 
-
-
-
 function Basic() {
-
   useEffect(() => {
     // Añadir la clase al body
-    document.body.classList.add('special-body');
+    document.body.classList.add("special-body");
 
     // Quitar la clase del body cuando el componente se desmonte
     return () => {
-      document.body.classList.remove('special-body');
+      document.body.classList.remove("special-body");
     };
   }, []);
-  
+
   const [arreglo, setArreglo] = useState([]);
 
   const [arregloCitaDia, setArregloCitaDia] = useState([]);
@@ -405,9 +399,6 @@ function Basic() {
   };
 
   const ops1 = (schedulerData, event) => {
-    console.log({ event });
-    console.log({ schedulerData });
-
     handleOpenNewWindowEdit({
       idCita: event.idCita,
       idUser: event.no_estilista,
@@ -494,8 +485,6 @@ function Basic() {
       });
       return;
     }
-    const isVerified = await verificarDisponibilidad(event.tiempo, new Date(start), slotId);
-    if (!isVerified) return;
     // return;
     if (new Date(start) < new Date()) {
       Swal.fire({
@@ -505,6 +494,9 @@ function Basic() {
       });
       return;
     }
+    const isVerified = await verificarDisponibilidad(event.tiempo, new Date(start), slotId);
+    if (!isVerified) return;
+
     if (event.estadoCita == 2 && slotId != event.no_estilista) {
       Swal.fire({
         icon: "error",
@@ -640,7 +632,7 @@ function Basic() {
           >
             AS
           </FaMoneyBillAlt>
-          <FaTrash
+          <AiFillEdit
             size={23}
             onClick={() => {
               setEvent({
@@ -670,14 +662,14 @@ function Basic() {
               });
               setModalEdicionServicios2(true);
             }}
-          ></FaTrash>
-          <MdOutlineFreeCancellation
+          ></AiFillEdit>
+          <FaTrash
             disabled
             size={23}
             onClick={() => putDetalleCitasServiciosUpd4(0, params.row.sucursal, params.row.id, 0, params.row.idEstilista, 0, 0, 1, 0, 0, new Date())}
           >
             Cancelar
-          </MdOutlineFreeCancellation>
+          </FaTrash>
         </div>
       ),
     },
@@ -1294,6 +1286,7 @@ function Basic() {
       setdataEstilistaDisponibilidadHorario(response.data);
     });
   };
+
   const { dataCitasServicios, fetchDetalleCitasServicios, setdataCitasServicios } = useDetalleCitasServicios({
     noCliente: formCita.no_cliente,
     sucursal: 1,
@@ -1557,7 +1550,6 @@ function Basic() {
           <AiFillEdit
             size={20}
             onClick={() => {
-              console.log(cell.row);
               setModalEdicionServicios(true);
 
               setFormDetalleCitasServicios({
@@ -1728,18 +1720,7 @@ function Basic() {
       }
     });
   };
-  const postCrearCita = async () => {
-    if (formCitaServicio.idCita) {
-      setProductosModal(true);
-      return;
-    }
-
-    let fechaActual = new Date(formCita.fecha);
-    // Extrae el año, mes y día
-    let año = fechaActual.getFullYear();
-    let mes = fechaActual.getMonth(); // Nota: getMonth() devuelve un valor de 0 a 11, donde 0 es enero y 11 es diciembre
-    let día = fechaActual.getDate();
-    let fechaSinHora = new Date(año, mes, día);
+  const verificaDisponibilidadSucursal = () => {
     let entradaSucursal = dataEstilistaDisponibilidadHorario[0].hora_entrada;
     let salidaSucursal = dataEstilistaDisponibilidadHorario[0].hora_salida;
 
@@ -1758,7 +1739,21 @@ function Basic() {
     let minutosDesdeMedianocheCita = horaCita * 60 + minutoCita;
 
     let esValida = minutosDesdeMedianocheCita >= minutosDesdeMedianocheEntrada && minutosDesdeMedianocheCita <= minutosDesdeMedianocheSalida;
+    return esValida;
+  };
+  const postCrearCita = async () => {
+    if (formCitaServicio.idCita) {
+      setProductosModal(true);
+      return;
+    }
 
+    let fechaActual = new Date(formCita.fecha);
+    // Extrae el año, mes y día
+    let año = fechaActual.getFullYear();
+    let mes = fechaActual.getMonth(); // Nota: getMonth() devuelve un valor de 0 a 11, donde 0 es enero y 11 es diciembre
+    let día = fechaActual.getDate();
+    let fechaSinHora = new Date(año, mes, día);
+    const esValida = verificaDisponibilidadSucursal();
     if (new Date(formCita.fecha) < new Date()) {
       Swal.fire({
         icon: "error",
@@ -2903,21 +2898,16 @@ function Basic() {
     console.log({ params });
   };
 
-
-
-
   return (
     <>
-
-<div className="barra-titulo">
-<h1 className="logoBar">Peinados Express</h1>
-</div>
+      <div className="barra-titulo">
+        <h1 className="logoBar">Peinados Express</h1>
+      </div>
       <div className="contenedor-principal">
         <div className="timer">
-            <div className="estilo-timer">
-          <Timer />
-        </div>
-        
+          <div className="estilo-timer">
+            <Timer />
+          </div>
         </div>
         <Row>
           {/* <Col>
@@ -2979,12 +2969,7 @@ function Basic() {
             {format(new Date(datosParametros.fecha), "EEEE", { locale: es })}
           </h5>
         </div> */}
-
-       
       </div>
-
-
-     
 
       <div style={{ flex: 1, justifyContent: "right", alignContent: "right", alignItems: "right", display: "flex" }}></div>
       {/* <div style={{ height: "2%", display: "table", tableLayout: "fixed", width: "100%" }}>
@@ -3004,63 +2989,73 @@ function Basic() {
         />
       </div> */}
 
-<div className="container">
+      <div className="container">
+        <div className="nBarra">
+          <div className="botones-barra">
+            <ButtonGroup variant="contained" aria-label="outlined primary button group">
+              <Button size="sm" href="http://cbinfo.no-ip.info:9020/Ventas" target="_blank" rel="noopener noreferrer">
+                Ventas
+              </Button>
+              <Button size="sm" href="http://cbinfo.no-ip.info:9020/CatProductos" target="_blank" rel="noopener noreferrer">
+                Precios
+              </Button>
+              <Button size="sm" href="http://cbinfo.no-ip.info:9020/Promociones" target="_blank" rel="noopener noreferrer">
+                Promociones
+              </Button>
+              <Button size="sm" href="http://cbinfo.no-ip.info:9020/CatClientes" target="_blank" rel="noopener noreferrer">
+                Listado de cumpleañeros del mes
+              </Button>
+            </ButtonGroup>
+            <ButtonGroup variant="contained" aria-label="outlined primary button group">
+              <Button
+                size="sm"
+                onClick={() => {
+                  setModalCrear(true);
+                  return;
+                  handleOpenNewWindowNewSchedule();
+                  setIsModalActualizarOpen(true);
+                }}
+              >
+                {" "}
+                <IoIosAddCircle size={20}></IoIosAddCircle>
+                Nueva Cita
+              </Button>
 
-<div className="nBarra" > 
-  <div className="botones-barra">
-<ButtonGroup variant="contained" aria-label="outlined primary button group">
-<Button
-              size="sm"
-              onClick={() => {
-                setModalCrear(true);
-                return;
-                handleOpenNewWindowNewSchedule();
-                setIsModalActualizarOpen(true);
-              }}
-            >             <IoIosAddCircle size={20}></IoIosAddCircle>
-
-              
-               Nueva Cita
-            </Button>
- 
-
-            <Button
-              size="sm"
-              color={"primary"}
-              onClick={() => {
-                handleOpenNewWindowListaEspera();
-                setIsModalActualizarOpen(true);
-              }}
-            >
-                <IoListCircle  size={20}></IoListCircle >
-              Lista de espera
-            </Button>
-            <Button
-              size="sm"
-              color={"success"}
-              onClick={() => {
-                window.location.reload();
-              }}
-            >
-                 <IoRefreshCircle   size={20}></IoRefreshCircle  >
-              Actualizar sitio
-            </Button>
-            <Button
-              size="sm"
-              color={"success"}
-              onClick={() => {
-                setModalCitas(true);
-              }}
-            >
-              <FaEye    size={20}></FaEye   >
-              Mostrar citas
-            </Button>
- 
-</ButtonGroup>
-</div>
+              <Button
+                size="sm"
+                color={"primary"}
+                onClick={() => {
+                  handleOpenNewWindowListaEspera();
+                  setIsModalActualizarOpen(true);
+                }}
+              >
+                <IoListCircle size={20}></IoListCircle>
+                Lista de espera
+              </Button>
+              <Button
+                size="sm"
+                color={"success"}
+                onClick={() => {
+                  window.location.reload();
+                }}
+              >
+                <IoRefreshCircle size={20}></IoRefreshCircle>
+                Actualizar sitio
+              </Button>
+              <Button
+                size="sm"
+                color={"success"}
+                onClick={() => {
+                  setModalCitas(true);
+                }}
+              >
+                <FaEye size={20}></FaEye>
+                Mostrar citas
+              </Button>
+            </ButtonGroup>
+          </div>
+        </div>
       </div>
-      </div>
-
 
       <div style={{ marginLeft: "0%" }}>
         {state.showScheduler && (
@@ -3088,16 +3083,18 @@ function Basic() {
         )}
       </div>
       <div className="cardEstatus">
-      <div style={{ marginBottom: "10px", marginTop: "2%", display: "flex", justifyItems: "center", alignItems: "center", flexDirection: "column" }}>
-        <div style={statusBoxStyle}>
-          <div style={boxStyles.noDisponible}>NO DISPONIBLE</div>
-          <div style={boxStyles.requerido}>REQUERIDO</div>
-          <div style={boxStyles.asignado}>ASIGNADO</div>
-          <div style={boxStyles.enServicio}>EN SERVICIO</div>
-          <div style={boxStyles.domicilio}>DOMICILIO</div>
-          <div style={boxStyles.conflicto}>CONFLICTO</div>
+        <div
+          style={{ marginBottom: "10px", marginTop: "2%", display: "flex", justifyItems: "center", alignItems: "center", flexDirection: "column" }}
+        >
+          <div style={statusBoxStyle}>
+            <div style={boxStyles.noDisponible}>NO DISPONIBLE</div>
+            <div style={boxStyles.requerido}>REQUERIDO</div>
+            <div style={boxStyles.asignado}>ASIGNADO</div>
+            <div style={boxStyles.enServicio}>EN SERVICIO</div>
+            <div style={boxStyles.domicilio}>DOMICILIO</div>
+            <div style={boxStyles.conflicto}>CONFLICTO</div>
+          </div>
         </div>
-      </div>
       </div>
       {isModalOpen && (
         <div className="modal-overlay">
@@ -3120,6 +3117,19 @@ function Basic() {
             </Button>
             <Button
               onClick={() => {
+                console.log(event);
+                setFormCitaServicio({
+                  ...formCitaServicio,
+                  idCita: event.idCita,
+                });
+                setFormCita({
+                  ...formCita,
+                  no_cliente: event.no_cliente,
+                  fecha: event.hora1,
+                  no_estilista: event.no_estilista,
+                  esServicioDomicilio: event.esDomicilio,
+                  estatusCita: event.estadoCita,
+                });
                 setIsModalOpen(false);
                 setModalServicioUso(true);
               }}
@@ -3240,7 +3250,7 @@ function Basic() {
               <DataGrid
                 rows={arregloCitaDia}
                 columns={columns}
-                getRowId={(row) => row.id + row.importe + row.tiempo + row.descripcion}
+                getRowId={(row) => row.idServicio + row.no_cliente2 + row.importe + row.id}
                 onCellDoubleClick={handleCellDoubleClick}
                 rowHeight={28}
                 columnHeaderHeight={28}
@@ -3688,7 +3698,6 @@ function Basic() {
                 <Input
                   type="select"
                   name="atiende"
-                  disabled
                   id="atiende"
                   value={formDetalleCitasServicios.idEstilista}
                   onChange={(valor) => {
@@ -3887,7 +3896,7 @@ function Basic() {
                 <Input
                   type="select"
                   name="atiende"
-                  disabled
+                  // disabled
                   id="atiende"
                   value={formDetalleCitasServicios.idEstilista}
                   onChange={(valor) => {

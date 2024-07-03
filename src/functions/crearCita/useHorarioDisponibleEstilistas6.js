@@ -8,7 +8,9 @@ export const useHorarioDisponibleEstilistas6 = ({ fecha, cveEmpleado, tiempo }) 
   const fetchHorarioDisponibleEstilistas = async (fechaFetch, estilistaFetch, tiempoFetch) => {
     try {
       const response = await peinadosApi.get(
-        `/sp_horarioDisponibleEstilistas6?fechaDisponibilidad=${format(fecha, "yyyy-MM-dd HH:mm")}&cveEmpleado=${cveEmpleado}&tiempo=${tiempo}`
+        `/sp_horarioDisponibleEstilistas6?fechaDisponibilidad=${
+          fechaFetch ? format(fechaFetch, "yyyy-MM-dd HH:mm") : format(fecha, "yyyy-MM-dd HH:mm")
+        }&cveEmpleado=${estilistaFetch ? estilistaFetch : cveEmpleado}&tiempo=${tiempoFetch ? tiempoFetch : tiempo}`
       );
       setdataHorarioDisponibleEstilistas(response.data);
       return response;
