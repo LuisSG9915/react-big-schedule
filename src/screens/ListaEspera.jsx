@@ -13,6 +13,7 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { useCitaEmpalme } from "../functions/crearCita/useCitaEmpalme4";
 import { useHorarioDisponibleEstilistas6 } from "../functions/crearCita/useHorarioDisponibleEstilistas6";
 import { AiFillDelete, AiFillEdit, AiOutlineClose, AiOutlineSearch, AiOutlineReload } from "react-icons/ai";
+import { createTheme, ThemeProvider } from '@mui/material/styles';
 
 function ListaEspera() {
   const [openListaEspera, setOpenListaEspera] = useState(false);
@@ -605,7 +606,7 @@ function ListaEspera() {
           clave_prod: formClienteEspera.clave_prod,
           hora_estimada: formClienteEspera.hora_estimada,
           atendido: 1,
-          estilista: formClienteEspera.estilista,
+          estilista: formClienteEspera.estilista ? formClienteEspera.estilista : '',
           tiempo_servicio: formClienteEspera.tiempo_servicio,
           usuario_registra: 1,
           usuario_cita: formClienteEspera.no_cliente,
@@ -648,6 +649,22 @@ function ListaEspera() {
     };
     setformClienteEspera(defaultValues);
   };
+  const theme = createTheme({
+    components: {
+      MuiDataGrid: {
+        styleOverrides: {
+          root: {
+            '& .MuiDataGrid-cell': {
+              fontSize: '16px', // Cambia el tamaño de la fuente aquí
+            },
+            '& .MuiDataGrid-columnHeaders': {
+              fontSize: '16px', // Cambia el tamaño de la fuente de los encabezados aquí
+            },
+          },
+        },
+      },
+    },
+  });
   return (
     <>
       <Container>
@@ -665,7 +682,10 @@ function ListaEspera() {
           </Button>
         </div>
       </Container>
+      <ThemeProvider theme={theme}>
+
       <DataGrid rows={dataListaEspera} columns={columnListaEspera} />
+      </ThemeProvider>
       <Modal isOpen={openListaEspera} toggle={() => closeOpenListaEspera()} size="xl">
         <ModalHeader toggle={() => closeOpenListaEspera()}>
           {formClienteEspera.esEdicion ? "Edicion	de lista de espera" : "Agregar Lista de espera"}
@@ -844,6 +864,14 @@ function ListaEspera() {
             data={dataClientes}
             initialState={{ density: "compact" }}
             muiTableContainerProps={{ sx: { maxHeight: "350px" } }}
+            muiTableBodyProps={{ sx: { fontSize: "16px" } }}
+            muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
+            muiTableBodyCellProps={{
+              sx: {
+                fontSize: '16px', // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
+              },
+            }}
+
           />
         </ModalBody>
         <ModalFooter>
@@ -861,6 +889,14 @@ function ListaEspera() {
             data={dataProductos}
             initialState={{ density: "compact" }}
             muiTableContainerProps={{ sx: { maxHeight: "330px" } }}
+            muiTableBodyProps={{ sx: { fontSize: "16px" } }}
+            muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
+            muiTableBodyCellProps={{
+              sx: {
+                fontSize: '16px', // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
+              },
+            }}
+
           />
         </ModalBody>
         <ModalFooter>
@@ -872,7 +908,12 @@ function ListaEspera() {
       <Modal isOpen={estilistasModal} toggle={() => setEstilistasModal(!estilistasModal)} size="xl">
         <ModalHeader toggle={() => setEstilistasModal(!estilistasModal)}>Agregar estilista</ModalHeader>
         <ModalBody>
+        <ThemeProvider theme={theme}>
+
           <DataGrid rows={dataEstilistas} columns={columnsEstilistas} />
+
+          </ThemeProvider>
+
         </ModalBody>
         <ModalFooter>
           <Button color="primary" onClick={() => setEstilistasModal(!estilistasModal)}>

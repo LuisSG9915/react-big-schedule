@@ -16,8 +16,7 @@ export const useCumpleañosProximos = () => {
   };
 
   useEffect(() => {
-    if (tiempoCita == "" || !tiempoCita) return;
     fetchCumpleañosProximos();
-  }, [tiempoCita]);
+  }, []);
   return { dataCumpleañosProximos, fetchCumpleañosProximos };
 };

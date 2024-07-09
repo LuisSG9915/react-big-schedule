@@ -44,6 +44,7 @@ import { useVentasHistoriales } from "../functions/crearCita/useVentasHistoriale
 import { usesp_ClasificacionSel } from "../functions/crearCita/useDetalleSaldosPendientes copy";
 import { useCitaEmpalme } from "../functions/crearCita/useCitaEmpalme4";
 import { useCitaEmpalme5 } from "../functions/crearCita/useCitaEmpalme5";
+import { useCumpleañosProximos } from "../functions/crearCita/useCumpleañosProximos";
 import { useHorarioDisponibleEstilistas6 } from "../functions/crearCita/useHorarioDisponibleEstilistas6";
 import { useVentasOperaciones } from "../functions/crearCita/useVentasOperaciones";
 import { useSucursales } from "../functions/crearCita/useSucursales";
@@ -52,7 +53,7 @@ import { useDetalleCitasObservaciones } from "../functions/crearCita/useDetalleC
 import { AiFillDelete, AiFillEdit, AiOutlineClose, AiOutlineSearch, AiOutlineReload } from "react-icons/ai";
 import { useObservaciones } from "../functions/crearCita/useObservaciones";
 import { styled } from "@mui/material/styles";
-import { Box, Typography, Modal } from "@mui/material";
+import { Box, Typography, Modal,FormControlLabel, Checkbox } from "@mui/material";
 import Draggable from "react-draggable";
 import debounce from "lodash.debounce";
 import { IoIosAddCircle } from "react-icons/io";
@@ -61,6 +62,8 @@ import { FaEye } from "react-icons/fa6";
 import { IoRefreshCircle } from "react-icons/io5";
 import { usePromocionesZonas } from "../functions/crearCita/usePromocionesZonas";
 import { usePromocionesGrupos } from "../functions/crearCita/usePromocionesGrupos";
+import { createTheme, ThemeProvider } from '@mui/material/styles';
+
 let schedulerData;
 
 const initialState = {
@@ -82,6 +85,23 @@ function reducer(state, action) {
 }
 
 function Basic() {
+  const theme = createTheme({
+    components: {
+      MuiDataGrid: {
+        styleOverrides: {
+          root: {
+            '& .MuiDataGrid-cell': {
+              fontSize: '16px', // Cambia el tamaño de la fuente aquí
+            },
+            '& .MuiDataGrid-columnHeaders': {
+              fontSize: '16px', // Cambia el tamaño de la fuente de los encabezados aquí
+            },
+          },
+        },
+      },
+    },
+  });
+  
   useEffect(() => {
     // Añadir la clase al body
     document.body.classList.add("special-body");
@@ -605,7 +625,7 @@ function Basic() {
       align: "center",
       sortable: false,
       renderCell: (params) => (
-        <div>
+        <div style={{ fontSize: "16px" }}>
           <FaMoneyBillAlt
             size={23}
             disabled
@@ -679,7 +699,7 @@ function Basic() {
     },
 
     // Esta es la columna del ID único
-    { field: "d_stilista", headerName: "Estilista", width: 70, align: "center", sortable: false }, // Esta es la columna del ID único
+    { field: "d_stilista", headerName: "Estilista", width: 85, align: "center", sortable: false, style: { fontSize: "16px" } }, // Esta es la columna del ID único
     {
       field: "stao_estilista",
       headerName: "M/Folio",
@@ -688,7 +708,7 @@ function Basic() {
         setCellProps: () => ({ align: "center", justifyContent: "center" }),
       },
       renderCell: (params) => (
-        <p style={{ lineHeight: "28px", height: "28px", margin: 0 }}>
+        <p style={{ lineHeight: "28px", height: "28px", margin: 0, fontSize: "16px" }}>
           {params.row.estatusCita == 4
             ? params.row.stao_estilista
             : params.row.estatusCita == 2
@@ -705,19 +725,17 @@ function Basic() {
         </p>
       ),
     },
-    {
-      field: "d_cliente",
-      headerName: "Cliente",
-      description: "This column has a value getter and is not sortable.",
-      sortable: false,
-      width: 300,
-    },
-    { field: "descripcion", headerName: "Servicio", width: 270 },
+    { field: "d_cliente", headerName: "Cliente", width: 300, style: { fontSize: "16px" } },
+    { field: "descripcion", headerName: "Servicio", width: 270, style: { fontSize: "16px" } },
     {
       field: "tiempo",
       headerName: "T",
       width: 40,
-      renderCell: (params) => <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>{params.row.tiempo}</p>,
+      renderCell: (params) => (
+        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0, fontSize: "16px" }}>
+          {params.row.tiempo}
+        </p>
+      ),
     },
 
     {
@@ -725,7 +743,9 @@ function Basic() {
       headerName: "HI",
       width: 60,
       renderCell: (params) => (
-        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>{format(new Date(params.row.hora_cita), "HH:mm")}</p>
+        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0, fontSize: "16px" }}>
+          {format(new Date(params.row.hora_cita), "HH:mm")}
+        </p>
       ),
     },
     {
@@ -733,7 +753,9 @@ function Basic() {
       headerName: "HF",
       width: 60,
       renderCell: (params) => (
-        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>{format(new Date(params.row.horafinal), "HH:mm")}</p>
+        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0, fontSize: "16px" }}>
+          {format(new Date(params.row.horafinal), "HH:mm")}
+        </p>
       ),
     },
     {
@@ -741,19 +763,19 @@ function Basic() {
       headerName: "Total",
       width: 60,
       renderCell: (params) => (
-        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>
+        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0, fontSize: "16px" }}>
           {Number(params.row.importe).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}
         </p>
       ),
     },
-    { field: "id", headerName: "Clave", width: 70, align: "center", sortable: false }, // Esta es la columna del ID único
+    { field: "id", headerName: "Clave", width: 70, align: "center", sortable: false, style: { fontSize: "16px" } }, // Esta es la columna del ID único
 
-    // {
-    //   field: "cantidad",
-    //   headerName: "Cantidad",
-    //   width: 130,
-    //   renderCell: (params) => <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>{params.row.cantidad}</p>,
-    // },
+    {
+      field: "observaciones",
+      headerName: "Observaciones",
+      width: 270,
+      renderCell: (params) => <p className="centered-cell">{params.row.observaciones}</p>,
+    },
   ];
 
   const columns = [
@@ -977,6 +999,14 @@ function Basic() {
       })
       .then((response) => {});
   };
+const felicitarCliente = async (id, sucursal) => {
+    await peinadosApi.put("/sp_clientesFelicitarUpd", null, {
+        params: {
+            id: id,
+            suc: sucursal,
+        },
+    });
+};
   const putEditarCita = async () => {
     let fechaActual = new Date();
     // Extrae el año, mes y día
@@ -1478,6 +1508,7 @@ function Basic() {
     no_estilista: formCita.no_estilista,
     tiempoCita: formVentaTemporal.tiempo,
   });
+  const  {dataCumpleañosProximos, fetchCumpleañosProximos}= useCumpleañosProximos();
   const { dataCitaEmpalme5, fetchCitaEmpalme5 } = useCitaEmpalme5({
     fechacita: formCita.fecha,
     no_estilista: formCita.no_estilista,
@@ -1497,6 +1528,7 @@ function Basic() {
   const [formPromocion, setFormPromocion] = useState({
     id: 0,
   });
+  const [modalCumpleanios, setModalCumpleanios] = useState(false)
   const [modalPromociones, setModalPromociones] = useState(false);
   const [modalPromocionesGrupos, setModalPromocionesGrupos] = useState(false);
 
@@ -1611,7 +1643,7 @@ function Basic() {
       renderCell: (cell) => (
         <>
           <AiFillDelete
-            size={20}
+            size={28}
             onClick={() => {
               setDataVentaTemporal({ ...dataVentaTemporal, id: cell.row.id });
 
@@ -1632,7 +1664,7 @@ function Basic() {
             Eliminar
           </AiFillDelete>
           <AiFillEdit
-            size={20}
+            size={28}
             onClick={() => {
               console.log(cell.row);
               setModalEdicionServicios(true);
@@ -1658,7 +1690,7 @@ function Basic() {
     {
       field: "observaciones",
       headerName: "Descripción",
-      width: 120,
+      width: 250,
       renderCell: (cell) => {
         // Divide el texto en dos partes por el espacio
         const [parte1, parte2] = cell.row.descripcion.split(" ");
@@ -1688,7 +1720,7 @@ function Basic() {
     { field: "cantidad", headerName: "Cantidad", width: 70 },
     {
       field: "fecha",
-      headerName: "Hora cita",
+      headerName: "Hora",
       width: 130,
       renderCell: (cell) => <p className="centered-cell">{format(new Date(cell.row.fecha), "hh:mm a")}</p>,
     },
@@ -1701,7 +1733,7 @@ function Basic() {
       renderCell: (cell) => (
         <>
           <AiFillDelete
-            size={20}
+            size={35}
             onClick={() => {
               setDataVentaTemporal({ ...dataVentaTemporal, id: cell.row.id });
 
@@ -1722,7 +1754,7 @@ function Basic() {
             Eliminar
           </AiFillDelete>
           <AiFillEdit
-            size={20}
+            size={35}
             onClick={() => {
               setModalEdicionServicios(true);
 
@@ -1772,7 +1804,7 @@ function Basic() {
     { field: "cantidad", headerName: "Cantidad", width: 70 },
     // {
     //   field: "fecha",
-    //   headerName: "Hora cita",
+    //   headerName: "Hora",
     //   width: 130,
     //   renderCell: (cell) => <p className="centered-cell">{format(new Date(cell.row.fecha), "hh:mm a")}</p>,
     // },
@@ -2240,14 +2272,15 @@ function Basic() {
     {
       accessorKey: "tiempox",
       header: "Tiempo",
-      size: 100,
+      size: 30,
+
       Cell: ({ cell }) => <p className="centered-cell">{cell.row.original.tiempox + " min"}</p>,
       className: "centered-cell", // Agrega esta línea para aplicar la clase CSS
     },
     {
       accessorKey: "precio_lista",
       header: "Precio",
-      size: 100,
+      size: 30,
       Cell: ({ cell }) => (
         <p className="centered-cell">{Number(cell.row.original.precio).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}</p>
       ),
@@ -2409,7 +2442,7 @@ function Basic() {
   ];
   const columnsDataVentasOperaciones = [
     // { field: "x", headerName: "Seleccion", renderCell: renderButtonProduct, width: 130 },
-    { field: "nombre", headerName: "Nombre estilista", width: 130 },
+    { field: "nombre", headerName: "Nombre estilista", width: 250 },
     { field: "descripcion", headerName: "Producto", width: 250 },
     { field: "cant_producto", headerName: "Cantidad", width: 250 },
     { field: "precio", headerName: "Precio", width: 130 },
@@ -3060,6 +3093,49 @@ function Basic() {
     // Aquí puedes poner la acción que quieras realizar.
     console.log({ params });
   };
+  const columnsCumple = useMemo(
+    () => [
+      {
+        header: 'Nombre',
+        accessorKey: 'nombre',
+        style: { fontSize: '1.2rem' },
+      },
+      {
+        header: 'Celular',
+        accessorKey: 'celular',
+        style: { fontSize: '1.2rem' },
+      },
+      {
+        header: 'Telefono',
+        accessorKey: 'telefono',
+        style: { fontSize: '1.2rem' },
+      },
+      {
+        header: 'Cumpleaños',
+        accessorKey: 'cumpleaños',
+        cell: ({ cell }) => (
+          <Typography onClick={() => { console.log(cell.row.original.cumpleaños) }}>{format(new Date(cell.row.original.cumpleaños), 'dd')}</Typography>),
+        style: { fontSize: '1.2rem' },
+      },
+      {
+        header: 'Felicitado',
+        accessorKey: 'id',
+        style: { fontSize: '1.2rem' },
+        Cell: ({ cell }) => (
+          <FormControlLabel
+            control={<Checkbox checked={cell.row.original.verificaCumpleaños} onClick={() => {
+              felicitarCliente(cell.row.original.id, 1)
+              fetchCumpleañosProximos(true)
+            }} />}
+            disabled={cell.row.original.verificaCumpleaños}
+            label={''}
+            style={{ fontSize: '1.2rem' }}
+          />
+        ),
+      }
+    ],
+    []
+  );
   const columnsPromo = useMemo(
     () => [
       {
@@ -3244,7 +3320,7 @@ function Basic() {
                 <RiDiscountPercentLine size={20}></RiDiscountPercentLine>
                 Promociones
               </Button>
-              <Button href="http://cbinfo.no-ip.info:9020/CatClientes" size="sm">
+              <Button onClick={()=>setModalCumpleanios(true)} size="sm">
                 <FaBirthdayCake size={20}></FaBirthdayCake>
               </Button>
             </ButtonGroup>
@@ -3438,6 +3514,13 @@ function Basic() {
             data={dataClientes}
             initialState={{ density: "compact" }}
             muiTableContainerProps={{ sx: { maxHeight: "250px", overflow: "auto" } }}
+            muiTableBodyProps={{ sx: { fontSize: "16px" } }}
+            muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
+            muiTableBodyCellProps={{
+              sx: {
+                fontSize: '16px', // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
+              },
+            }}   
           />
         </Box>
       </Modal>
@@ -3448,10 +3531,9 @@ function Basic() {
               <h3>Tabla de citas</h3>
               <Col sm={6}>
                 <InputGroup style={{ marginBottom: "5px" }}>
-                  <Label className="label-fixed-width" style={{ fontSize: "0.8rem" }}>
-                    Tipo de cita:
-                  </Label>
-                  <Input style={{ fontSize: "0.8rem" }} type="select" size={"sm"} value={tipoCita} onChange={(e) => setTipoCita(e.target.value)}>
+                  <Label className="label-fixed-width" style={{ fontSize: "1.2rem" }}>
+                    Tipo de cita:                  </Label>
+                  <Input style={{ fontSize: "1.2rem" }} type="select" size={"sm"} value={tipoCita} onChange={(e) => setTipoCita(e.target.value)}>
                     <option value={"%"}>Todos</option>
                     <option value={"1"}>Cita</option>
                     <option value={"2"}>Servicio</option>
@@ -3497,6 +3579,8 @@ function Basic() {
                 </div>
               </Col>
               <br />
+              <ThemeProvider theme={theme}>
+
               <DataGrid
                 rows={arregloCitaDia}
                 columns={columns2}
@@ -3510,19 +3594,8 @@ function Basic() {
                   },
                 }}
               />
-              <DataGrid
-                rows={arregloCitaDia}
-                columns={columns}
-                getRowId={(row) => row.idServicio + row.no_cliente2 + row.importe + row.id + new Date(row.horafinal)}
-                onCellDoubleClick={handleCellDoubleClick}
-                rowHeight={28}
-                columnHeaderHeight={28}
-                sx={{
-                  "& .MuiDataGrid-pagination": {
-                    height: "10px",
-                  },
-                }}
-              />
+              </ThemeProvider>
+              
             </div>
           </Box>
         </Modal>
@@ -3540,7 +3613,7 @@ function Basic() {
               <Col>
                 <InputGroup>
                   <Label style={{ fontSize: "1.2rem", minWidth: "90px" }} for="fecha">
-                    Fecha cita:
+                    Fecha:
                   </Label>
                   <Input
                     style={{ fontSize: "1.2rem" }}
@@ -3628,7 +3701,11 @@ function Basic() {
           <Button color="primary" onClick={() => setProductosModal(true)}>
             Ingresar servicios
           </Button>
+          <ThemeProvider theme={theme}>
+
           <DataGrid autoHeight rows={dataCitasServicios} columns={columnsCitasServiciosAltaServicio}></DataGrid>
+
+          </ThemeProvider>
           <Container>
             <ButtonGroup>
               <Button
@@ -3674,6 +3751,14 @@ function Basic() {
               data={dataProductos}
               initialState={{ density: "compact" }}
               muiTableContainerProps={{ sx: { maxHeight: "330px" } }}
+                muiTableBodyProps={{ sx: { fontSize: "16px" } }}
+                muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
+                muiTableBodyCellProps={{
+                  sx: {
+                    fontSize: '16px', // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
+                  },
+                }}
+              
             />
           ) : null}
         </Box>
@@ -3688,7 +3773,13 @@ function Basic() {
               data={dataProductos}
               initialState={{ density: "compact" }}
               muiTableContainerProps={{ sx: { maxHeight: "330px" } }}
-            />
+              muiTableBodyProps={{ sx: { fontSize: "16px" } }}
+              muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
+              muiTableBodyCellProps={{
+                sx: {
+                  fontSize: '16px', // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
+                },
+              }}            />
           ) : null}
         </Box>
       </Modal>
@@ -3699,6 +3790,8 @@ function Basic() {
             <AiOutlineClose onClick={() => setModalCitasObservaciones(false)} />
           </div>
           <Typography variant="h4">Observaciones del catalogo</Typography>
+          <ThemeProvider theme={theme}>
+
           <DataGrid
             autoHeight
             rows={dataObservaciones}
@@ -3706,7 +3799,9 @@ function Basic() {
             pageSize={3} // Número de filas por página
             rowsPerPageOptions={[3]} // Opciones de filas por página en el dropdown
             pagination
-          ></DataGrid>
+          ></DataGrid> 
+
+          </ThemeProvider>
         </Box>
       </Modal>
 
@@ -3722,12 +3817,16 @@ function Basic() {
           <hr />
           <Label>Cliente:</Label>
           <Input disabled value={formCitaDescripciones.descripcion_no_cliente}></Input>
+          <ThemeProvider theme={theme}>
+
           <DataGrid autoHeight rows={dataClientesPuntos} columns={columnsPuntos} />
+
+          </ThemeProvider>
         </Box>
       </Modal>
 
       <Modal open={ModalOperacionesPuntos} onClose={() => setModalOperacionesPuntos(false)}>
-        <Box sx={style}>
+        <Box sx={styleAltaServicio}>
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <AiOutlineClose onClick={() => setModalOperacionesPuntos(false)} />
           </div>
@@ -3739,7 +3838,11 @@ function Basic() {
             <Label>Fecha: {formPuntosObservaciones.fecha ? format(new Date(formPuntosObservaciones.fecha), "dd/MM/yyyy") : ""} </Label>
             <Label>Hora: {formPuntosObservaciones.fecha ? format(new Date(formPuntosObservaciones.fecha), "HH:mm") : ""}</Label>
           </div>
+          <ThemeProvider theme={theme}>
+
           <DataGrid autoHeight rows={dataOperaciones} columns={columnsConultaPuntos} />
+
+          </ThemeProvider>
 
           <hr />
           <div style={{ display: "flex", justifyContent: "space-between" }}>
@@ -3779,7 +3882,11 @@ function Basic() {
       <Modal open={puntosModal} onClose={() => setPuntosModal(false)}>
         <Box sx={style}>
           <Typography variant="h4">Agregar productos</Typography>
+          <ThemeProvider theme={theme}>
+
           <DataGrid rows={dataClientesPuntos} columns={columnsProductos} />
+
+          </ThemeProvider>
         </Box>
       </Modal>
 
@@ -3900,17 +4007,21 @@ function Basic() {
             {" "}
             Consultar
           </Button>
+          <ThemeProvider theme={theme}>
 
           <DataGrid
             rows={dataVentasHistoriales}
             columns={columnsDataVentasHistoriales}
             getRowId={(row) => Number(row.sucursal) + Number(row.no_venta)}
+            
           />
+
+          </ThemeProvider>
         </Box>
       </Modal>
 
       <Modal open={ModalVentasOperaciones} onClose={() => setModalVentasOperaciones(false)}>
-        <Box sx={style}>
+        <Box sx={styleAltaServicio}>
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <AiOutlineClose onClick={() => setModalVentasOperaciones(false)} />
           </div>
@@ -3954,11 +4065,15 @@ function Basic() {
               <Input disabled value={formVentaOperaciones.no_venta} placeholder="No_venta"></Input>
             </Col>
           </Row>
+          <ThemeProvider theme={theme}>
+
           <DataGrid
             rows={DataVentasOperaciones}
             columns={columnsDataVentasOperaciones}
             getRowId={(row) => Number(row.sucursal) + Number(row.no_venta)}
           />
+
+          </ThemeProvider>
         </Box>
       </Modal>
 
@@ -3972,7 +4087,14 @@ function Basic() {
               data={dataProductos}
               initialState={{ density: "compact" }}
               muiTableContainerProps={{ sx: { maxHeight: "330px" } }}
-            />
+              muiTableBodyProps={{ sx: { fontSize: "16px" } }}
+              muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
+              muiTableBodyCellProps={{
+                sx: {
+                  fontSize: '16px', // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
+                },
+              }}            />
+            
           ) : null}
         </Box>
       </Modal>
@@ -3986,7 +4108,13 @@ function Basic() {
               data={dataProductos}
               initialState={{ density: "compact" }}
               muiTableContainerProps={{ sx: { maxHeight: "330px" } }}
-            />
+              muiTableBodyProps={{ sx: { fontSize: "16px" } }}
+              muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
+              muiTableBodyCellProps={{
+                sx: {
+                  fontSize: '16px', // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
+                },
+              }}               />
           ) : null}
         </Box>
       </Modal>
@@ -4006,7 +4134,7 @@ function Basic() {
             <Col md={6}>
               <FormGroup>
                 <Label style={{ fontSize: "1.2rem" }} for="atiende">
-                  Seleccione un estilista
+ Estilista
                 </Label>
                 <Input
                   type="select"
@@ -4055,7 +4183,7 @@ function Basic() {
             <Col md={3}>
               <FormGroup>
                 <Label for="fecha" style={{ fontSize: "1.2rem" }}>
-                  Fecha cita:
+                  Fecha:
                 </Label>
 
                 <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -4063,7 +4191,7 @@ function Basic() {
                     disabled
                     openPickerIcon={<Box />} // Aquí se elimina el ícono
                     slotProps={{ textField: { size: "small" } }}
-                    style={{ height: 20 }}
+                    style={{ height: 20, fontSize: "1.2rem" }}
                     value={formDetalleCitasServicios.fecha ? new Date(formDetalleCitasServicios.fecha) : null}
                     onChange={(fecha) => handleChangeFechaServicio("fecha", fecha)}
                     format="dd/MM/yyyy"
@@ -4077,7 +4205,7 @@ function Basic() {
                       },
                       "& .MuiSvgIcon-root": {
                         // Aquí se oculta el ícono
-                        width: "0.8rem",
+                        width: "1.2rem",
                         backgroundColor: "transparent",
                       },
                       "& .MuiIconButton-root": {
@@ -4090,7 +4218,7 @@ function Basic() {
                         size="small"
                         InputProps={{ endAdornment: null }} // Aquí se elimina el ícono
                         sx={{
-                          fontSize: "0.8rem",
+                          fontSize: "1.2rem",
                           backgroundColor: "#ffccac",
                           "& .MuiInputBase-input": {
                             height: "30px", // Ajusta la altura aquí
@@ -4125,7 +4253,7 @@ function Basic() {
                 </Label>
                 <LocalizationProvider dateAdapter={AdapterDateFns}>
                   <TimePicker
-                    timeSteps={15}
+                    timeSteps={{ minutes: 15 }}
                     slotProps={{ textField: { size: "small" } }}
                     value={formDetalleCitasServicios.fecha ? new Date(decodeURIComponent(formDetalleCitasServicios.fecha)) : null}
                     // value={formCita.fecha ? new Date(formCita.fecha).toTimeString().substring(0, 5) : null}
@@ -4140,7 +4268,7 @@ function Basic() {
                       },
                       "& .MuiSvgIcon-root": {
                         // Aquí se oculta el ícono
-                        width: "0.8rem",
+                        width: "1.2rem",
                         backgroundColor: "#ffccac",
                       },
                     }}
@@ -4149,7 +4277,7 @@ function Basic() {
                         {...props}
                         size="small"
                         style={{
-                          fontSize: "0.8rem",
+                          fontSize: "1.2rem",
                           backgroundColor: "#ffccac",
                         }}
                       />
@@ -4159,9 +4287,10 @@ function Basic() {
               </FormGroup>
             </Col>
             <Col md={3}>
-              <FormGroup style={{ display: "flex", alignItems: "center", marginBottom: "0px" }}>
-                <Label>Tiempo</Label>
+              <FormGroup >
+                <Label style={{ fontSize: "1.2rem" }}>Tiempo</Label>
                 <Input
+                  style={{ fontSize: "1.2rem" }}
                   value={formDetalleCitasServicios.tiempo}
                   onChange={(e) => setFormDetalleCitasServicios({ ...formDetalleCitasServicios, tiempo: e.target.value })}
                 ></Input>
@@ -4171,6 +4300,7 @@ function Basic() {
             <Col md={6}>
               <FormGroup>
                 <Button
+                color="success"
                   onClick={() => {
                     putDetalleCitasServiciosUpd4(
                       formDetalleCitasServicios.id,
@@ -4237,7 +4367,7 @@ function Basic() {
                   Producto
                 </Label>
                 <InputGroup addonType="append">
-                  <Input bsSize="sm" disabled value={formDetalleCitasServicios.d_clave_prod} type="text" name="cliente" id="cliente" size={"small"} />
+                  <Input style={{ fontSize: "1.2rem" }} bsSize="sm" disabled value={formDetalleCitasServicios.d_clave_prod} type="text" name="cliente" id="cliente" size={"small"} />
                   <Button size="sm" onClick={() => setProductosModalEdicion(true)}>
                     Buscar
                   </Button>
@@ -4269,7 +4399,7 @@ function Basic() {
             <Col md={3}>
               <FormGroup>
                 <Label for="fecha" style={{ fontSize: "1.2rem" }}>
-                  Fecha cita:
+                  Fecha:
                 </Label>
 
                 <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -4373,9 +4503,9 @@ function Basic() {
               </FormGroup>
             </Col>
             <Col md="3">
-              <Label>Estatus Cita</Label>
+              <Label style={{ fontSize: "1.2rem" }}>Estatus Cita</Label>
               <ButtonGroup>
-                <Input disabled value={formDetalleCitasServicios.estatusCita == 2 ? "A" : "R"}></Input>
+                <Input style={{ fontSize: "1.2rem" }} disabled value={formDetalleCitasServicios.estatusCita == 2 ? "A" : "R"}></Input>
                 <Button
                   onClick={() =>
                     setFormDetalleCitasServicios({ ...formDetalleCitasServicios, estatusCita: formDetalleCitasServicios.estatusCita == 2 ? 3 : 2 })
@@ -4387,8 +4517,12 @@ function Basic() {
             </Col>
 
             <Col md={6}>
-              <FormGroup>
+              <div style={{ display: "flex", alignItems: "flex-end", marginBottom: "5px" }}>
+
+              <FormGroup >
+                
                 <Button
+                color="success"
                   onClick={() => {
                     putDetalleCitasServiciosUpd7(
                       formDetalleCitasServicios.id,
@@ -4403,12 +4537,13 @@ function Basic() {
                       formDetalleCitasServicios.precio,
                       formDetalleCitasServicios.fecha,
                       formDetalleCitasServicios.estatusCita
-                    );
-                  }}
-                >
+                      );
+                    }}
+                    >
                   Guardar
                 </Button>
               </FormGroup>
+                  </div>
             </Col>
           </Row>
         </Box>
@@ -4443,6 +4578,7 @@ function Basic() {
             <>
               <Input value={formCitaServioActualizacion?.estatusCita == 2 ? "Requerido" : "Asignado"}></Input>
               <Button
+              color="success"
                 onClick={() =>
                   setFormCitaServioActualizacion({
                     ...formCitaServioActualizacion,
@@ -4571,15 +4707,25 @@ function Basic() {
         </Box>
       </Modal>
       <Modal open={modalPromociones} onClose={() => setModalPromociones(false)} disableAutoFocus disableEnforceFocus>
-        <Box style={styleCrearCita}>
-          <Typography>Promociones</Typography>
-          <MaterialReactTable columns={columnsPromo} data={dataPromocionesZonas} initialState={{ density: "compact" }} />
-          <Button onClick={() => setModalPromociones(false)}>Salir</Button>
+        <Box sx={{...styleAltaServicio}}>
+          <h3>Promociones</h3>
+          <MaterialReactTable columns={columnsPromo} data={dataPromocionesZonas} initialState={{ density: "compact" }}               muiTableBodyProps={{ sx: { fontSize: "16px" } }}
+              muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
+              muiTableBodyCellProps={{
+                sx: {
+                  fontSize: '16px', // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
+                },
+              }}    />
+          <br />
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+
+          <Button color="danger" onClick={() => setModalPromociones(false)}>Salir</Button>
+          </div>
         </Box>
       </Modal>
-      <Modal open={modalPromocionesGrupos} onClose={() => setModalPromocionesGrupos(false)}>
-        <Box style={styleCantidad}>
-          <Typography>Promociones Grupos</Typography>
+      <Modal open={modalPromocionesGrupos} onClose={() => setModalPromocionesGrupos(false)} disableAutoFocus disableEnforceFocus>
+        <Box sx={{...styleAltaServicio}}>
+          <h3>Promociones Grupos</h3>
           <Table>
             <thead>
               <tr>
@@ -4604,21 +4750,49 @@ function Basic() {
                   <td>{Math.trunc(dato.descuentoPorcentaje * 100)} %</td>
                   <td>{dato.precioFijo}</td>
                   <td>{dato.d_redondeo}</td>
-                  <td>
-                    <AiFillDelete color="lightred" onClick={() => eliminarPromoGrupo(dato)} size={23}></AiFillDelete>
-                  </td>
                 </tr>
               ))}
             </tbody>
           </Table>
-          <Button onClick={() => setModalPromocionesGrupos(false)}>Salir</Button>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}> 
+
+          <Button color="danger" onClick={() => setModalPromocionesGrupos(false)}>Salir</Button>
+          </div>
         </Box>
       </Modal>
+
+      <Modal open={modalCumpleanios} onClose={() => setModalCumpleanios(false)} disableAutoFocus disableEnforceFocus>
+        <Box sx={{...styleAltaServicio}}>
+          <h3>Cumpleaños del mes</h3>
+            <MaterialReactTable
+              columns={columnsCumple}
+              data={dataCumpleañosProximos}
+              enablePagination={false}
+              enableSorting={false}
+              enableFiltration={false}
+              enableGrouping={false}
+              enableRowSelection={false}
+              enableRowExport={false}
+              muiTableBodyProps={{ sx: { fontSize: "16px" } }}
+              muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
+              muiTableBodyCellProps={{
+                sx: {
+                  fontSize: '16px', // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
+                },
+              }}   
+            />
+          <div style={{ display: "flex", justifyContent: "flex-end" }}> 
+
+          <Button color="danger" onClick={() => setModalCumpleanios(false)}>Salir</Button>
+          </div>
+        </Box>
+      </Modal>
+
       <Draggable>
         <Modal
           keepMounted
           open={ModalCrear}
-          style={{ maxWidth: "41%", maxHeight: "95%", overflow: "auto" }}
+          style={{ maxWidth: "48%", maxHeight: "95%", overflow: "auto" }}
           onClose={() => setModalCrear(false)}
           disableEnforceFocus
         >
@@ -4627,8 +4801,8 @@ function Basic() {
               onClick={() => setModalCrear(false)}
               style={{
                 cursor: "pointer",
-                marginRight: "10px",
-                marginTop: "10px",
+                marginRight: "2px",
+                marginTop: "2px",
                 width: "20px",
                 height: "20px",
                 backgroundColor: "red",
@@ -4678,31 +4852,31 @@ function Basic() {
                 </Button>
               </div>
             </div>
-            <div style={{ maxWidth: "600px", margin: "0 auto" }}>
+            <div >
               <Row form>
                 <Col xs="12" style={{ marginBottom: 0 }}>
                   <FormGroup style={{ display: "flex", alignItems: "center", marginBottom: "0px" }}>
-                    <Label for="cliente" style={{ marginRight: "5px", fontSize: "0.8rem" }}>
+                    <Label for="cliente" style={{ width:125, fontSize: "1.1rem" }}>
                       Cliente:
                     </Label>
-                    <InputGroup size="sm" style={{ flexGrow: 1 }}>
+                    <InputGroup size="sm" style={{ flexGrow: 1, alignItems: "center", marginBottom: "0px" }}>
                       <Input
                         disabled
                         value={formCitaDescripciones.descripcion_no_cliente}
                         type="text"
                         name="cliente"
                         id="cliente"
-                        style={{ fontSize: "0.8rem" }}
+                        style={{ fontSize: "1.1rem" }}
                       />
-                      <Button size="sm" onClick={() => setClientesModal(true)} style={{ fontSize: "0.8rem" }}>
+                      <Button size="sm" onClick={() => setClientesModal(true)} style={{ fontSize: "1.1rem" }}>
                         Buscar
                       </Button>
                     </InputGroup>
                   </FormGroup>
                 </Col>
                 <Col xs="6">
-                  <InputGroup size="sm" style={{ flexGrow: 1 }}>
-                    <Label for="cliente" style={{ marginRight: "5px", fontSize: "0.8rem", width: 70 }}>
+                <InputGroup size="sm" style={{ flexGrow: 1, alignItems: "center", marginBottom: "0px" }}>
+                    <Label for="cliente" style={{ width:120, fontSize: "1.1rem" }}>
                       Observacion:
                     </Label>
 
@@ -4714,13 +4888,15 @@ function Basic() {
                       type="text"
                       name="observacion"
                       id="observacion"
-                      style={{ fontSize: "0.8rem" }}
+                      style={{ fontSize: "1.1rem" }}
                     />
                   </InputGroup>
                 </Col>
                 <Col xs="6" style={{ display: "flex", alignItems: "center", marginBottom: "0px" }}>
                   <FormGroup style={{ display: "flex", alignItems: "center", marginBottom: "0px" }}>
-                    <Label for="puntos" style={{ marginRight: "5px", fontSize: "0.8rem" }}>
+
+                <InputGroup size="sm" style={{ flexGrow: 1, alignItems: "center", marginBottom: "0px" }}>
+                  <Label for="cliente" style={{ width:70, fontSize: "1.1rem" }}>
                       Ptos:
                     </Label>
                     <Input
@@ -4730,14 +4906,17 @@ function Basic() {
                       type="text"
                       name="puntos"
                       id="puntos"
-                      style={{ fontSize: "0.8rem" }}
-                    />
-                  </FormGroup>
+                      style={{ fontSize: "1.1rem" }}
+                      />
+                  </InputGroup>
+                      </FormGroup>
                 </Col>
 
                 <Col xs="6">
-                  <FormGroup style={{ display: "flex", alignItems: "center", marginBottom: "0px" }}>
-                    <Label style={{ marginRight: "5px", fontSize: "0.8rem" }} for="clasificacion">
+                <FormGroup style={{ display: "flex", alignItems: "center", marginBottom: "0px" }}>
+
+                  <InputGroup size="sm" style={{ flexGrow: 1, alignItems: "center", marginBottom: "0px" }}>
+                    <Label style={{ width:120, fontSize: "1.1rem" }} >
                       Clasificacion
                     </Label>
                     <Input
@@ -4746,9 +4925,11 @@ function Basic() {
                       type="text"
                       name="clasificacion"
                       id="clasificacion"
-                      style={{ fontSize: "0.8rem" }}
+                      style={{ fontSize: "1.1rem" }}
                     />
-                  </FormGroup>
+                  </InputGroup>
+
+                </FormGroup>
                 </Col>
 
                 <Col xs="6">
@@ -4760,14 +4941,15 @@ function Basic() {
                         checked={formCita.esServicioDomicilio}
                         onChange={handleCheckboxChangeDomicilio}
                       />
-                      <strong style={{ fontSize: "0.8rem" }}>Servicio a domicilio</strong>
+                      <strong style={{ fontSize: "1.1rem" }}>Servicio a domicilio</strong>
                     </Label>
                   </FormGroup>
                 </Col>
                 <Col xs="6">
-                  <FormGroup style={{ display: "flex", alignItems: "center", marginBottom: "0px" }}>
-                    <Label for="fecha" style={{ fontSize: "0.8rem", marginRight: "5px" }}>
-                      Fecha cita:
+                <FormGroup style={{ display: "flex", alignItems: "center", marginBottom: "0px" }}>
+
+                    <Label for="fecha" style={{ width:120, fontSize: "1.1rem" }}>
+                      Fecha:
                     </Label>
                     <LocalizationProvider dateAdapter={AdapterDateFns}>
                       <DatePicker
@@ -4801,7 +4983,7 @@ function Basic() {
                             size="small"
                             InputProps={{ endAdornment: null }} // Aquí se elimina el ícono
                             sx={{
-                              fontSize: "0.8rem",
+                              fontSize: "1.1rem",
                               backgroundColor: "#ffccac",
                               "& .MuiInputBase-input": {
                                 height: "30px", // Ajusta la altura aquí
@@ -4827,12 +5009,13 @@ function Basic() {
                         )}
                       />
                     </LocalizationProvider>
-                  </FormGroup>
+
+                </FormGroup>
                 </Col>
                 <Col xs="6">
                   <FormGroup style={{ display: "flex", alignItems: "center", marginBottom: "0px" }}>
-                    <Label for="hora" style={{ fontSize: "0.8rem", marginRight: "5px" }}>
-                      Hora cita:
+                  <Label for="cliente" style={{ width:70, fontSize: "1.1rem" }}>
+                      Hora:
                     </Label>
                     <LocalizationProvider dateAdapter={AdapterDateFns}>
                       <TimePicker
@@ -4861,7 +5044,7 @@ function Basic() {
                             {...props}
                             size="small"
                             style={{
-                              fontSize: "0.8rem",
+                              fontSize: "1.1rem",
                               backgroundColor: "#ffccac",
                             }}
                           />
@@ -4871,8 +5054,8 @@ function Basic() {
                   </FormGroup>
                 </Col>
                 <Col xs="6">
-                  <FormGroup style={{ display: "flex", alignItems: "center", marginBottom: "0px" }}>
-                    <Label for="atiende" style={{ fontSize: "0.8rem", marginRight: "0px" }}>
+                  <InputGroup size="sm" style={{ flexGrow: 1, alignItems: "center", marginBottom: "0px" }}>
+                    <Label for="atiende" style={{ width:120, fontSize: "1.1rem" }}>
                       Atiende:
                     </Label>
                     <Input
@@ -4883,7 +5066,7 @@ function Basic() {
                       id="atiende"
                       value={formCita.no_estilista}
                       onChange={(e) => setFormCita({ ...formCita, no_estilista: e.target.value })}
-                      style={{ fontSize: "0.8rem" }}
+                      style={{ fontSize: "1.1rem" }}
                     >
                       <option value="0">Seleccione un estilista</option>
                       {dataEstilistas.map((opcion, index) => (
@@ -4892,12 +5075,12 @@ function Basic() {
                         </option>
                       ))}
                     </Input>
-                  </FormGroup>
+                  </InputGroup>
                 </Col>
                 <Col xs="6">
                   <FormGroup style={{ display: "flex", alignItems: "center", marginBottom: "0px" }}>
                     <FormGroup check>
-                      <Label check style={{ fontSize: "0.8rem", marginRight: "5px" }}>
+                      <Label check style={{ fontSize: "1.1rem", marginRight: "5px" }}>
                         <Input
                           name="estatus"
                           type="checkbox"
@@ -4908,7 +5091,7 @@ function Basic() {
                       </Label>
                     </FormGroup>
                     <FormGroup check>
-                      <Label check style={{ fontSize: "0.8rem" }}>
+                      <Label check style={{ fontSize: "1.1rem" }}>
                         <Input
                           name="estatus"
                           type="checkbox"
@@ -4933,6 +5116,8 @@ function Basic() {
               >
                 Ingresar servicios...
               </Button>
+              <ThemeProvider theme={theme}>
+
               <DataGrid
                 autoHeight
                 slots={{ noRowsOverlay: CustomNoRowsOverlay }}
@@ -4940,6 +5125,8 @@ function Basic() {
                 rows={dataCitasServicios}
                 columns={columnsCitasServicios}
               />
+              </ThemeProvider>
+
               <Box marginLeft={0} marginRight={0} marginTop={1} gap={1} display="flex" justifyContent={"center"} alignItems={"center"}>
                 <Col style={{ border: "1px solid black", padding: "10px", margin: "10px", width: "300px", textAlign: "center", fontWeight: "bold" }}>
                   <Label>Clave de reservación</Label>
