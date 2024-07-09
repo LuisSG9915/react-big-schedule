@@ -84,7 +84,7 @@ function SchedulerHeader({ onViewChange, goNext, goBack, onSelectDate, scheduler
                 <LeftOutlined
                   size={50}
                   type="left"
-                  style={{ marginRight: "8px", fontSize: "28px", color: "#08c" }}
+                  style={{ marginRight: "8px", fontSize: "28px", color: "black" }}
                   className="icon-nav"
                   onClick={() => handleEvents(goBack, false)}
                 />
@@ -97,7 +97,7 @@ function SchedulerHeader({ onViewChange, goNext, goBack, onSelectDate, scheduler
                     onOpenChange={setVisible}
                     overlayClassName="scheduler-header-popover"
                   >
-                    <span className="header2-text-label" style={{ cursor: "pointer", fontSize: "22px" }}>
+                    <span className="header2-text-label" style={{ cursor: "pointer", fontSize: "26px" }}>
                       {dateLabel}
                     </span>
                   </Popover>
@@ -107,7 +107,7 @@ function SchedulerHeader({ onViewChange, goNext, goBack, onSelectDate, scheduler
                 <RightOutlined
                   size={50}
                   type="right"
-                  style={{ marginLeft: "8px", fontSize: "28px", color: "#08c" }}
+                  style={{ marginLeft: "8px", fontSize: "28px", color: "black" }}
                   className="icon-nav"
                   onClick={() => handleEvents(goNext, false)}
                 />

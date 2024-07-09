@@ -1,12 +1,12 @@
-import React from 'react';
-import PropTypes from 'prop-types';
+import React from "react";
+import PropTypes from "prop-types";
 
 function BodyView({ schedulerData }) {
   const { renderData, headers, config, behaviors } = schedulerData;
   const width = schedulerData.getContentCellWidth();
 
   const tableRows = renderData
-    .filter(o => o.render)
+    .filter((o) => o.render)
     .map(({ slotId, groupOnly, rowHeight }) => {
       const rowCells = headers.map((header, index) => {
         const key = `${slotId}_${header.time}`;

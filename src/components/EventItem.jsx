@@ -304,7 +304,7 @@ class EventItem extends Component {
     const { headers, cellUnit, events, config, localeDayjs } = schedulerData;
 
     const cellWidth = schedulerData.getContentCellWidth();
-    const offset = leftIndex > 0 ? 5 : 6;
+    const offset = leftIndex > 0 ? 2 : 3;
     const minWidth = cellWidth - offset;
     const maxWidth = (headers.length - leftIndex) * cellWidth - offset;
     const { endX } = this.state;
@@ -466,7 +466,7 @@ class EventItem extends Component {
 
     let eventItemTemplate = (
       <div className={`${roundCls} event-item`} key={eventItem.id} style={{ height: config.eventItemHeight, backgroundColor: bgColor }}>
-        <span style={{ marginLeft: "10px", lineHeight: `${config.eventItemHeight}px` }}>{eventTitle}</span>
+        <span style={{ marginLeft: "1px", lineHeight: `${config.eventItemHeight}px` }}>{eventTitle}</span>
       </div>
     );
     if (eventItemTemplateResolver !== undefined) {

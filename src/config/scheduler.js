@@ -2,14 +2,14 @@ import { ViewType, SummaryPos } from "./default";
 
 export default {
   schedulerWidth: "97%",
-  besidesWidth: 10,
+  besidesWidth: 5,
   schedulerMaxHeight: 0,
   tableHeaderHeight: 40,
   schedulerContentHeight: "800px",
 
   responsiveByParent: false,
 
-  agendaResourceTableWidth: 90,
+  agendaResourceTableWidth: 10,
   agendaMaxEventWidth: 100,
 
   dayResourceTableWidth: 90,

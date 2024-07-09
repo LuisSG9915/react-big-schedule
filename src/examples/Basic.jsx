@@ -24,14 +24,15 @@ import {
   InputGroup,
   ButtonGroup,
   InputGroupText,
+  Table,
 } from "reactstrap";
-import { FaMoneyBillAlt, FaTrash } from "react-icons/fa";
-
+import { FaMoneyBillAlt, FaTrash, FaBirthdayCake } from "react-icons/fa";
+import { RiDiscountPercentLine } from "react-icons/ri";
 import Swal from "sweetalert2";
 import "../css/style.css";
 
 import { es } from "date-fns/locale";
-import { MdOutlineFolder, MdOutlineFreeCancellation } from "react-icons/md";
+import { MdOutlineFolder, MdOutlinePriceCheck } from "react-icons/md";
 import { MaterialReactTable } from "material-react-table";
 import { LocalizationProvider, DatePicker, TimePicker } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
@@ -42,6 +43,7 @@ import { useDetalleSaldosPendientes } from "../functions/crearCita/useDetalleSal
 import { useVentasHistoriales } from "../functions/crearCita/useVentasHistoriales";
 import { usesp_ClasificacionSel } from "../functions/crearCita/useDetalleSaldosPendientes copy";
 import { useCitaEmpalme } from "../functions/crearCita/useCitaEmpalme4";
+import { useCitaEmpalme5 } from "../functions/crearCita/useCitaEmpalme5";
 import { useHorarioDisponibleEstilistas6 } from "../functions/crearCita/useHorarioDisponibleEstilistas6";
 import { useVentasOperaciones } from "../functions/crearCita/useVentasOperaciones";
 import { useSucursales } from "../functions/crearCita/useSucursales";
@@ -57,6 +59,8 @@ import { IoIosAddCircle } from "react-icons/io";
 import { IoListCircle } from "react-icons/io5";
 import { FaEye } from "react-icons/fa6";
 import { IoRefreshCircle } from "react-icons/io5";
+import { usePromocionesZonas } from "../functions/crearCita/usePromocionesZonas";
+import { usePromocionesGrupos } from "../functions/crearCita/usePromocionesGrupos";
 let schedulerData;
 
 const initialState = {
@@ -234,7 +238,7 @@ function Basic() {
                 ? "#90EE90" // Light Green
                 : item.estadoCita == 5
                 ? "#DDA0DD" // Plum
-                : "#E0E0E0", // Light Gray
+                : "#bababa", // Light Gray
           };
         })
       );
@@ -266,7 +270,7 @@ function Basic() {
               ? "#90EE90" // Light Green
               : item.estadoCita == 5
               ? "#DDA0DD" // Plum
-              : "#E0E0E0", // Light Gray
+              : "#bababa", // Light Gray
         };
       });
     } catch (err) {
@@ -494,7 +498,7 @@ function Basic() {
       });
       return;
     }
-    const isVerified = await verificarDisponibilidad(event.tiempo, new Date(start), slotId);
+    const isVerified = await verificarDisponibilidad(event.tiempo, new Date(start), slotId, event.idCita);
     if (!isVerified) return;
 
     if (event.estadoCita == 2 && slotId != event.no_estilista) {
@@ -593,6 +597,165 @@ function Basic() {
     dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
   };
 
+  const columns2 = [
+    {
+      field: "accion",
+      headerName: "Accion",
+      width: 85,
+      align: "center",
+      sortable: false,
+      renderCell: (params) => (
+        <div>
+          <FaMoneyBillAlt
+            size={23}
+            disabled
+            onClick={() => {
+              setEvent({
+                fecha: params.row.fecha,
+                no_cliente: params.row.no_cliente2,
+                estadoCita: params.row.estatusCita,
+                hora1: params.row.hora_cita,
+                tiempo: params.row.tiempo,
+                idCita: params.row.id,
+                no_estilista: params.row.idEstilista,
+                verificacion: true,
+              });
+              setFormCitaServicio({
+                ...formCitaServicio,
+                idCita: params.row.id,
+              });
+              setFormCita({
+                ...formCita,
+                no_cliente: params.row.no_cliente2,
+                fecha: params.row.hora_cita,
+                no_estilista: params.row.idEstilista,
+                estatusCita: 100,
+              });
+              setModalServicioUso(true);
+            }}
+          >
+            AS
+          </FaMoneyBillAlt>
+          <AiFillEdit
+            size={23}
+            onClick={() => {
+              setEvent({
+                fecha: params.row.fecha,
+                no_cliente: params.row.no_cliente2,
+                estadoCita: params.row.estatusCita,
+                hora1: params.row.hora_cita,
+                tiempo: params.row.tiempo,
+                idCita: params.row.id,
+                no_estilista: params.row.idEstilista,
+              });
+              setFormCitaServicio({
+                ...formCitaServicio,
+                idCita: params.row.id,
+              });
+              setFormDetalleCitasServicios({
+                fecha: params.row.dia_cita,
+                idEstilista: params.row.idEstilista,
+                d_clave_prod: params.row.descripcion,
+                cantidad: params.row.cantidad,
+                idServicio: params.row.idServicio,
+                precio: params.row.importe,
+                id: params.row.no_cliente,
+                tiempo: params.row.tiempo,
+                idCita: params.row.id,
+                estatusCita: params.row.estatusCita,
+              });
+              setModalEdicionServicios2(true);
+            }}
+          ></AiFillEdit>
+          <FaTrash
+            disabled
+            size={23}
+            onClick={() => putDetalleCitasServiciosUpd4(0, params.row.sucursal, params.row.id, 0, params.row.idEstilista, 0, 0, 1, 0, 0, new Date())}
+          >
+            Cancelar
+          </FaTrash>
+        </div>
+      ),
+    },
+
+    // Esta es la columna del ID único
+    { field: "d_stilista", headerName: "Estilista", width: 70, align: "center", sortable: false }, // Esta es la columna del ID único
+    {
+      field: "stao_estilista",
+      headerName: "M/Folio",
+      width: 50,
+      options: {
+        setCellProps: () => ({ align: "center", justifyContent: "center" }),
+      },
+      renderCell: (params) => (
+        <p style={{ lineHeight: "28px", height: "28px", margin: 0 }}>
+          {params.row.estatusCita == 4
+            ? params.row.stao_estilista
+            : params.row.estatusCita == 2
+            ? "R"
+            : params.row.estatusCita == 3
+            ? "A"
+            : params.row.estatusCita == 4
+            ? "S"
+            : params.row.estatusCita == 5
+            ? "D"
+            : params.row.estatusCita == 1
+            ? "N/A"
+            : ""}
+        </p>
+      ),
+    },
+    {
+      field: "d_cliente",
+      headerName: "Cliente",
+      description: "This column has a value getter and is not sortable.",
+      sortable: false,
+      width: 300,
+    },
+    { field: "descripcion", headerName: "Servicio", width: 270 },
+    {
+      field: "tiempo",
+      headerName: "T",
+      width: 40,
+      renderCell: (params) => <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>{params.row.tiempo}</p>,
+    },
+
+    {
+      field: "hora_cita",
+      headerName: "HI",
+      width: 60,
+      renderCell: (params) => (
+        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>{format(new Date(params.row.hora_cita), "HH:mm")}</p>
+      ),
+    },
+    {
+      field: "horafinal",
+      headerName: "HF",
+      width: 60,
+      renderCell: (params) => (
+        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>{format(new Date(params.row.horafinal), "HH:mm")}</p>
+      ),
+    },
+    {
+      field: "importe",
+      headerName: "Total",
+      width: 60,
+      renderCell: (params) => (
+        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>
+          {Number(params.row.importe).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}
+        </p>
+      ),
+    },
+    { field: "id", headerName: "Clave", width: 70, align: "center", sortable: false }, // Esta es la columna del ID único
+
+    // {
+    //   field: "cantidad",
+    //   headerName: "Cantidad",
+    //   width: 130,
+    //   renderCell: (params) => <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>{params.row.cantidad}</p>,
+    // },
+  ];
+
   const columns = [
     {
       field: "accion",
@@ -675,12 +838,11 @@ function Basic() {
     },
 
     // Esta es la columna del ID único
-    { field: "id", headerName: "Clave", width: 70, align: "center", sortable: false }, // Esta es la columna del ID único
-    { field: "d_stilista", headerName: "Estilista", width: 120, align: "center", sortable: false }, // Esta es la columna del ID único
+    { field: "d_stilista", headerName: "Estilista", width: 70, align: "center", sortable: false }, // Esta es la columna del ID único
     {
       field: "stao_estilista",
-      headerName: "Modo/Nota",
-      width: 130,
+      headerName: "M/Folio",
+      width: 50,
       options: {
         setCellProps: () => ({ align: "center", justifyContent: "center" }),
       },
@@ -689,40 +851,18 @@ function Basic() {
           {params.row.estatusCita == 4
             ? params.row.stao_estilista
             : params.row.estatusCita == 2
-            ? "Requerido"
+            ? "R"
             : params.row.estatusCita == 3
-            ? "Asignado"
+            ? "A"
             : params.row.estatusCita == 4
-            ? "En servicio"
+            ? "S"
             : params.row.estatusCita == 5
-            ? "A domicilio"
+            ? "D"
             : params.row.estatusCita == 1
-            ? "No disponible"
+            ? "N/A"
             : ""}
         </p>
       ),
-    },
-    {
-      field: "hora_cita",
-      headerName: "Hora inicio",
-      width: 80,
-      align: "center",
-      renderCell: (params) => (
-        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>{format(new Date(params.row.hora_cita), "HH:mm")}</p>
-      ),
-      cellClassName: "centered-cell", // Agrega esta línea para aplicar la clase CSS
-    },
-    {
-      field: "horafinal",
-      headerName: "Hora final",
-      align: "center",
-
-      type: "number",
-      width: 80,
-      renderCell: (params) => (
-        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>{format(new Date(params.row.horafinal), "HH:mm")}</p>
-      ),
-      cellClassName: "centered-cell", // Agrega esta línea para aplicar la clase CSS
     },
     {
       field: "d_cliente",
@@ -731,33 +871,52 @@ function Basic() {
       sortable: false,
       width: 300,
     },
-    { field: "descripcion", headerName: "Servicio", width: 250 },
+    { field: "descripcion", headerName: "Servicio", width: 270 },
     {
       field: "tiempo",
-      headerName: "Tiempo",
-      width: 130,
-      renderCell: (params) => <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>{params.row.tiempo + " min"}</p>,
+      headerName: "T",
+      width: 40,
+      renderCell: (params) => <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>{params.row.tiempo}</p>,
+    },
+
+    {
+      field: "hora_cita",
+      headerName: "HI",
+      width: 60,
+      renderCell: (params) => (
+        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>{format(new Date(params.row.hora_cita), "HH:mm")}</p>
+      ),
     },
     {
-      field: "cantidad",
-      headerName: "Cantidad",
-      width: 130,
-      renderCell: (params) => <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>{params.row.cantidad}</p>,
+      field: "horafinal",
+      headerName: "HF",
+      width: 60,
+      renderCell: (params) => (
+        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>{format(new Date(params.row.horafinal), "HH:mm")}</p>
+      ),
     },
     {
       field: "importe",
       headerName: "Total",
-      width: 130,
+      width: 60,
       renderCell: (params) => (
         <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>
           {Number(params.row.importe).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}
         </p>
       ),
     },
+    { field: "id", headerName: "Clave", width: 70, align: "center", sortable: false }, // Esta es la columna del ID único
+
+    // {
+    //   field: "cantidad",
+    //   headerName: "Cantidad",
+    //   width: 130,
+    //   renderCell: (params) => <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>{params.row.cantidad}</p>,
+    // },
   ];
 
-  const ligaPruebas = "http://localhost:5173/";
-  // const ligaPruebas = "http://cbinfo.no-ip.info:9019/";
+  // const ligaPruebas = "http://localhost:5173/";
+  const ligaPruebas = "http://cbinfo.no-ip.info:9019/";
   const handleOpenNewWindow = ({ idCita, idUser, idCliente, fecha, flag }) => {
     const url = `${ligaPruebas}miliga/crearcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idSuc=${1}&idRec=${1}&flag=${flag}`; // Reemplaza esto con la URL que desees abrir
     const width = 390;
@@ -875,37 +1034,37 @@ function Basic() {
               ? "#90EE90" // Light Green
               : item.estadoCita == 5
               ? "#DDA0DD" // Plum
-              : "#E0E0E0", // Light Gray */
+              : "#bababa", // Light Gray */
   }
   const boxStyles = {
     noDisponible: {
       backgroundColor: "#F8C471",
-      padding: "10px",
+      padding: "5px",
       color: "black",
     },
     requerido: {
       backgroundColor: "#AFEEEE",
-      padding: "10px",
+      padding: "5px",
       color: "black",
     },
     asignado: {
       backgroundColor: "#FFF26C",
-      padding: "10px",
+      padding: "5px",
       color: "black",
     },
     enServicio: {
       backgroundColor: "#90EE90",
-      padding: "10px",
+      padding: "5px",
       color: "black",
     },
     domicilio: {
       backgroundColor: "#DDA0DD",
-      padding: "10px",
+      padding: "5px",
       color: "black",
     },
     conflicto: {
-      backgroundColor: "#E0E0E0",
-      padding: "10px",
+      backgroundColor: "#bababa",
+      padding: "5px",
       color: "black",
     },
   };
@@ -1110,6 +1269,7 @@ function Basic() {
   const [modalEdicionServicios, setModalEdicionServicios] = useState(false);
   const [modalEdicionServicios2, setModalEdicionServicios2] = useState(false);
   const [productosModal, setProductosModal] = useState(false);
+  const [productosModalLectura, setProductosModalLectura] = useState(false);
   const [modalCitasObservaciones, setModalCitasObservaciones] = useState(false);
   const [verificarContraModal, setVerificarContraModal] = useState(false);
 
@@ -1318,6 +1478,12 @@ function Basic() {
     no_estilista: formCita.no_estilista,
     tiempoCita: formVentaTemporal.tiempo,
   });
+  const { dataCitaEmpalme5, fetchCitaEmpalme5 } = useCitaEmpalme5({
+    fechacita: formCita.fecha,
+    no_estilista: formCita.no_estilista,
+    tiempoCita: formVentaTemporal.tiempo,
+    idCita: 0,
+  });
   const { dataHorarioDisponibleEstilistas, fetchHorarioDisponibleEstilistas } = useHorarioDisponibleEstilistas6({
     fecha: formCita.fecha,
     cveEmpleado: formCita.no_estilista,
@@ -1327,6 +1493,15 @@ function Basic() {
     id: 0,
     observaciones: null,
   });
+
+  const [formPromocion, setFormPromocion] = useState({
+    id: 0,
+  });
+  const [modalPromociones, setModalPromociones] = useState(false);
+  const [modalPromocionesGrupos, setModalPromocionesGrupos] = useState(false);
+
+  const { dataPromocionesZonas } = usePromocionesZonas();
+  const { dataPromocionesGrupos } = usePromocionesGrupos({ idPromocion: formPromocion.id });
   const putCitasObservaciones = (estado, idCita) => {
     setModalCitasObservaciones(false);
     if (estado == 1) {
@@ -1511,7 +1686,6 @@ function Basic() {
       cellClassName: "centered-cell", // Agrega esta línea para aplicar la clase CSS
     },
     { field: "cantidad", headerName: "Cantidad", width: 70 },
-    { field: "nombre_agenda", headerName: "Nombre Estilista", width: 130 },
     {
       field: "fecha",
       headerName: "Hora cita",
@@ -1573,17 +1747,12 @@ function Basic() {
     {
       field: "observaciones",
       headerName: "Descripción",
-      width: 120,
+      width: 250,
       renderCell: (cell) => {
         // Divide el texto en dos partes por el espacio
         const [parte1, parte2] = cell.row.descripcion.split(" ");
 
-        return (
-          <div className="centered-cell" style={{ whiteSpace: "normal", lineHeight: "0.2em" }}>
-            <p>{parte1}</p>
-            <p>{parte2}</p>
-          </div>
-        );
+        return <p className="centered-cell">{cell.row.descripcion}</p>;
       },
     },
     {
@@ -1601,7 +1770,6 @@ function Basic() {
       cellClassName: "centered-cell", // Agrega esta línea para aplicar la clase CSS
     },
     { field: "cantidad", headerName: "Cantidad", width: 70 },
-    { field: "nombre_agenda", headerName: "Nombre Estilista", width: 130 },
     // {
     //   field: "fecha",
     //   headerName: "Hora cita",
@@ -1737,6 +1905,10 @@ function Basic() {
     let minutosDesdeMedianocheEntrada = horaEntrada * 60 + minutoEntrada;
     let minutosDesdeMedianocheSalida = horaSalida * 60 + minutoSalida;
     let minutosDesdeMedianocheCita = horaCita * 60 + minutoCita;
+
+    console.log(minutosDesdeMedianocheEntrada);
+    console.log(minutosDesdeMedianocheSalida);
+    console.log(minutosDesdeMedianocheCita);
 
     let esValida = minutosDesdeMedianocheCita >= minutosDesdeMedianocheEntrada && minutosDesdeMedianocheCita <= minutosDesdeMedianocheSalida;
     return esValida;
@@ -2054,7 +2226,34 @@ function Basic() {
     //   className: "centered-cell", // Agrega esta línea para aplicar la clase CSS
     // },
   ]);
-
+  const columnsProductosMRTLectura = useMemo(() => [
+    {
+      accessorKey: "clave_prod",
+      header: "Clave_prod",
+      size: 100,
+    },
+    {
+      accessorKey: "descripcion",
+      header: "Descripcion",
+      size: 100,
+    },
+    {
+      accessorKey: "tiempox",
+      header: "Tiempo",
+      size: 100,
+      Cell: ({ cell }) => <p className="centered-cell">{cell.row.original.tiempox + " min"}</p>,
+      className: "centered-cell", // Agrega esta línea para aplicar la clase CSS
+    },
+    {
+      accessorKey: "precio_lista",
+      header: "Precio",
+      size: 100,
+      Cell: ({ cell }) => (
+        <p className="centered-cell">{Number(cell.row.original.precio).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}</p>
+      ),
+      className: "centered-cell", // Agrega esta línea para aplicar la clase CSS
+    },
+  ]);
   const columnsProductosMRTEdicion = useMemo(() => [
     {
       accessorKey: "acciones",
@@ -2680,7 +2879,7 @@ function Basic() {
   //   });
   // };
   const postCitasServicios = (clave, tiempo, precio) => {
-    verificarDisponibilidad(formVentaTemporal.tiempo, formCita.fecha, formCita.no_estilista).then((isVerified) => {
+    verificarDisponibilidad(formVentaTemporal.tiempo, formCita.fecha, formCita.no_estilista, formCitaServicio.idCita).then((isVerified) => {
       if (isVerified) {
         peinadosApi
           .post(`/sp_detalleCitasServiciosAdd7`, null, {
@@ -2767,7 +2966,6 @@ function Basic() {
     const contraseñaValidada = await validarContraseña();
     if (!contraseñaValidada) return;
     let fechaActual = new Date(event?.fecha);
-    // Extrae el año, mes y día
     let año = fechaActual.getFullYear();
     let mes = fechaActual.getMonth(); // Nota: getMonth() devuelve un valor de 0 a 11, donde 0 es enero y 11 es diciembre
     let día = fechaActual.getDate();
@@ -2789,7 +2987,6 @@ function Basic() {
           observacion: "",
           user_uc: 0,
           estatus: 4,
-          // estatus: formCita.estatusAsignado ? 3 : formCita.estatusRequerido ? 2 : 4,
         },
       })
       .then((response) => {
@@ -2804,46 +3001,13 @@ function Basic() {
       });
   };
 
-  // async function verificarDisponibilidad() {
-  //   const res = await fetchCitaEmpalme();
-  //   const resHorario = await fetchHorarioDisponibleEstilistas();
-
-  //   if (res && res.data[0].id > 0) {
-  //     Swal.fire({
-  //       icon: "error",
-  //       title: "Error",
-  //       text: `El estilista no tiene horario disponible, empalme`,
-  //     });
-  //     return;
-  //   } else {
-  //     if (resHorario) {
-  //       console.log(resHorario);
-  //       if (resHorario.data[0].clave_empleado == "Cita sin restricciones") {
-  //         console.log(0);
-  //       } else {
-  //         Swal.fire({
-  //           icon: "error",
-  //           title: "Error",
-  //           text: `El estilista no tiene horario disponible`,
-  //           confirmButtonColor: "#3085d6",
-  //           confirmButtonText: "Quiere continuar?",
-  //           showConfirmButton: true,
-  //           showCancelButton: true,
-  //         }).then((isConfirmed) => {
-  //           if (!isConfirmed.isConfirmed) return;
-  //           else {
-  //             // Aquí puedes agregar el código que se ejecutará si el usuario confirma
-  //           }
-  //         });
-  //       }
-  //     }
-  //   }
-  //   return { res, resHorario };
-  // }
-
-  async function verificarDisponibilidad(tiempo, fecha, estilista) {
-    const res = await fetchCitaEmpalme(tiempo, fecha, estilista);
-    const resHorario = await fetchHorarioDisponibleEstilistas(fecha, estilista, tiempo);
+  async function verificarDisponibilidad(tiempo, fecha, estilista, idCita) {
+    console.log(tiempo);
+    console.log(fecha);
+    console.log(estilista);
+    console.log(idCita);
+    const res = await fetchCitaEmpalme5(tiempo, new Date(fecha), estilista, idCita);
+    const resHorario = await fetchHorarioDisponibleEstilistas(new Date(fecha), estilista, tiempo);
 
     if (res && res.data[0].id > 0) {
       const isConfirmed = await Swal.fire({
@@ -2867,7 +3031,6 @@ function Basic() {
       // return false;
     } else {
       if (resHorario) {
-        console.log(resHorario);
         if (resHorario.data[0].clave_empleado == "Cita sin restricciones" || resHorario.data[0].clave_empleado == "Prosiga") {
           console.log(0);
         } else {
@@ -2897,113 +3060,192 @@ function Basic() {
     // Aquí puedes poner la acción que quieras realizar.
     console.log({ params });
   };
+  const columnsPromo = useMemo(
+    () => [
+      {
+        accessorKey: "acciones",
+        header: "Acción",
+        size: 100,
+        Cell: ({ cell }) => (
+          <>
+            <Button
+              size="sm"
+              onClick={() => {
+                setFormPromocion({ id: cell.row.original.id });
+                setModalPromocionesGrupos(true);
+              }}
+            >
+              Seleccionar
+            </Button>
+          </>
+        ),
+      },
+      {
+        accessorKey: "descripcionPromo",
+        header: "Promoción",
+        size: 130,
+      },
+      {
+        accessorKey: "f1",
+        header: "Fecha incial",
+        size: 40,
+        Cell: ({ cell }) => {
+          const fechaCompleta1 = cell.row.original.f1;
+          const fechaFormateada1 = fechaCompleta1 ? formatFecha(fechaCompleta1) : "";
 
+          return <span>{fechaFormateada1}</span>;
+        },
+      },
+      {
+        accessorKey: "f2",
+        header: "Fecha fin",
+        size: 40,
+        Cell: ({ cell }) => {
+          const fechaCompleta1 = cell.row.original.f2;
+          const fechaFormateada1 = fechaCompleta1 ? formatFecha(fechaCompleta1) : "";
+
+          return <span>{fechaFormateada1}</span>;
+        },
+      },
+      {
+        accessorKey: "lu",
+        header: "L",
+        size: 25,
+        Cell: ({ row }) => {
+          if (row.original.lu === true) {
+            return <Input type="checkbox" disabled="disabled" checked="checked" />;
+          } else {
+            return <Input type="checkbox" disabled="disabled" />;
+          }
+        },
+      },
+      {
+        accessorKey: "ma",
+        header: "M",
+        size: 25,
+        Cell: ({ row }) => {
+          if (row.original.ma === true) {
+            return <Input type="checkbox" disabled="disabled" checked="checked" />;
+          } else {
+            return <Input type="checkbox" disabled="disabled" />;
+          }
+        },
+      },
+      {
+        accessorKey: "mi",
+        header: "Mi",
+        size: 25,
+        Cell: ({ row }) => {
+          if (row.original.mi === true) {
+            return <Input type="checkbox" disabled="disabled" checked="checked" />;
+          } else {
+            return <Input type="checkbox" disabled="disabled" />;
+          }
+        },
+      },
+      {
+        accessorKey: "ju",
+        header: "J",
+        size: 25,
+        Cell: ({ row }) => {
+          if (row.original.ju === true) {
+            return <Input type="checkbox" disabled="disabled" checked="checked" />;
+          } else {
+            return <Input type="checkbox" disabled="disabled" />;
+          }
+        },
+      },
+      {
+        accessorKey: "vie",
+        header: "V",
+        size: 25,
+        Cell: ({ row }) => {
+          if (row.original.vie === true) {
+            return <Input type="checkbox" disabled="disabled" checked="checked" />;
+          } else {
+            return <Input type="checkbox" disabled="disabled" />;
+          }
+        },
+      },
+      {
+        accessorKey: "sa",
+        header: "S",
+        size: 25,
+        Cell: ({ row }) => {
+          if (row.original.sa === true) {
+            return <Input type="checkbox" disabled="disabled" checked="checked" />;
+          } else {
+            return <Input type="checkbox" disabled="disabled" />;
+          }
+        },
+      },
+      {
+        accessorKey: "dom",
+        header: "D",
+        size: 25,
+        Cell: ({ row }) => {
+          if (row.original.dom === true) {
+            return <Input type="checkbox" disabled="disabled" checked="checked" />;
+          } else {
+            return <Input type="checkbox" disabled="disabled" />;
+          }
+        },
+      },
+      {
+        accessorKey: "descuentoPorcentaje",
+        header: "% Descuento",
+        size: 100,
+        Cell: ({ cell }) => <span>{cell.getValue().toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%</span>,
+      },
+      // {
+      //   accessorKey: "acciones",
+      //   header: "Aplicar promo",
+      //   size: 100,
+      //   Cell: ({ cell }) => (
+      //     <>
+      //       <BsBuildingFillGear className="mr-2" onClick={() => toggleModalPromoSuc(cell.row.original)} size={23} />
+      //       <BsDiagram3Fill onClick={() => eliminar(cell.row.original)} size={23} />
+
+      //     </>
+      //   ),
+      // },
+    ],
+    []
+  );
   return (
     <>
-      <div className="barra-titulo">
+      {/* <div className="barra-titulo">
         <h1 className="logoBar">Peinados Express</h1>
-      </div>
+      </div> */}
       <div className="contenedor-principal">
         <div className="timer">
           <div className="estilo-timer">
             <Timer />
           </div>
         </div>
-        <Row>
-          {/* <Col>
-            <InputGroup style={{ marginBottom: "5px" }}>
-              <Label className="label-fixed-width" style={{ fontSize: "0.8rem" }}>
-                Tipo de cita:
-              </Label>
-              <Input style={{ fontSize: "0.8rem" }} type="select" size={"sm"} value={tipoCita} onChange={(e) => setTipoCita(e.target.value)}>
-                <option value={"%"}>Todos</option>
-                <option value={"1"}>Cita</option>
-                <option value={"2"}>Servicio</option>
-                <option value={"3"}>Pagado</option>
-              </Input>
-            </InputGroup>
-            <div>
-              <InputGroup style={{ marginBottom: "5px" }}>
-                <Label className="label-fixed-width" style={{ fontSize: "0.8rem" }}>
-                  Nombre cliente:
-                </Label>
-                <Input
-                  style={{ fontSize: "0.8rem" }}
-                  onChange={(v) => setDatosParametros({ ...datosParametros, nombreCliente: v.target.value })}
-                  size={"sm"}
-                  value={datosParametros.nombreCliente}
-                ></Input>
-              </InputGroup>
-              <InputGroup style={{ marginBottom: "5px" }}>
-                <Label className="label-fixed-width" style={{ fontSize: "0.8rem" }}>
-                  Nombre estilista:
-                </Label>
-                <Input
-                  style={{ fontSize: "0.8rem" }}
-                  onChange={(v) => setDatosParametros({ ...datosParametros, nombreEstilista: v.target.value })}
-                  size={"sm"}
-                  value={datosParametros.nombreEstilista}
-                ></Input>
-                <Button color="primary" size="sm">
-                  <AiOutlineSearch size={19} onClick={() => getCitasDia()} />
-                </Button>
-                <Button color="secondary" size="sm">
-                  <AiOutlineReload
-                    size={19}
-                    onClick={() => {
-                      setDatosParametros({ ...datosParametros, nombreCliente: "", nombreEstilista: "" });
-                      getCitasDia(1);
-                    }}
-                  />
-                </Button>
-              </InputGroup>
-            </div>
-          </Col> */}
-        </Row>
-        {/* <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
-          <div style={{ display: "flex" }}>
-            <h2 style={{ marginRight: "10px", backgroundColor: "#ffccfc", padding: "5px" }}>{isToday(datosParametros.fecha) ? "Hoy  " : ""}</h2>
-            <h2 style={{ backgroundColor: "#ffccfc", padding: "5px" }}>Fecha: {datosParametros.fecha.toLocaleDateString()}</h2>
-          </div>
-          <h5 style={{ marginTop: "0", backgroundColor: "#ffccfc", padding: "5px" }}>
-            {format(new Date(datosParametros.fecha), "EEEE", { locale: es })}
-          </h5>
-        </div> */}
+        <Row></Row>
       </div>
 
       <div style={{ flex: 1, justifyContent: "right", alignContent: "right", alignItems: "right", display: "flex" }}></div>
-      {/* <div style={{ height: "2%", display: "table", tableLayout: "fixed", width: "100%" }}>
-        <DataGrid
-          rows={arregloCitaDia}
-          columns={columns}
-          getRowId={(row) => row.id + row.importe + row.tiempo + row.descripcion}
-          onCellDoubleClick={handleCellDoubleClick}
-          rowHeight={28}
-          columnHeaderHeight={28}
-          initialState={{ pagination: { paginationModel: { pageSize: 3 } } }}
-          sx={{
-            "& .MuiDataGrid-pagination": {
-              height: "10px",
-            },
-          }}
-        />
-      </div> */}
 
       <div className="container">
         <div className="nBarra">
-          <div className="botones-barra">
+          <div className="botones-barra" style={{ justifyContent: "space-between", alignItems: "center", display: "flex", paddingTop: 10 }}>
             <ButtonGroup variant="contained" aria-label="outlined primary button group">
-              <Button size="sm" href="http://cbinfo.no-ip.info:9020/Ventas" target="_blank" rel="noopener noreferrer">
+              <Button size="sm" href="http://cbinfo.no-ip.info:9020/Ventas" color="success">
+                <FaMoneyBillAlt size={20}></FaMoneyBillAlt>
                 Ventas
               </Button>
-              <Button size="sm" href="http://cbinfo.no-ip.info:9020/CatProductos" target="_blank" rel="noopener noreferrer">
+              <Button size="sm" onClick={() => setProductosModalLectura(true)} color="warning">
+                <MdOutlinePriceCheck size={20}></MdOutlinePriceCheck>
                 Precios
               </Button>
-              <Button size="sm" href="http://cbinfo.no-ip.info:9020/Promociones" target="_blank" rel="noopener noreferrer">
+              <Button size="sm" onClick={() => setModalPromociones(true)} color="primary">
+                <RiDiscountPercentLine size={20}></RiDiscountPercentLine>
                 Promociones
               </Button>
-              <Button size="sm" href="http://cbinfo.no-ip.info:9020/CatClientes" target="_blank" rel="noopener noreferrer">
-                Listado de cumpleañeros del mes
+              <Button href="http://cbinfo.no-ip.info:9020/CatClientes" size="sm">
+                <FaBirthdayCake size={20}></FaBirthdayCake>
               </Button>
             </ButtonGroup>
             <ButtonGroup variant="contained" aria-label="outlined primary button group">
@@ -3016,7 +3258,6 @@ function Basic() {
                   setIsModalActualizarOpen(true);
                 }}
               >
-                {" "}
                 <IoIosAddCircle size={20}></IoIosAddCircle>
                 Nueva Cita
               </Button>
@@ -3034,13 +3275,12 @@ function Basic() {
               </Button>
               <Button
                 size="sm"
-                color={"success"}
+                color={"warning"}
                 onClick={() => {
                   window.location.reload();
                 }}
               >
-                <IoRefreshCircle size={20}></IoRefreshCircle>
-                Actualizar sitio
+                <IoRefreshCircle size={22}></IoRefreshCircle>
               </Button>
               <Button
                 size="sm"
@@ -3104,8 +3344,16 @@ function Basic() {
             </button>
             <h2>Seleccione la accion</h2>
             <Button
+              color="danger"
               style={{ marginBottom: "10px" }}
               onClick={() => {
+                if (event.hora1 < new Date()) {
+                  Swal.fire({
+                    icon: "error",
+                    title: "Oops...",
+                    text: "No se puede cancelar una cita pasada ",
+                  });
+                }
                 putDetalleCitasServiciosUpd4(0, event.sucursal, event.idCita, 0, event.no_estilista, 0, 0, 1, 0, 0, new Date());
                 setIsModalOpen(false);
               }}
@@ -3116,6 +3364,7 @@ function Basic() {
               Liberar servicio
             </Button>
             <Button
+              color="success"
               onClick={() => {
                 console.log(event);
                 setFormCitaServicio({
@@ -3138,6 +3387,7 @@ function Basic() {
               Alta de servicio
             </Button>
             <Button
+              color="primary"
               onClick={() => {
                 setIsModalOpen(false);
                 handleOpenNewWindowEdit({
@@ -3152,8 +3402,7 @@ function Basic() {
               }}
               style={{ marginBottom: "10px" }}
             >
-              {" "}
-              Cambio modo de cita{" "}
+              Cambio modo de cita
             </Button>
           </div>
         </div>
@@ -3166,6 +3415,7 @@ function Basic() {
             </button>
             <br />
             <Button
+              color="primary"
               style={{ marginBottom: "10px" }}
               onClick={() => {
                 window.location.reload();
@@ -3211,22 +3461,22 @@ function Basic() {
 
                 <div>
                   <InputGroup style={{ marginBottom: "5px" }}>
-                    <Label className="label-fixed-width" style={{ fontSize: "0.8rem" }}>
+                    <Label className="label-fixed-width" style={{ fontSize: "1.2rem" }}>
                       Nombre cliente:
                     </Label>
                     <Input
-                      style={{ fontSize: "0.8rem" }}
+                      style={{ fontSize: "1.2rem" }}
                       onChange={(v) => setDatosParametros({ ...datosParametros, nombreCliente: v.target.value })}
                       size={"sm"}
                       value={datosParametros.nombreCliente}
                     ></Input>
                   </InputGroup>
                   <InputGroup style={{ marginBottom: "5px" }}>
-                    <Label className="label-fixed-width" style={{ fontSize: "0.8rem" }}>
+                    <Label className="label-fixed-width" style={{ fontSize: "1.2rem" }}>
                       Nombre estilista:
                     </Label>
                     <Input
-                      style={{ fontSize: "0.8rem" }}
+                      style={{ fontSize: "1.2rem" }}
                       onChange={(v) => setDatosParametros({ ...datosParametros, nombreEstilista: v.target.value })}
                       size={"sm"}
                       value={datosParametros.nombreEstilista}
@@ -3249,8 +3499,21 @@ function Basic() {
               <br />
               <DataGrid
                 rows={arregloCitaDia}
+                columns={columns2}
+                getRowId={(row) => row.idServicio + row.no_cliente2 + row.importe + row.id + new Date(row.horafinal)}
+                onCellDoubleClick={handleCellDoubleClick}
+                rowHeight={28}
+                columnHeaderHeight={28}
+                sx={{
+                  "& .MuiDataGrid-pagination": {
+                    height: "10px",
+                  },
+                }}
+              />
+              <DataGrid
+                rows={arregloCitaDia}
                 columns={columns}
-                getRowId={(row) => row.idServicio + row.no_cliente2 + row.importe + row.id}
+                getRowId={(row) => row.idServicio + row.no_cliente2 + row.importe + row.id + new Date(row.horafinal)}
                 onCellDoubleClick={handleCellDoubleClick}
                 rowHeight={28}
                 columnHeaderHeight={28}
@@ -3325,9 +3588,7 @@ function Basic() {
                         ? dataCitasServicios.reduce((acc, service) => acc + Number(service.tiempo) * Number(service.cantidad), 0)
                         : ""
                     }
-                  >
-                    {" "}
-                  </Input>
+                  ></Input>
                 </InputGroup>
               </Col>
             </Row>
@@ -3336,6 +3597,29 @@ function Basic() {
                 <InputGroup>
                   <Label style={{ fontSize: "1.2rem", minWidth: "70px" }}>Hora:</Label>
                   <Input style={{ fontSize: "1.2rem" }} disabled value={event?.hora1 ? format(new Date(event?.hora1), "hh:mm") : ""}></Input>
+                </InputGroup>
+              </Col>
+              <Col xs={6}>
+                <InputGroup>
+                  <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+                    <Label style={{ fontSize: "1.2rem", minWidth: "90px" }}>Atiende:</Label>
+                    <Input
+                      bsSize="sm"
+                      type="select"
+                      name="atiende"
+                      id="atiende"
+                      value={event?.no_estilista}
+                      onChange={(e) => setEvent({ ...event, no_estilista: e.target.value })}
+                      style={{ fontSize: "1.2rem" }}
+                    >
+                      <option value="0">Seleccione un estilista</option>
+                      {dataEstilistas.map((opcion, index) => (
+                        <option value={opcion.id} key={index}>
+                          {opcion.estilista}
+                        </option>
+                      ))}
+                    </Input>
+                  </div>
                 </InputGroup>
               </Col>
             </Row>
@@ -3350,8 +3634,22 @@ function Basic() {
               <Button
                 style={{ marginRight: "10px" }}
                 color="primary"
+                disabled={dataCitasServicios.length == 0}
                 onClick={() => {
-                  updateCita();
+                  verificarDisponibilidad(
+                    dataCitasServicios.length > 0
+                      ? dataCitasServicios.reduce((acc, service) => acc + Number(service.tiempo) * Number(service.cantidad), 0)
+                      : "",
+                    new Date(),
+                    event?.no_estilista,
+                    formCitaServicio.idCita
+                  ).then((isVerified) => {
+                    if (isVerified) {
+                      updateCita();
+                    } else {
+                      return;
+                    }
+                  });
                   setModalServicioUso(false);
                   setModalCitaEditEstilista(false);
                   setModalCitas(false);
@@ -3380,6 +3678,21 @@ function Basic() {
           ) : null}
         </Box>
       </Modal>
+      <Modal open={productosModalLectura} onClose={() => setProductosModalLectura(false)}>
+        <Box sx={style}>
+          <Typography variant="h4">Lectura productos</Typography>
+          {/* <DataGrid rows={dataProductos} columns={columnsProductos} /> */}
+          {dataProductos ? (
+            <MaterialReactTable
+              columns={columnsProductosMRTLectura}
+              data={dataProductos}
+              initialState={{ density: "compact" }}
+              muiTableContainerProps={{ sx: { maxHeight: "330px" } }}
+            />
+          ) : null}
+        </Box>
+      </Modal>
+
       <Modal open={modalCitasObservaciones} onClose={() => setModalCitasObservaciones(false)}>
         <Box sx={styleObservaciones}>
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
@@ -3845,9 +4158,13 @@ function Basic() {
                 </LocalizationProvider>
               </FormGroup>
             </Col>
-            <Col md="8">
+            <Col md={3}>
               <FormGroup style={{ display: "flex", alignItems: "center", marginBottom: "0px" }}>
-                <Row></Row>
+                <Label>Tiempo</Label>
+                <Input
+                  value={formDetalleCitasServicios.tiempo}
+                  onChange={(e) => setFormDetalleCitasServicios({ ...formDetalleCitasServicios, tiempo: e.target.value })}
+                ></Input>
               </FormGroup>
             </Col>
 
@@ -4183,12 +4500,10 @@ function Basic() {
               ></Input>
             </>
           ) : null}
-          {colummEdit == "tiempo" ? (
-            <Input
-              value={formCitaServioActualizacion?.tiempo}
-              onChange={(e) => setFormCitaServioActualizacion({ ...formCitaServioActualizacion, tiempo: e.target.value })}
-            ></Input>
-          ) : null}
+          <Input
+            value={formCitaServioActualizacion?.tiempo}
+            onChange={(e) => setFormCitaServioActualizacion({ ...formCitaServioActualizacion, tiempo: e.target.value })}
+          ></Input>
           <br />
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <Button
@@ -4203,8 +4518,8 @@ function Basic() {
         </Box>
       </Modal>
 
-      <Modal open={ModalCantidad} onClose={() => setModalCantidad(false)} size={"sm"}>
-        <Box sx={styleCantidad}>
+      <Modal open={ModalCantidad} onClose={() => setModalCantidad(false)} size={"sm"} disableAutoFocus disableEnforceFocus>
+        <Box sx={{ ...styleCantidad, backgroundColor: "white" }}>
           <Typography variant="h5">Agregue la cantidad</Typography>
           <Input
             type="text"
@@ -4255,9 +4570,58 @@ function Basic() {
           </Button>
         </Box>
       </Modal>
-      {/*  */}
+      <Modal open={modalPromociones} onClose={() => setModalPromociones(false)} disableAutoFocus disableEnforceFocus>
+        <Box style={styleCrearCita}>
+          <Typography>Promociones</Typography>
+          <MaterialReactTable columns={columnsPromo} data={dataPromocionesZonas} initialState={{ density: "compact" }} />
+          <Button onClick={() => setModalPromociones(false)}>Salir</Button>
+        </Box>
+      </Modal>
+      <Modal open={modalPromocionesGrupos} onClose={() => setModalPromocionesGrupos(false)}>
+        <Box style={styleCantidad}>
+          <Typography>Promociones Grupos</Typography>
+          <Table>
+            <thead>
+              <tr>
+                <th>Área</th>
+                <th>Depto</th>
+                <th>Subdepto</th>
+                <th>Producto</th>
+                <th>Descuento Porcentaje</th>
+                <th>Precio fijo</th>
+                <th>Tipo redondeo</th>
+                <th>Eliminar</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {dataPromocionesGrupos.map((dato) => (
+                <tr key={dato.id}>
+                  <td> {dato.d_area}</td>
+                  <td>{dato.d_depto}</td>
+                  <td>{dato.d_subdepto}</td>
+                  <td>{dato.d_producto}</td>
+                  <td>{Math.trunc(dato.descuentoPorcentaje * 100)} %</td>
+                  <td>{dato.precioFijo}</td>
+                  <td>{dato.d_redondeo}</td>
+                  <td>
+                    <AiFillDelete color="lightred" onClick={() => eliminarPromoGrupo(dato)} size={23}></AiFillDelete>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+          <Button onClick={() => setModalPromocionesGrupos(false)}>Salir</Button>
+        </Box>
+      </Modal>
       <Draggable>
-        <Modal keepMounted open={ModalCrear} style={{ maxWidth: "41%", maxHeight: "95%", overflow: "auto" }} onClose={() => setModalCrear(false)}>
+        <Modal
+          keepMounted
+          open={ModalCrear}
+          style={{ maxWidth: "41%", maxHeight: "95%", overflow: "auto" }}
+          onClose={() => setModalCrear(false)}
+          disableEnforceFocus
+        >
           <Box sx={styleCrearCita}>
             <div
               onClick={() => setModalCrear(false)}
