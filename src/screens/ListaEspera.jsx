@@ -13,7 +13,7 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { useCitaEmpalme } from "../functions/crearCita/useCitaEmpalme4";
 import { useHorarioDisponibleEstilistas6 } from "../functions/crearCita/useHorarioDisponibleEstilistas6";
 import { AiFillDelete, AiFillEdit, AiOutlineClose, AiOutlineSearch, AiOutlineReload } from "react-icons/ai";
-import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { createTheme, ThemeProvider } from "@mui/material/styles";
 
 function ListaEspera() {
   const [openListaEspera, setOpenListaEspera] = useState(false);
@@ -289,9 +289,9 @@ function ListaEspera() {
   }
 
   async function verificarDisponibilidad(tiempo, fecha, estilista) {
-    console.log(fecha);
     const res = await fetchCitaEmpalme(tiempo, fecha, estilista);
     const resHorario = await fetchHorarioDisponibleEstilistas(fecha, estilista, tiempo);
+    let isConfirmed2; // Declaración de la variable antes del primer if
 
     if (res && res.data[0].id > 0) {
       const isConfirmed = await Swal.fire({
@@ -304,19 +304,13 @@ function ListaEspera() {
         showCancelButton: true,
       });
 
-      if (!isConfirmed.isConfirmed) {
-        return false;
-      } else {
-        return false;
-      }
-      // return false;
+      return isConfirmed.value;
     } else {
       if (resHorario) {
-        console.log(resHorario);
         if (resHorario.data[0].clave_empleado == "Cita sin restricciones" || resHorario.data[0].clave_empleado == "Prosiga") {
-          console.log(0);
+          return true;
         } else {
-          const isConfirmed = await Swal.fire({
+          isConfirmed2 = await Swal.fire({
             icon: "error",
             title: "Error",
             text: `El estilista no tiene horario disponible`,
@@ -325,11 +319,10 @@ function ListaEspera() {
             showConfirmButton: true,
             showCancelButton: true,
           });
-          if (!isConfirmed.isConfirmed) return false;
         }
       }
+      return isConfirmed2.value;
     }
-    return true;
   }
 
   const listaEsperaPost = async (idListaEspera, tipo, tiempo, estilista, fecha) => {
@@ -337,7 +330,18 @@ function ListaEspera() {
     if (!isVerified) return;
 
     const contraseñaValidada = await validarContraseña();
+
     if (contraseñaValidada) {
+      if ((estilista = 0 || !estilista)) {
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Debe seleccionar un estilista",
+          confirmButtonColor: "#3085d6",
+          confirmButtonText: "Entendido",
+        });
+        return;
+      }
       peinadosApi
         .post("/sp_listaEsperaAdd3", null, {
           params: {
@@ -606,7 +610,7 @@ function ListaEspera() {
           clave_prod: formClienteEspera.clave_prod,
           hora_estimada: formClienteEspera.hora_estimada,
           atendido: 1,
-          estilista: formClienteEspera.estilista ? formClienteEspera.estilista : '',
+          estilista: formClienteEspera.estilista ? formClienteEspera.estilista : "",
           tiempo_servicio: formClienteEspera.tiempo_servicio,
           usuario_registra: 1,
           usuario_cita: formClienteEspera.no_cliente,
@@ -654,11 +658,11 @@ function ListaEspera() {
       MuiDataGrid: {
         styleOverrides: {
           root: {
-            '& .MuiDataGrid-cell': {
-              fontSize: '16px', // Cambia el tamaño de la fuente aquí
+            "& .MuiDataGrid-cell": {
+              fontSize: "16px", // Cambia el tamaño de la fuente aquí
             },
-            '& .MuiDataGrid-columnHeaders': {
-              fontSize: '16px', // Cambia el tamaño de la fuente de los encabezados aquí
+            "& .MuiDataGrid-columnHeaders": {
+              fontSize: "16px", // Cambia el tamaño de la fuente de los encabezados aquí
             },
           },
         },
@@ -683,8 +687,7 @@ function ListaEspera() {
         </div>
       </Container>
       <ThemeProvider theme={theme}>
-
-      <DataGrid rows={dataListaEspera} columns={columnListaEspera} />
+        <DataGrid rows={dataListaEspera} columns={columnListaEspera} />
       </ThemeProvider>
       <Modal isOpen={openListaEspera} toggle={() => closeOpenListaEspera()} size="xl">
         <ModalHeader toggle={() => closeOpenListaEspera()}>
@@ -868,10 +871,9 @@ function ListaEspera() {
             muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
             muiTableBodyCellProps={{
               sx: {
-                fontSize: '16px', // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
+                fontSize: "16px", // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
               },
             }}
-
           />
         </ModalBody>
         <ModalFooter>
@@ -893,10 +895,9 @@ function ListaEspera() {
             muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
             muiTableBodyCellProps={{
               sx: {
-                fontSize: '16px', // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
+                fontSize: "16px", // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
               },
             }}
-
           />
         </ModalBody>
         <ModalFooter>
@@ -908,12 +909,9 @@ function ListaEspera() {
       <Modal isOpen={estilistasModal} toggle={() => setEstilistasModal(!estilistasModal)} size="xl">
         <ModalHeader toggle={() => setEstilistasModal(!estilistasModal)}>Agregar estilista</ModalHeader>
         <ModalBody>
-        <ThemeProvider theme={theme}>
-
-          <DataGrid rows={dataEstilistas} columns={columnsEstilistas} />
-
+          <ThemeProvider theme={theme}>
+            <DataGrid rows={dataEstilistas} columns={columnsEstilistas} />
           </ThemeProvider>
-
         </ModalBody>
         <ModalFooter>
           <Button color="primary" onClick={() => setEstilistasModal(!estilistasModal)}>
@@ -925,24 +923,36 @@ function ListaEspera() {
         <ModalHeader toggle={() => setModalCitaServicio(!modalCitaServicio)}>Folio y Hora</ModalHeader>
         <ModalBody>
           <FormGroup>
-            <Label>Cliente</Label>
-            <Input disabled type="text" value={formListaEsperaVerificacion?.cliente_descripcion}></Input>
+            <Label style={{ fontSize: "1.2rem" }}>Cliente</Label>
+            <Input style={{ fontSize: "1.2rem" }} disabled type="text" value={formListaEsperaVerificacion?.cliente_descripcion}></Input>
           </FormGroup>
           <FormGroup>
-            <Label>Estilista</Label>
-            <Input disabled type="text" value={formListaEsperaVerificacion?.estilista_descripcion}></Input>
+            <Label style={{ fontSize: "1.2rem" }}> Estilista</Label>
+            <Input style={{ fontSize: "1.2rem" }} disabled type="text" value={formListaEsperaVerificacion?.estilista_descripcion}></Input>
           </FormGroup>
-          <FormGroup>
-            <Label>Servicio</Label>
-            <Input disabled type="text" value={formListaEsperaVerificacion?.servicio_descripcion}></Input>
+          <FormGroup row>
+            <Col sm={12}>
+              <Label style={{ fontSize: "1.2rem" }}>Servicio</Label>
+            </Col>
+            <Col sm={12}>
+              <Input style={{ fontSize: "1.2rem" }} disabled type="text" value={formListaEsperaVerificacion?.servicio_descripcion}></Input>
+            </Col>
           </FormGroup>
-          <FormGroup>
-            <Label>Hora</Label>
-            <input
-              disabled
-              type="time"
-              value={formListaEsperaVerificacion?.hora_estimada ? format(parseISO(formListaEsperaVerificacion.hora_estimada), "HH:mm") : ""}
-            ></input>
+          <FormGroup row>
+            <Col sm={12}>
+              <Label style={{ fontSize: "1.2rem" }}>Hora</Label>
+            </Col>
+            <Col sm={12}>
+              <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <TimePicker
+                  slotProps={{ textField: { size: "small" } }}
+                  disabled
+                  value={formListaEsperaVerificacion?.hora_estimada ? parseISO(formListaEsperaVerificacion.hora_estimada) : null}
+                  inputFormat="HH:mm"
+                  renderInput={(params) => <TextField {...params} style={{ fontSize: "1.2rem", height: "4rem" }} />}
+                />
+              </LocalizationProvider>
+            </Col>
           </FormGroup>
           {/* <FormGroup>
       <Label>Folio</Label>
@@ -967,7 +977,7 @@ function ListaEspera() {
           >
             Agregar
           </Button>
-          <Button color="error" onClick={() => setModalCitaServicio(!modalCitaServicio)}>
+          <Button color="danger" onClick={() => setModalCitaServicio(!modalCitaServicio)}>
             Salir
           </Button>
         </ModalFooter>

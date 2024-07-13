@@ -38,7 +38,7 @@ export default {
   eventItemPopoverWidth: 300,
 
   eventItemHeight: 20,
-  eventItemLineHeight: 4,
+  eventItemLineHeight: 7,
   nonAgendaSlotMinHeight: 0,
   dayStartFrom: 7,
   dayStopTo: 22,

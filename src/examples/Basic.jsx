@@ -53,7 +53,7 @@ import { useDetalleCitasObservaciones } from "../functions/crearCita/useDetalleC
 import { AiFillDelete, AiFillEdit, AiOutlineClose, AiOutlineSearch, AiOutlineReload } from "react-icons/ai";
 import { useObservaciones } from "../functions/crearCita/useObservaciones";
 import { styled } from "@mui/material/styles";
-import { Box, Typography, Modal,FormControlLabel, Checkbox } from "@mui/material";
+import { Box, Typography, Modal, FormControlLabel, Checkbox, FormControl } from "@mui/material";
 import Draggable from "react-draggable";
 import debounce from "lodash.debounce";
 import { IoIosAddCircle } from "react-icons/io";
@@ -62,7 +62,7 @@ import { FaEye } from "react-icons/fa6";
 import { IoRefreshCircle } from "react-icons/io5";
 import { usePromocionesZonas } from "../functions/crearCita/usePromocionesZonas";
 import { usePromocionesGrupos } from "../functions/crearCita/usePromocionesGrupos";
-import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { createTheme, ThemeProvider } from "@mui/material/styles";
 
 let schedulerData;
 
@@ -90,18 +90,18 @@ function Basic() {
       MuiDataGrid: {
         styleOverrides: {
           root: {
-            '& .MuiDataGrid-cell': {
-              fontSize: '16px', // Cambia el tamaño de la fuente aquí
+            "& .MuiDataGrid-cell": {
+              fontSize: "16px", // Cambia el tamaño de la fuente aquí
             },
-            '& .MuiDataGrid-columnHeaders': {
-              fontSize: '16px', // Cambia el tamaño de la fuente de los encabezados aquí
+            "& .MuiDataGrid-columnHeaders": {
+              fontSize: "16px", // Cambia el tamaño de la fuente de los encabezados aquí
             },
           },
         },
       },
     },
   });
-  
+
   useEffect(() => {
     // Añadir la clase al body
     document.body.classList.add("special-body");
@@ -122,6 +122,7 @@ function Basic() {
   const [modalServicioUso, setModalServicioUso] = useState(false);
   const [modalCitas, setModalCitas] = useState(false);
   const [ModalCitaEditEstilista, setModalCitaEditEstilista] = useState(false);
+  const [ModalCitaEditEstilistaVenta, setModalCitaEditEstilistaVenta] = useState(false);
   const [isModalActualizarOpen, setIsModalActualizarOpen] = useState(false);
   const [event, setEvent] = useState();
   const openModal = () => {
@@ -322,7 +323,7 @@ function Basic() {
   const getCitasDia = (elimina) => {
     peinadosApi
       .get(
-        `/ClientesCitasDia9?suc=1&cliente=0&fecha=${format(datosParametros.fecha, "yyyyMMdd")}&tipoCita=${
+        `/ClientesCitasDia10?suc=1&cliente=0&fecha=${format(datosParametros.fecha, "yyyyMMdd")}&tipoCita=${
           tipoCita ? tipoCita : "%"
         }&nombreEstilista=${elimina ? "" : datosParametros.nombreEstilista}&nombreCliente=${elimina ? "" : datosParametros.nombreCliente}`
       )
@@ -630,6 +631,14 @@ function Basic() {
             size={23}
             disabled
             onClick={() => {
+              if (params.row.id == 1) {
+                Swal.fire({
+                  icon: "error",
+                  title: "Error",
+                  text: `Cita ya está en venta, no se puede pasar a venta`,
+                });
+                return;
+              }
               setEvent({
                 fecha: params.row.fecha,
                 no_cliente: params.row.no_cliente2,
@@ -667,6 +676,7 @@ function Basic() {
                 tiempo: params.row.tiempo,
                 idCita: params.row.id,
                 no_estilista: params.row.idEstilista,
+                idVenta: params.row.idVenta,
               });
               setFormCitaServicio({
                 ...formCitaServicio,
@@ -674,6 +684,7 @@ function Basic() {
               });
               setFormDetalleCitasServicios({
                 fecha: params.row.dia_cita,
+                fechaFinal: params.row.horafinal,
                 idEstilista: params.row.idEstilista,
                 d_clave_prod: params.row.descripcion,
                 cantidad: params.row.cantidad,
@@ -684,13 +695,29 @@ function Basic() {
                 idCita: params.row.id,
                 estatusCita: params.row.estatusCita,
               });
+              if (params.row.id == 1) {
+                setModalCitas(false);
+                setModalEdicionVenta(true);
+                return;
+              }
               setModalEdicionServicios2(true);
             }}
           ></AiFillEdit>
           <FaTrash
             disabled
             size={23}
-            onClick={() => putDetalleCitasServiciosUpd4(0, params.row.sucursal, params.row.id, 0, params.row.idEstilista, 0, 0, 1, 0, 0, new Date())}
+            onClick={() => {
+              if (params.row.id == 1) {
+                Swal.fire({
+                  icon: "error",
+                  title: "Error",
+                  text: `Cita ya está en venta, para eliminar debe de ser en ventas`,
+                });
+                return;
+              }
+
+              putDetalleCitasServiciosUpd4(0, params.row.sucursal, params.row.id, 0, params.row.idEstilista, 0, 0, 1, 0, 0, new Date());
+            }}
           >
             Cancelar
           </FaTrash>
@@ -726,15 +753,13 @@ function Basic() {
       ),
     },
     { field: "d_cliente", headerName: "Cliente", width: 300, style: { fontSize: "16px" } },
-    { field: "descripcion", headerName: "Servicio", width: 270, style: { fontSize: "16px" } },
+    { field: "descripcion", headerName: "Servicio", width: 330, style: { fontSize: "16px" } },
     {
       field: "tiempo",
       headerName: "T",
       width: 40,
       renderCell: (params) => (
-        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0, fontSize: "16px" }}>
-          {params.row.tiempo}
-        </p>
+        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0, fontSize: "16px" }}>{params.row.tiempo}</p>
       ),
     },
 
@@ -973,7 +998,7 @@ function Basic() {
     //   `Do you want to create a new event? {slotId: ${slotId}, slotName: ${slotName}, start: ${start}, end: ${end}, type: ${type}, item: ${item}}`
     // )
     const width = 1200;
-    const height = 600;
+    const height = 800;
     const left = (window.screen.width - width) / 2;
     const top = (window.screen.height - height) / 2;
     const features = `width=${width},height=${height},left=${left},top=${top},toolbar=0,location=0,menubar=0,scrollbars=1,resizable=1`;
@@ -999,14 +1024,14 @@ function Basic() {
       })
       .then((response) => {});
   };
-const felicitarCliente = async (id, sucursal) => {
+  const felicitarCliente = async (id, sucursal) => {
     await peinadosApi.put("/sp_clientesFelicitarUpd", null, {
-        params: {
-            id: id,
-            suc: sucursal,
-        },
+      params: {
+        id: id,
+        suc: sucursal,
+      },
     });
-};
+  };
   const putEditarCita = async () => {
     let fechaActual = new Date();
     // Extrae el año, mes y día
@@ -1298,6 +1323,7 @@ const felicitarCliente = async (id, sucursal) => {
   const [ProductosModalEdicionServicios, setProductosModalEdicionServicios] = useState(false);
   const [modalEdicionServicios, setModalEdicionServicios] = useState(false);
   const [modalEdicionServicios2, setModalEdicionServicios2] = useState(false);
+  const [modalEdicionVenta, setModalEdicionVenta] = useState(false);
   const [productosModal, setProductosModal] = useState(false);
   const [productosModalLectura, setProductosModalLectura] = useState(false);
   const [modalCitasObservaciones, setModalCitasObservaciones] = useState(false);
@@ -1320,7 +1346,6 @@ const felicitarCliente = async (id, sucursal) => {
   const [valido, setValido] = useState(false);
   const [totalOperacionesPuntos, settotalOperacionesPuntos] = useState(0);
   useEffect(() => {
-    console.log("ESTAMOS");
     const total = dataOperaciones.reduce((a, b) => a + b.precio, 0);
     if (total <= 0) return;
     settotalOperacionesPuntos(total);
@@ -1508,7 +1533,7 @@ const felicitarCliente = async (id, sucursal) => {
     no_estilista: formCita.no_estilista,
     tiempoCita: formVentaTemporal.tiempo,
   });
-  const  {dataCumpleañosProximos, fetchCumpleañosProximos}= useCumpleañosProximos();
+  const { dataCumpleañosProximos, fetchCumpleañosProximos } = useCumpleañosProximos();
   const { dataCitaEmpalme5, fetchCitaEmpalme5 } = useCitaEmpalme5({
     fechacita: formCita.fecha,
     no_estilista: formCita.no_estilista,
@@ -1528,8 +1553,9 @@ const felicitarCliente = async (id, sucursal) => {
   const [formPromocion, setFormPromocion] = useState({
     id: 0,
   });
-  const [modalCumpleanios, setModalCumpleanios] = useState(false)
+  const [modalCumpleanios, setModalCumpleanios] = useState(false);
   const [modalPromociones, setModalPromociones] = useState(false);
+  const [modalPromocionesFechas, setModalPromocionesFechas] = useState(false);
   const [modalPromocionesGrupos, setModalPromocionesGrupos] = useState(false);
 
   const { dataPromocionesZonas } = usePromocionesZonas();
@@ -1695,12 +1721,7 @@ const felicitarCliente = async (id, sucursal) => {
         // Divide el texto en dos partes por el espacio
         const [parte1, parte2] = cell.row.descripcion.split(" ");
 
-        return (
-          <div className="centered-cell" style={{ whiteSpace: "normal", lineHeight: "0.2em" }}>
-            <p>{parte1}</p>
-            <p>{parte2}</p>
-          </div>
-        );
+        return <p>{cell.row.descripcion}</p>;
       },
     },
     {
@@ -1729,7 +1750,7 @@ const felicitarCliente = async (id, sucursal) => {
     {
       field: "Accion",
       headerName: "Accion",
-      width: 50,
+      width: 70,
       renderCell: (cell) => (
         <>
           <AiFillDelete
@@ -1757,7 +1778,6 @@ const felicitarCliente = async (id, sucursal) => {
             size={35}
             onClick={() => {
               setModalEdicionServicios(true);
-
               setFormDetalleCitasServicios({
                 ...formDetalleCitasServicios,
                 cantidad: cell.row.cantidad,
@@ -1779,7 +1799,7 @@ const felicitarCliente = async (id, sucursal) => {
     {
       field: "observaciones",
       headerName: "Descripción",
-      width: 250,
+      width: 400,
       renderCell: (cell) => {
         // Divide el texto en dos partes por el espacio
         const [parte1, parte2] = cell.row.descripcion.split(" ");
@@ -2121,6 +2141,19 @@ const felicitarCliente = async (id, sucursal) => {
       return "Error";
     }
   };
+  function formatFecha2(fecha) {
+    const date = new Date(fecha);
+    const day = date.getDate();
+    const month = date.getMonth() + 1; // Los meses en JavaScript empiezan en 0
+
+    return `${day}-${month}`;
+  }
+
+  const cumpleaños = ["2024-04-11", "1999-09-07", "2024-04-18", "2024-01-01T00:00:00.000Z", "2024-12-12T06:00:00.000Z"];
+  const cumpleañosFormateados = cumpleaños.map((fecha) => formatFecha(fecha));
+
+  console.log(cumpleañosFormateados); // Debería imprimir algo como ["11-4", "7-9", "18-4", "1-1", "12-12"]
+
   const columnsClientes2 = useMemo(() => [
     {
       accessorKey: "acciones",
@@ -2994,6 +3027,23 @@ const felicitarCliente = async (id, sucursal) => {
     }
     setFormDetalleCitasServicios({ ...formDetalleCitasServicios, fecha: newDateTime });
   };
+  const handleChangeFechaFinalServicio = (type, value) => {
+    let newDateTime;
+    if (type === "fechaFinal") {
+      onSelectDate(state.viewModel, format(value, "yyyy-MM-dd"));
+      newDateTime = value ? new Date(value) : null;
+      if (formDetalleCitasServicios.fechaFinal) {
+        const time = new Date(formDetalleCitasServicios.fechaFinal).toTimeString().split(" ")[0];
+        newDateTime = new Date(`${value.toDateString()} ${time}`);
+      }
+    } else {
+      newDateTime = formDetalleCitasServicios.fechaFinal ? new Date(formDetalleCitasServicios.fechaFinal) : new Date();
+      newDateTime.setHours(value.getHours());
+      newDateTime.setMinutes(value.getMinutes());
+      console.log(newDateTime);
+    }
+    setFormDetalleCitasServicios({ ...formDetalleCitasServicios, fechaFinal: newDateTime });
+  };
 
   const updateCita = async () => {
     const contraseñaValidada = await validarContraseña();
@@ -3035,10 +3085,6 @@ const felicitarCliente = async (id, sucursal) => {
   };
 
   async function verificarDisponibilidad(tiempo, fecha, estilista, idCita) {
-    console.log(tiempo);
-    console.log(fecha);
-    console.log(estilista);
-    console.log(idCita);
     const res = await fetchCitaEmpalme5(tiempo, new Date(fecha), estilista, idCita);
     const resHorario = await fetchHorarioDisponibleEstilistas(new Date(fecha), estilista, tiempo);
 
@@ -3066,7 +3112,7 @@ const felicitarCliente = async (id, sucursal) => {
       if (resHorario) {
         if (resHorario.data[0].clave_empleado == "Cita sin restricciones" || resHorario.data[0].clave_empleado == "Prosiga") {
           console.log(0);
-        } else {
+        } else if (resHorario.data[0].clave_empleado == "Cita fuera del horario de salida del estilista") {
           const isConfirmed = await Swal.fire({
             icon: "error",
             title: "Error",
@@ -3076,7 +3122,15 @@ const felicitarCliente = async (id, sucursal) => {
             showConfirmButton: true,
             showCancelButton: true,
           });
-          if (!isConfirmed.isConfirmed) return false;
+          if (!isConfirmed.isConfirmed) return true;
+        } else {
+          const isConfirmed = await Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: `El estilista no tiene horario disponible desde temprano`,
+            confirmButtonColor: "#3085d6",
+          });
+          return false;
         }
       }
     }
@@ -3084,9 +3138,24 @@ const felicitarCliente = async (id, sucursal) => {
   }
   const [colummEdit, setColummEdit] = useState("");
   const handleCellDoubleClick = (params) => {
+    if (
+      params.field == "no_cliente" ||
+      params.field == "stao_estilista" ||
+      params.field == "id" ||
+      params.field == "observaciones" ||
+      params.field == "d_cliente"
+    )
+      return;
+    if (params.row.id == 1) {
+      if (params.field == "descripcion") return;
+
+      setModalCitaEditEstilistaVenta(true);
+    } else {
+      if (params.field == "horafinal") return;
+      setModalCitaEditEstilista(true);
+    }
     setFormCitaServioActualizacion(params.row);
     setColummEdit(params.field);
-    setModalCitaEditEstilista(true);
     // params contiene información sobre la celda,
     // como el ID de la fila y el campo de la celda.
     console.log(`Doble clic en la fila ${params.id}, columna ${params.field}`);
@@ -3096,43 +3165,51 @@ const felicitarCliente = async (id, sucursal) => {
   const columnsCumple = useMemo(
     () => [
       {
-        header: 'Nombre',
-        accessorKey: 'nombre',
-        style: { fontSize: '1.2rem' },
+        header: "Nombre",
+        accessorKey: "nombre",
+        style: { fontSize: "1.2rem" },
+        size: 300,
+      },
+
+      {
+        header: "Telefono",
+        accessorKey: "telefono",
+        style: { fontSize: "1.2rem" },
       },
       {
-        header: 'Celular',
-        accessorKey: 'celular',
-        style: { fontSize: '1.2rem' },
+        header: "Cumpleaños",
+        accessorKey: "cumpleaños",
+        Cell: ({ cell }) => {
+          const fechaCompleta1 = cell.row.original.cumpleaños;
+          const fechaFormateada1 = fechaCompleta1 ? formatFecha2(fechaCompleta1) : "";
+
+          return <span>{fechaFormateada1}</span>;
+        },
+
+        style: { fontSize: "1.2rem" },
       },
       {
-        header: 'Telefono',
-        accessorKey: 'telefono',
-        style: { fontSize: '1.2rem' },
-      },
-      {
-        header: 'Cumpleaños',
-        accessorKey: 'cumpleaños',
-        cell: ({ cell }) => (
-          <Typography onClick={() => { console.log(cell.row.original.cumpleaños) }}>{format(new Date(cell.row.original.cumpleaños), 'dd')}</Typography>),
-        style: { fontSize: '1.2rem' },
-      },
-      {
-        header: 'Felicitado',
-        accessorKey: 'id',
-        style: { fontSize: '1.2rem' },
+        header: "Felicitado",
+        accessorKey: "id",
+        style: { fontSize: "1.2rem" },
+        size: 50,
+
         Cell: ({ cell }) => (
           <FormControlLabel
-            control={<Checkbox checked={cell.row.original.verificaCumpleaños} onClick={() => {
-              felicitarCliente(cell.row.original.id, 1)
-              fetchCumpleañosProximos(true)
-            }} />}
-            disabled={cell.row.original.verificaCumpleaños}
-            label={''}
-            style={{ fontSize: '1.2rem' }}
+            control={
+              <Checkbox
+                checked={cell.row.original.verificaCumpleaños}
+                onClick={() => {
+                  felicitarCliente(cell.row.original.id, 1);
+                  fetchCumpleañosProximos(true);
+                }}
+              />
+            }
+            label={""}
+            style={{ fontSize: "1.2rem" }}
           />
         ),
-      }
+      },
     ],
     []
   );
@@ -3162,17 +3239,6 @@ const felicitarCliente = async (id, sucursal) => {
         size: 130,
       },
       {
-        accessorKey: "f1",
-        header: "Fecha incial",
-        size: 40,
-        Cell: ({ cell }) => {
-          const fechaCompleta1 = cell.row.original.f1;
-          const fechaFormateada1 = fechaCompleta1 ? formatFecha(fechaCompleta1) : "";
-
-          return <span>{fechaFormateada1}</span>;
-        },
-      },
-      {
         accessorKey: "f2",
         header: "Fecha fin",
         size: 40,
@@ -3180,9 +3246,50 @@ const felicitarCliente = async (id, sucursal) => {
           const fechaCompleta1 = cell.row.original.f2;
           const fechaFormateada1 = fechaCompleta1 ? formatFecha(fechaCompleta1) : "";
 
-          return <span>{fechaFormateada1}</span>;
+          return (
+            <span
+              style={{ flex: 1, display: "flex", justifyContent: "center", height: "100%" }}
+              onDoubleClick={() => {
+                setFormPromocion({ id: cell.row.original.id });
+
+                setModalPromocionesFechas(true);
+              }}
+            >
+              {fechaFormateada1}
+            </span>
+          );
+        },
+        onCellDoubleClick: (cell) => {
+          console.log("HOLA");
+        },
+        handleCellDoubleClick: (cell) => {
+          console.log("HOLA");
         },
       },
+
+      {
+        accessorKey: "descuentoPorcentaje",
+        header: "% Descuento",
+        size: 100,
+        Cell: ({ cell }) => <span>{cell.getValue().toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%</span>,
+      },
+      // {
+      //   accessorKey: "acciones",
+      //   header: "Aplicar promo",
+      //   size: 100,
+      //   Cell: ({ cell }) => (
+      //     <>
+      //       <BsBuildingFillGear className="mr-2" onClick={() => toggleModalPromoSuc(cell.row.original)} size={23} />
+      //       <BsDiagram3Fill onClick={() => eliminar(cell.row.original)} size={23} />
+
+      //     </>
+      //   ),
+      // },
+    ],
+    [dataPromocionesZonas]
+  );
+  const columnsPromoDias = useMemo(
+    () => [
       {
         accessorKey: "lu",
         header: "L",
@@ -3267,27 +3374,33 @@ const felicitarCliente = async (id, sucursal) => {
           }
         },
       },
-      {
-        accessorKey: "descuentoPorcentaje",
-        header: "% Descuento",
-        size: 100,
-        Cell: ({ cell }) => <span>{cell.getValue().toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%</span>,
-      },
-      // {
-      //   accessorKey: "acciones",
-      //   header: "Aplicar promo",
-      //   size: 100,
-      //   Cell: ({ cell }) => (
-      //     <>
-      //       <BsBuildingFillGear className="mr-2" onClick={() => toggleModalPromoSuc(cell.row.original)} size={23} />
-      //       <BsDiagram3Fill onClick={() => eliminar(cell.row.original)} size={23} />
-
-      //     </>
-      //   ),
-      // },
     ],
     []
   );
+  const putVentaAgenda = async (idVenta, horaInicio, horafinal, estilista, tiempo) => {
+    peinadosApi
+      .put("/sp_detalleVentasUpdAgenda", null, {
+        params: {
+          idVenta: idVenta,
+          horaInicio: horaInicio,
+          horafinal: horafinal,
+          estilista: estilista,
+          tiempo: tiempo,
+        },
+      })
+      .then((response) => {
+        Swal.fire({
+          icon: "success",
+          title: "Exito",
+          text: "Se actualizo correctamente",
+        });
+        getCitasDia();
+        // window.location.reload();
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+  };
   return (
     <>
       {/* <div className="barra-titulo">
@@ -3320,7 +3433,7 @@ const felicitarCliente = async (id, sucursal) => {
                 <RiDiscountPercentLine size={20}></RiDiscountPercentLine>
                 Promociones
               </Button>
-              <Button onClick={()=>setModalCumpleanios(true)} size="sm">
+              <Button onClick={() => setModalCumpleanios(true)} size="sm">
                 <FaBirthdayCake size={20}></FaBirthdayCake>
               </Button>
             </ButtonGroup>
@@ -3342,8 +3455,9 @@ const felicitarCliente = async (id, sucursal) => {
                 size="sm"
                 color={"primary"}
                 onClick={() => {
-                  handleOpenNewWindowListaEspera();
                   setIsModalActualizarOpen(true);
+                  // setIsModalOpen(true);
+                  handleOpenNewWindowListaEspera();
                 }}
               >
                 <IoListCircle size={20}></IoListCircle>
@@ -3483,12 +3597,13 @@ const felicitarCliente = async (id, sucursal) => {
           </div>
         </div>
       )}
-      {isModalActualizarOpen && (
+
+      {/* {isModalActualizarOpen && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <button className="close-button" onClick={setIsModalActualizarOpen(false)}>
+            <Button className="close-button" onClick={setIsModalActualizarOpen(false)}>
               ×
-            </button>
+            </Button>
             <br />
             <Button
               color="primary"
@@ -3501,7 +3616,24 @@ const felicitarCliente = async (id, sucursal) => {
             </Button>
           </div>
         </div>
-      )}
+      )} */}
+
+      <Modal
+        open={isModalActualizarOpen}
+        onClose={() => {
+          setIsModalActualizarOpen(false);
+        }}
+      >
+        <Box>
+          <Button className="close-button" onClick={() => setIsModalActualizarOpen(false)}>
+            ×
+          </Button>
+          <br />
+          <Button color="primary" style={{ marginBottom: "10px" }} onClick={() => window.location.reload()}>
+            Actualizar agenda
+          </Button>
+        </Box>
+      </Modal>
 
       <Modal open={clientesModal} onClose={() => setClientesModal(false)}>
         <Box sx={style}>
@@ -3518,9 +3650,9 @@ const felicitarCliente = async (id, sucursal) => {
             muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
             muiTableBodyCellProps={{
               sx: {
-                fontSize: '16px', // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
+                fontSize: "16px", // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
               },
-            }}   
+            }}
           />
         </Box>
       </Modal>
@@ -3532,7 +3664,8 @@ const felicitarCliente = async (id, sucursal) => {
               <Col sm={6}>
                 <InputGroup style={{ marginBottom: "5px" }}>
                   <Label className="label-fixed-width" style={{ fontSize: "1.2rem" }}>
-                    Tipo de cita:                  </Label>
+                    Tipo de cita:{" "}
+                  </Label>
                   <Input style={{ fontSize: "1.2rem" }} type="select" size={"sm"} value={tipoCita} onChange={(e) => setTipoCita(e.target.value)}>
                     <option value={"%"}>Todos</option>
                     <option value={"1"}>Cita</option>
@@ -3580,22 +3713,20 @@ const felicitarCliente = async (id, sucursal) => {
               </Col>
               <br />
               <ThemeProvider theme={theme}>
-
-              <DataGrid
-                rows={arregloCitaDia}
-                columns={columns2}
-                getRowId={(row) => row.idServicio + row.no_cliente2 + row.importe + row.id + new Date(row.horafinal)}
-                onCellDoubleClick={handleCellDoubleClick}
-                rowHeight={28}
-                columnHeaderHeight={28}
-                sx={{
-                  "& .MuiDataGrid-pagination": {
-                    height: "10px",
-                  },
-                }}
-              />
+                <DataGrid
+                  rows={arregloCitaDia}
+                  columns={columns2}
+                  getRowId={(row) => row.idServicio + row.no_cliente2 + row.importe + row.id + new Date(row.horafinal)}
+                  onCellDoubleClick={handleCellDoubleClick}
+                  rowHeight={28}
+                  columnHeaderHeight={28}
+                  sx={{
+                    "& .MuiDataGrid-pagination": {
+                      height: "10px",
+                    },
+                  }}
+                />
               </ThemeProvider>
-              
             </div>
           </Box>
         </Modal>
@@ -3702,11 +3833,10 @@ const felicitarCliente = async (id, sucursal) => {
             Ingresar servicios
           </Button>
           <ThemeProvider theme={theme}>
-
-          <DataGrid autoHeight rows={dataCitasServicios} columns={columnsCitasServiciosAltaServicio}></DataGrid>
-
+            <DataGrid autoHeight rows={dataCitasServicios} columns={columnsCitasServiciosAltaServicio}></DataGrid>
           </ThemeProvider>
-          <Container>
+          <br />
+          <Container style={{ display: "flex", justifyContent: "flex-end" }}>
             <ButtonGroup>
               <Button
                 style={{ marginRight: "10px" }}
@@ -3751,14 +3881,13 @@ const felicitarCliente = async (id, sucursal) => {
               data={dataProductos}
               initialState={{ density: "compact" }}
               muiTableContainerProps={{ sx: { maxHeight: "330px" } }}
-                muiTableBodyProps={{ sx: { fontSize: "16px" } }}
-                muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
-                muiTableBodyCellProps={{
-                  sx: {
-                    fontSize: '16px', // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
-                  },
-                }}
-              
+              muiTableBodyProps={{ sx: { fontSize: "16px" } }}
+              muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
+              muiTableBodyCellProps={{
+                sx: {
+                  fontSize: "16px", // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
+                },
+              }}
             />
           ) : null}
         </Box>
@@ -3777,9 +3906,10 @@ const felicitarCliente = async (id, sucursal) => {
               muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
               muiTableBodyCellProps={{
                 sx: {
-                  fontSize: '16px', // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
+                  fontSize: "16px", // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
                 },
-              }}            />
+              }}
+            />
           ) : null}
         </Box>
       </Modal>
@@ -3791,16 +3921,14 @@ const felicitarCliente = async (id, sucursal) => {
           </div>
           <Typography variant="h4">Observaciones del catalogo</Typography>
           <ThemeProvider theme={theme}>
-
-          <DataGrid
-            autoHeight
-            rows={dataObservaciones}
-            columns={columnsObservaciones}
-            pageSize={3} // Número de filas por página
-            rowsPerPageOptions={[3]} // Opciones de filas por página en el dropdown
-            pagination
-          ></DataGrid> 
-
+            <DataGrid
+              autoHeight
+              rows={dataObservaciones}
+              columns={columnsObservaciones}
+              pageSize={3} // Número de filas por página
+              rowsPerPageOptions={[3]} // Opciones de filas por página en el dropdown
+              pagination
+            ></DataGrid>
           </ThemeProvider>
         </Box>
       </Modal>
@@ -3818,9 +3946,7 @@ const felicitarCliente = async (id, sucursal) => {
           <Label>Cliente:</Label>
           <Input disabled value={formCitaDescripciones.descripcion_no_cliente}></Input>
           <ThemeProvider theme={theme}>
-
-          <DataGrid autoHeight rows={dataClientesPuntos} columns={columnsPuntos} />
-
+            <DataGrid autoHeight rows={dataClientesPuntos} columns={columnsPuntos} />
           </ThemeProvider>
         </Box>
       </Modal>
@@ -3839,9 +3965,7 @@ const felicitarCliente = async (id, sucursal) => {
             <Label>Hora: {formPuntosObservaciones.fecha ? format(new Date(formPuntosObservaciones.fecha), "HH:mm") : ""}</Label>
           </div>
           <ThemeProvider theme={theme}>
-
-          <DataGrid autoHeight rows={dataOperaciones} columns={columnsConultaPuntos} />
-
+            <DataGrid autoHeight rows={dataOperaciones} columns={columnsConultaPuntos} />
           </ThemeProvider>
 
           <hr />
@@ -3883,9 +4007,7 @@ const felicitarCliente = async (id, sucursal) => {
         <Box sx={style}>
           <Typography variant="h4">Agregar productos</Typography>
           <ThemeProvider theme={theme}>
-
-          <DataGrid rows={dataClientesPuntos} columns={columnsProductos} />
-
+            <DataGrid rows={dataClientesPuntos} columns={columnsProductos} />
           </ThemeProvider>
         </Box>
       </Modal>
@@ -4008,14 +4130,11 @@ const felicitarCliente = async (id, sucursal) => {
             Consultar
           </Button>
           <ThemeProvider theme={theme}>
-
-          <DataGrid
-            rows={dataVentasHistoriales}
-            columns={columnsDataVentasHistoriales}
-            getRowId={(row) => Number(row.sucursal) + Number(row.no_venta)}
-            
-          />
-
+            <DataGrid
+              rows={dataVentasHistoriales}
+              columns={columnsDataVentasHistoriales}
+              getRowId={(row) => Number(row.sucursal) + Number(row.no_venta)}
+            />
           </ThemeProvider>
         </Box>
       </Modal>
@@ -4066,13 +4185,11 @@ const felicitarCliente = async (id, sucursal) => {
             </Col>
           </Row>
           <ThemeProvider theme={theme}>
-
-          <DataGrid
-            rows={DataVentasOperaciones}
-            columns={columnsDataVentasOperaciones}
-            getRowId={(row) => Number(row.sucursal) + Number(row.no_venta)}
-          />
-
+            <DataGrid
+              rows={DataVentasOperaciones}
+              columns={columnsDataVentasOperaciones}
+              getRowId={(row) => Number(row.sucursal) + Number(row.no_venta)}
+            />
           </ThemeProvider>
         </Box>
       </Modal>
@@ -4091,10 +4208,10 @@ const felicitarCliente = async (id, sucursal) => {
               muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
               muiTableBodyCellProps={{
                 sx: {
-                  fontSize: '16px', // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
+                  fontSize: "16px", // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
                 },
-              }}            />
-            
+              }}
+            />
           ) : null}
         </Box>
       </Modal>
@@ -4112,9 +4229,10 @@ const felicitarCliente = async (id, sucursal) => {
               muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
               muiTableBodyCellProps={{
                 sx: {
-                  fontSize: '16px', // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
+                  fontSize: "16px", // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
                 },
-              }}               />
+              }}
+            />
           ) : null}
         </Box>
       </Modal>
@@ -4134,7 +4252,7 @@ const felicitarCliente = async (id, sucursal) => {
             <Col md={6}>
               <FormGroup>
                 <Label style={{ fontSize: "1.2rem" }} for="atiende">
- Estilista
+                  Estilista
                 </Label>
                 <Input
                   type="select"
@@ -4219,7 +4337,6 @@ const felicitarCliente = async (id, sucursal) => {
                         InputProps={{ endAdornment: null }} // Aquí se elimina el ícono
                         sx={{
                           fontSize: "1.2rem",
-                          backgroundColor: "#ffccac",
                           "& .MuiInputBase-input": {
                             height: "30px", // Ajusta la altura aquí
                             padding: "0 14px", // Ajusta el padding para centrar el texto
@@ -4269,7 +4386,6 @@ const felicitarCliente = async (id, sucursal) => {
                       "& .MuiSvgIcon-root": {
                         // Aquí se oculta el ícono
                         width: "1.2rem",
-                        backgroundColor: "#ffccac",
                       },
                     }}
                     renderInput={(props) => (
@@ -4278,7 +4394,6 @@ const felicitarCliente = async (id, sucursal) => {
                         size="small"
                         style={{
                           fontSize: "1.2rem",
-                          backgroundColor: "#ffccac",
                         }}
                       />
                     )}
@@ -4287,7 +4402,7 @@ const felicitarCliente = async (id, sucursal) => {
               </FormGroup>
             </Col>
             <Col md={3}>
-              <FormGroup >
+              <FormGroup>
                 <Label style={{ fontSize: "1.2rem" }}>Tiempo</Label>
                 <Input
                   style={{ fontSize: "1.2rem" }}
@@ -4300,7 +4415,7 @@ const felicitarCliente = async (id, sucursal) => {
             <Col md={6}>
               <FormGroup>
                 <Button
-                color="success"
+                  color="success"
                   onClick={() => {
                     putDetalleCitasServiciosUpd4(
                       formDetalleCitasServicios.id,
@@ -4343,7 +4458,7 @@ const felicitarCliente = async (id, sucursal) => {
                 <Input
                   type="select"
                   name="atiende"
-                  // disabled
+                  style={{ fontSize: "1.2rem" }}
                   id="atiende"
                   value={formDetalleCitasServicios.idEstilista}
                   onChange={(valor) => {
@@ -4367,7 +4482,16 @@ const felicitarCliente = async (id, sucursal) => {
                   Producto
                 </Label>
                 <InputGroup addonType="append">
-                  <Input style={{ fontSize: "1.2rem" }} bsSize="sm" disabled value={formDetalleCitasServicios.d_clave_prod} type="text" name="cliente" id="cliente" size={"small"} />
+                  <Input
+                    style={{ fontSize: "1.2rem" }}
+                    bsSize="sm"
+                    disabled
+                    value={formDetalleCitasServicios.d_clave_prod}
+                    type="text"
+                    name="cliente"
+                    id="cliente"
+                    size={"small"}
+                  />
                   <Button size="sm" onClick={() => setProductosModalEdicion(true)}>
                     Buscar
                   </Button>
@@ -4380,7 +4504,15 @@ const felicitarCliente = async (id, sucursal) => {
                   Cantidad
                 </Label>
                 <InputGroup addonType="append">
-                  <Input bsSize="sm" value={formDetalleCitasServicios.cantidad} type="text" name="cliente" id="cliente" size={"small"} />
+                  <Input
+                    style={{ fontSize: "1.2rem" }}
+                    bsSize="sm"
+                    value={formDetalleCitasServicios.cantidad}
+                    type="text"
+                    name="cliente"
+                    id="cliente"
+                    size={"small"}
+                  />
                 </InputGroup>
               </FormGroup>
             </Col>
@@ -4389,6 +4521,7 @@ const felicitarCliente = async (id, sucursal) => {
               <FormGroup>
                 <Label style={{ fontSize: "1.2rem" }}>Tiempo</Label>
                 <Input
+                  style={{ fontSize: "1.2rem" }}
                   value={formDetalleCitasServicios.tiempo}
                   onChange={(v) => {
                     setFormDetalleCitasServicios({ ...formDetalleCitasServicios, tiempo: v.target.value });
@@ -4421,7 +4554,7 @@ const felicitarCliente = async (id, sucursal) => {
                       },
                       "& .MuiSvgIcon-root": {
                         // Aquí se oculta el ícono
-                        width: "0.8rem",
+                        width: "1.2rem",
                         backgroundColor: "transparent",
                       },
                       "& .MuiIconButton-root": {
@@ -4434,8 +4567,7 @@ const felicitarCliente = async (id, sucursal) => {
                         size="small"
                         InputProps={{ endAdornment: null }} // Aquí se elimina el ícono
                         sx={{
-                          fontSize: "0.8rem",
-                          backgroundColor: "#ffccac",
+                          fontSize: "1.2rem",
                           "& .MuiInputBase-input": {
                             height: "30px", // Ajusta la altura aquí
                             padding: "0 14px", // Ajusta el padding para centrar el texto
@@ -4484,8 +4616,7 @@ const felicitarCliente = async (id, sucursal) => {
                       },
                       "& .MuiSvgIcon-root": {
                         // Aquí se oculta el ícono
-                        width: "0.8rem",
-                        backgroundColor: "#ffccac",
+                        width: "1.2rem",
                       },
                     }}
                     renderInput={(props) => (
@@ -4493,8 +4624,7 @@ const felicitarCliente = async (id, sucursal) => {
                         {...props}
                         size="small"
                         style={{
-                          fontSize: "0.8rem",
-                          backgroundColor: "#ffccac",
+                          fontSize: "1.2rem",
                         }}
                       />
                     )}
@@ -4518,37 +4648,301 @@ const felicitarCliente = async (id, sucursal) => {
 
             <Col md={6}>
               <div style={{ display: "flex", alignItems: "flex-end", marginBottom: "5px" }}>
-
-              <FormGroup >
-                
-                <Button
-                color="success"
-                  onClick={() => {
-                    putDetalleCitasServiciosUpd7(
-                      formDetalleCitasServicios.id,
-                      1, //SUCURSAL: 1 SUCURSAL: 2
-                      formCitaServicio.idCita,
-                      formDetalleCitasServicios.tiempo,
-                      formDetalleCitasServicios.idEstilista,
-                      1,
-                      formDetalleCitasServicios.idServicio,
-                      0,
-                      formDetalleCitasServicios.cantidad,
-                      formDetalleCitasServicios.precio,
-                      formDetalleCitasServicios.fecha,
-                      formDetalleCitasServicios.estatusCita
+                <FormGroup>
+                  <Button
+                    color="success"
+                    onClick={() => {
+                      putDetalleCitasServiciosUpd7(
+                        formDetalleCitasServicios.id,
+                        1, //SUCURSAL: 1 SUCURSAL: 2
+                        formCitaServicio.idCita,
+                        formDetalleCitasServicios.tiempo,
+                        formDetalleCitasServicios.idEstilista,
+                        1,
+                        formDetalleCitasServicios.idServicio,
+                        0,
+                        formDetalleCitasServicios.cantidad,
+                        formDetalleCitasServicios.precio,
+                        formDetalleCitasServicios.fecha,
+                        formDetalleCitasServicios.estatusCita
                       );
                     }}
-                    >
-                  Guardar
-                </Button>
-              </FormGroup>
-                  </div>
+                  >
+                    Guardar
+                  </Button>
+                </FormGroup>
+              </div>
             </Col>
           </Row>
         </Box>
       </Modal>
-      <Modal open={ModalCitaEditEstilista} onClose={() => setModalCitaEditEstilista(false)} size={"sm"}>
+      <Draggable>
+        <Modal open={modalEdicionVenta} onClose={() => setModalEdicionVenta(false)} size={"sm"}>
+          <Box sx={styleObservaciones}>
+            <h3>Modificación ventas</h3>
+            <Row>
+              <Col>
+                <Label for="atiende" style={{ marginRight: "0px", fontSize: "1.2rem" }}>
+                  Atiende:
+                </Label>
+                <Input
+                  bsSize="sm"
+                  type="select"
+                  name="atiende"
+                  id="atiende"
+                  value={formDetalleCitasServicios.idEstilista}
+                  onChange={(e) => setFormDetalleCitasServicios({ ...formDetalleCitasServicios, idEstilista: parseInt(e.target.value) })}
+                  style={{ marginBottom: "10px", fontSize: "1.2rem" }}
+                >
+                  <option value="0">Seleccione</option>
+                  {dataTrabajadores.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.nombre_agenda}
+                    </option>
+                  ))}
+                </Input>
+              </Col>
+              <Col>
+                <FormGroup>
+                  <Label style={{ fontSize: "1.2rem" }}>Tiempo</Label>
+                  <Input
+                    value={formDetalleCitasServicios.tiempo}
+                    onChange={(v) => {
+                      setFormDetalleCitasServicios({ ...formDetalleCitasServicios, tiempo: v.target.value });
+                    }}
+                  ></Input>
+                </FormGroup>
+              </Col>
+            </Row>
+
+            <Row style={{ marginBottom: "10px" }}>
+              <Col>
+                <FormControl>
+                  <Label style={{ marginBottom: "10px", fontSize: "1.2rem" }} for="hora_inicio">
+                    Hora inicio:
+                  </Label>
+                  <LocalizationProvider dateAdapter={AdapterDateFns}>
+                    <TimePicker
+                      timeSteps={15}
+                      slotProps={{ textField: { size: "small" } }}
+                      value={formDetalleCitasServicios.fecha ? new Date(decodeURIComponent(formDetalleCitasServicios.fecha)) : null}
+                      onChange={(hora) => handleChangeFechaServicio("hora", hora)}
+                      sx={{
+                        "& .MuiPickersDay-dayWithMargin": {
+                          display: "flex",
+                        },
+                        "& .MuiSvgIcon-root": {
+                          width: "1.2rem",
+                        },
+                      }}
+                      renderInput={(props) => (
+                        <Input
+                          {...props}
+                          size="small"
+                          style={{
+                            fontSize: "1.2rem",
+                          }}
+                        />
+                      )}
+                    />
+                  </LocalizationProvider>
+                </FormControl>
+              </Col>
+              <Col>
+                <FormControl>
+                  <Label for="hora_final" style={{ marginRight: "4px", fontSize: "1.2rem" }}>
+                    Hora final:
+                  </Label>
+                  <LocalizationProvider dateAdapter={AdapterDateFns}>
+                    <TimePicker
+                      timeSteps={15}
+                      slotProps={{ textField: { size: "small" } }}
+                      value={formDetalleCitasServicios.fechaFinal ? new Date(decodeURIComponent(formDetalleCitasServicios.fechaFinal)) : null}
+                      onChange={(hora) => handleChangeFechaFinalServicio("hora", hora)}
+                      sx={{
+                        "& .MuiPickersDay-dayWithMargin": {
+                          display: "none",
+                        },
+                        "& .MuiSvgIcon-root": {
+                          width: "1.2rem",
+                        },
+                      }}
+                      renderInput={(props) => (
+                        <Input
+                          {...props}
+                          size="small"
+                          style={{
+                            fontSize: "1.2rem",
+                          }}
+                        />
+                      )}
+                    />
+                  </LocalizationProvider>
+                </FormControl>
+              </Col>
+            </Row>
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <Button
+                color="success"
+                onClick={() => {
+                  putVentaAgenda(
+                    event.idVenta,
+                    formDetalleCitasServicios.fecha,
+                    formDetalleCitasServicios.fechaFinal,
+                    formDetalleCitasServicios.idEstilista,
+                    formDetalleCitasServicios.tiempo
+                  );
+                }}
+              >
+                Guardar
+              </Button>
+            </div>
+          </Box>
+        </Modal>
+      </Draggable>
+
+      <Modal open={ModalCitaEditEstilista} onClose={() => setModalCitaEditEstilista(false)} size={"sm"} disableEnforceFocus>
+        <Box sx={styleCantidad}>
+          {colummEdit == "d_stilista" ? (
+            <>
+              <Label for="atiende" style={{ marginRight: "0px", fontSize: "1.2rem" }}>
+                Atiende:
+              </Label>
+              <Input
+                bsSize="sm"
+                type="select"
+                name="atiende"
+                id="atiende"
+                value={formCitaServioActualizacion?.idEstilista}
+                onChange={(e) => setFormCitaServioActualizacion({ ...formCitaServioActualizacion, idEstilista: e.target.value })}
+                style={{ fontSize: "1.2rem" }}
+              >
+                <option value="0">Seleccione un estilista</option>
+                {dataEstilistas.map((opcion, index) => (
+                  <option value={opcion.id} key={index}>
+                    {opcion.estilista}
+                  </option>
+                ))}
+              </Input>
+            </>
+          ) : null}
+
+          {colummEdit == "stao_estilista" ? (
+            <>
+              <Input disabled style={{ fontSize: "1.2rem" }} value={formCitaServioActualizacion?.estatusCita == 2 ? "Requerido" : "Asignado"}></Input>
+              <Button
+                color="info"
+                onClick={() =>
+                  setFormCitaServioActualizacion({
+                    ...formCitaServioActualizacion,
+                    estatusCita: formCitaServioActualizacion.estatusCita == 2 ? 3 : 2,
+                  })
+                }
+              >
+                Cambio
+              </Button>
+            </>
+          ) : null}
+          {colummEdit == "hora_cita" ? (
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <Label style={{ marginRight: "4px", fontSize: "1.2rem" }}>Hora inicio</Label>
+              <TimePicker
+                timeSteps={{ minutes: 15 }}
+                slotProps={{ textField: { size: "small" } }}
+                value={formCitaServioActualizacion?.hora_cita ? new Date(decodeURIComponent(formCitaServioActualizacion?.hora_cita)) : null}
+                // value={formCitaServioActualizacion?.hora_cita ? new Date(formCita.fecha).toTimeString().substring(0, 5) : null}
+                onChange={(hora) => handleChangeFechaEdicionServicio("hora", hora)}
+                sx={{
+                  "& .MuiInputBase-input": {
+                    width: "128px",
+                  },
+                  "& .MuiPickersDay-dayWithMargin": {
+                    // Oculta el ícono del DatePicker
+                    display: "none",
+                  },
+                  "& .MuiSvgIcon-root": {
+                    // Aquí se oculta el ícono
+                    width: "1.2rem",
+                    backgroundColor: "#ffccac",
+                  },
+                }}
+                renderInput={(props) => (
+                  <Input
+                    {...props}
+                    size="small"
+                    style={{
+                      fontSize: "0.8rem",
+                    }}
+                  />
+                )}
+              />
+            </LocalizationProvider>
+          ) : null}
+          {colummEdit == "descripcion" ? (
+            <>
+              <Col>
+                <Label style={{ marginRight: "4px", fontSize: "1.2rem" }}>Producto</Label>
+              </Col>
+              <Col>
+                <Input style={{ fontSize: "1.2rem", marginBottom: "4px" }} value={formCitaServioActualizacion?.descripcion}></Input>
+              </Col>
+              <Col>
+                <Button onClick={() => setProductosModalEdicionServicios(true)}>Cambio</Button>
+              </Col>
+              <Col>
+                <Label style={{ marginRight: "4px", fontSize: "1.2rem" }}>Tiempo</Label>
+              </Col>
+              <Col>
+                <Input
+                  style={{ fontSize: "1.2rem" }}
+                  value={formCitaServioActualizacion?.tiempo}
+                  onChange={(e) => setFormCitaServioActualizacion({ ...formCitaServioActualizacion, tiempo: e.target.value })}
+                ></Input>
+              </Col>
+            </>
+          ) : null}
+          {colummEdit == "tiempo" ? (
+            <>
+              <Label style={{ marginRight: "4px", fontSize: "1.2rem" }}>Tiempo</Label>
+              <Input
+                style={{ fontSize: "1.2rem" }}
+                value={formCitaServioActualizacion?.tiempo}
+                onChange={(e) => setFormCitaServioActualizacion({ ...formCitaServioActualizacion, tiempo: e.target.value })}
+              ></Input>
+            </>
+          ) : null}
+          {/* <Input
+            value={formCitaServioActualizacion?.tiempo}
+            onChange={(e) => setFormCitaServioActualizacion({ ...formCitaServioActualizacion, tiempo: e.target.value })}
+          ></Input> */}
+          <br />
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <Button
+              color="success"
+              onClick={() => {
+                console.log(formCitaServioActualizacion);
+                putDetalleCitasServiciosUpd7(
+                  formCitaServioActualizacion.no_cliente,
+                  1, //SUCURSAL: 1 SUCURSAL: 2
+                  formCitaServioActualizacion.id,
+                  formCitaServioActualizacion.tiempo,
+                  formCitaServioActualizacion.idEstilista,
+                  1,
+                  formCitaServioActualizacion.idServicio,
+                  0,
+                  formCitaServioActualizacion.cantidad,
+                  formCitaServioActualizacion.importe / formCitaServioActualizacion.cantidad,
+                  formCitaServioActualizacion.hora_cita,
+                  formCitaServioActualizacion.estatusCita
+                );
+              }}
+            >
+              Guardar
+            </Button>
+          </div>
+        </Box>
+      </Modal>
+      <Modal open={ModalCitaEditEstilistaVenta} onClose={() => setModalCitaEditEstilistaVenta(false)} size={"sm"}>
         <Box sx={styleCantidad}>
           {colummEdit == "d_stilista" ? (
             <>
@@ -4578,7 +4972,7 @@ const felicitarCliente = async (id, sucursal) => {
             <>
               <Input value={formCitaServioActualizacion?.estatusCita == 2 ? "Requerido" : "Asignado"}></Input>
               <Button
-              color="success"
+                color="success"
                 onClick={() =>
                   setFormCitaServioActualizacion({
                     ...formCitaServioActualizacion,
@@ -4591,61 +4985,112 @@ const felicitarCliente = async (id, sucursal) => {
             </>
           ) : null}
           {colummEdit == "hora_cita" ? (
-            <LocalizationProvider dateAdapter={AdapterDateFns}>
-              <TimePicker
-                timeSteps={{ minutes: 15 }}
-                slotProps={{ textField: { size: "small" } }}
-                value={formCitaServioActualizacion?.hora_cita ? new Date(decodeURIComponent(formCitaServioActualizacion?.hora_cita)) : null}
-                // value={formCitaServioActualizacion?.hora_cita ? new Date(formCita.fecha).toTimeString().substring(0, 5) : null}
-                onChange={(hora) => handleChangeFechaEdicionServicio("hora", hora)}
-                sx={{
-                  "& .MuiInputBase-input": {
-                    width: "128px",
-                  },
-                  "& .MuiPickersDay-dayWithMargin": {
-                    // Oculta el ícono del DatePicker
-                    display: "none",
-                  },
-                  "& .MuiSvgIcon-root": {
-                    // Aquí se oculta el ícono
-                    width: "0.8rem",
-                    backgroundColor: "#ffccac",
-                  },
-                }}
-                renderInput={(props) => (
-                  <Input
-                    {...props}
-                    size="small"
-                    style={{
-                      fontSize: "0.8rem",
+            <>
+              <Label>Hora inicio</Label>
+              <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <TimePicker
+                  timeSteps={{ minutes: 15 }}
+                  slotProps={{ textField: { size: "small" } }}
+                  value={formCitaServioActualizacion?.hora_cita ? new Date(decodeURIComponent(formCitaServioActualizacion?.hora_cita)) : null}
+                  // value={formCitaServioActualizacion?.hora_cita ? new Date(formCita.fecha).toTimeString().substring(0, 5) : null}
+                  onChange={(hora) => handleChangeFechaEdicionServicio("hora", hora)}
+                  sx={{
+                    "& .MuiInputBase-input": {
+                      width: "128px",
+                    },
+                    "& .MuiPickersDay-dayWithMargin": {
+                      // Oculta el ícono del DatePicker
+                      display: "none",
+                    },
+                    "& .MuiSvgIcon-root": {
+                      // Aquí se oculta el ícono
+                      width: "0.8rem",
                       backgroundColor: "#ffccac",
-                    }}
-                  />
-                )}
-              />
-            </LocalizationProvider>
+                    },
+                  }}
+                  renderInput={(props) => (
+                    <Input
+                      {...props}
+                      size="small"
+                      style={{
+                        fontSize: "0.8rem",
+                      }}
+                    />
+                  )}
+                />
+              </LocalizationProvider>
+            </>
+          ) : null}
+          {colummEdit == "horafinal" ? (
+            <>
+              <Label>Hora final</Label>
+              <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <TimePicker
+                  timeSteps={{ minutes: 15 }}
+                  slotProps={{ textField: { size: "small" } }}
+                  value={formCitaServioActualizacion?.horafinal ? new Date(decodeURIComponent(formCitaServioActualizacion?.horafinal)) : null}
+                  // value={formCitaServioActualizacion?.hora_cita ? new Date(formCita.fecha).toTimeString().substring(0, 5) : null}
+                  onChange={(hora) => handleChangeFechaEdicionServicio("hora", hora)}
+                  sx={{
+                    "& .MuiInputBase-input": {
+                      width: "128px",
+                    },
+                    "& .MuiPickersDay-dayWithMargin": {
+                      // Oculta el ícono del DatePicker
+                      display: "none",
+                    },
+                    "& .MuiSvgIcon-root": {
+                      // Aquí se oculta el ícono
+                      width: "0.8rem",
+                      backgroundColor: "#ffccac",
+                    },
+                  }}
+                  renderInput={(props) => (
+                    <Input
+                      {...props}
+                      size="small"
+                      style={{
+                        fontSize: "0.8rem",
+                      }}
+                    />
+                  )}
+                />
+              </LocalizationProvider>
+            </>
           ) : null}
           {colummEdit == "descripcion" ? (
             <>
               <Input value={formCitaServioActualizacion?.descripcion}></Input>
               <Button onClick={() => setProductosModalEdicionServicios(true)}>Cambio</Button>
-              <Label>Tiempo</Label>
+              <Label>Tiempo Venta</Label>
               <Input
                 value={formCitaServioActualizacion?.tiempo}
                 onChange={(e) => setFormCitaServioActualizacion({ ...formCitaServioActualizacion, tiempo: e.target.value })}
               ></Input>
             </>
           ) : null}
-          <Input
-            value={formCitaServioActualizacion?.tiempo}
-            onChange={(e) => setFormCitaServioActualizacion({ ...formCitaServioActualizacion, tiempo: e.target.value })}
-          ></Input>
+          {colummEdit == "tiempo" ? (
+            <>
+              <Label>Tiempo Venta</Label>
+              <Input
+                value={formCitaServioActualizacion?.tiempo}
+                onChange={(e) => setFormCitaServioActualizacion({ ...formCitaServioActualizacion, tiempo: e.target.value })}
+              ></Input>
+            </>
+          ) : null}
           <br />
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <Button
               color="success"
               onClick={() => {
-                console.log("a");
+                console.log(formCitaServioActualizacion);
+                putVentaAgenda(
+                  formCitaServioActualizacion.idVenta,
+                  formCitaServioActualizacion.hora_cita,
+                  formCitaServioActualizacion.horafinal,
+                  formCitaServioActualizacion.idEstilista,
+                  formCitaServioActualizacion.tiempo
+                );
               }}
             >
               Guardar
@@ -4707,24 +5152,53 @@ const felicitarCliente = async (id, sucursal) => {
         </Box>
       </Modal>
       <Modal open={modalPromociones} onClose={() => setModalPromociones(false)} disableAutoFocus disableEnforceFocus>
-        <Box sx={{...styleAltaServicio}}>
+        <Box sx={{ ...styleAltaServicio }}>
           <h3>Promociones</h3>
-          <MaterialReactTable columns={columnsPromo} data={dataPromocionesZonas} initialState={{ density: "compact" }}               muiTableBodyProps={{ sx: { fontSize: "16px" } }}
-              muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
-              muiTableBodyCellProps={{
-                sx: {
-                  fontSize: '16px', // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
-                },
-              }}    />
+          <MaterialReactTable
+            columns={columnsPromo}
+            data={dataPromocionesZonas}
+            initialState={{ density: "compact" }}
+            muiTableBodyProps={{ sx: { fontSize: "16px" } }}
+            muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
+            muiTableBodyCellProps={{
+              sx: {
+                fontSize: "16px", // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
+              },
+            }}
+          />
           <br />
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
-
-          <Button color="danger" onClick={() => setModalPromociones(false)}>Salir</Button>
+            <Button color="danger" onClick={() => setModalPromociones(false)}>
+              Salir
+            </Button>
+          </div>
+        </Box>
+      </Modal>
+      <Modal open={modalPromocionesFechas} onClose={() => setModalPromocionesFechas(false)} disableAutoFocus disableEnforceFocus>
+        <Box sx={{ ...styleAltaServicio }}>
+          <h3>Fechas de la promoción: </h3>
+          <MaterialReactTable
+            columns={columnsPromoDias}
+            data={dataPromocionesZonas.length > 0 ? dataPromocionesZonas.filter((item) => item.id == cell.row.original.id) : []}
+            initialState={{ density: "compact" }}
+            muiTableBodyProps={{ sx: { fontSize: "16px" } }}
+            muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
+            muiTableBodyCellProps={{
+              sx: {
+                fontSize: "16px", // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
+              },
+            }}
+          />
+          <br />
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <Button color="danger" onClick={() => setModalPromociones(false)}>
+              Salir
+            </Button>
           </div>
         </Box>
       </Modal>
       <Modal open={modalPromocionesGrupos} onClose={() => setModalPromocionesGrupos(false)} disableAutoFocus disableEnforceFocus>
-        <Box sx={{...styleAltaServicio}}>
+        <Box sx={{ ...styleAltaServicio }}>
           <h3>Promociones Grupos</h3>
           <Table>
             <thead>
@@ -4736,7 +5210,6 @@ const felicitarCliente = async (id, sucursal) => {
                 <th>Descuento Porcentaje</th>
                 <th>Precio fijo</th>
                 <th>Tipo redondeo</th>
-                <th>Eliminar</th>
               </tr>
             </thead>
 
@@ -4754,36 +5227,47 @@ const felicitarCliente = async (id, sucursal) => {
               ))}
             </tbody>
           </Table>
-          <div style={{ display: "flex", justifyContent: "flex-end" }}> 
-
-          <Button color="danger" onClick={() => setModalPromocionesGrupos(false)}>Salir</Button>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <Button color="danger" onClick={() => setModalPromocionesGrupos(false)}>
+              Salir
+            </Button>
           </div>
         </Box>
       </Modal>
 
       <Modal open={modalCumpleanios} onClose={() => setModalCumpleanios(false)} disableAutoFocus disableEnforceFocus>
-        <Box sx={{...styleAltaServicio}}>
+        <Box sx={{ ...styleAltaServicio }}>
           <h3>Cumpleaños del mes</h3>
-            <MaterialReactTable
-              columns={columnsCumple}
-              data={dataCumpleañosProximos}
-              enablePagination={false}
-              enableSorting={false}
-              enableFiltration={false}
-              enableGrouping={false}
-              enableRowSelection={false}
-              enableRowExport={false}
-              muiTableBodyProps={{ sx: { fontSize: "16px" } }}
-              muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
-              muiTableBodyCellProps={{
-                sx: {
-                  fontSize: '16px', // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
-                },
-              }}   
-            />
-          <div style={{ display: "flex", justifyContent: "flex-end" }}> 
-
-          <Button color="danger" onClick={() => setModalCumpleanios(false)}>Salir</Button>
+          <MaterialReactTable
+            columns={columnsCumple}
+            data={dataCumpleañosProximos}
+            enableRowSelection={false}
+            enableRowExport={false}
+            muiTableBodyProps={{ sx: { fontSize: "16px" } }}
+            muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
+            muiTableBodyCellProps={{
+              sx: {
+                fontSize: "16px", // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
+              },
+            }}
+            enablePagination
+            options={{
+              pageSize: 5, // Muestra solo 10 renglones
+            }}
+            initialState={{
+              density: "compact",
+              showGlobalFilter: false,
+              pagination: {
+                pageSize: 5,
+                pageIndex: 0,
+              },
+            }}
+          />
+          <br />
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <Button color="danger" onClick={() => setModalCumpleanios(false)}>
+              Salir
+            </Button>
           </div>
         </Box>
       </Modal>
@@ -4852,11 +5336,11 @@ const felicitarCliente = async (id, sucursal) => {
                 </Button>
               </div>
             </div>
-            <div >
+            <div>
               <Row form>
                 <Col xs="12" style={{ marginBottom: 0 }}>
                   <FormGroup style={{ display: "flex", alignItems: "center", marginBottom: "0px" }}>
-                    <Label for="cliente" style={{ width:125, fontSize: "1.1rem" }}>
+                    <Label for="cliente" style={{ width: 125, fontSize: "1.1rem" }}>
                       Cliente:
                     </Label>
                     <InputGroup size="sm" style={{ flexGrow: 1, alignItems: "center", marginBottom: "0px" }}>
@@ -4875,8 +5359,8 @@ const felicitarCliente = async (id, sucursal) => {
                   </FormGroup>
                 </Col>
                 <Col xs="6">
-                <InputGroup size="sm" style={{ flexGrow: 1, alignItems: "center", marginBottom: "0px" }}>
-                    <Label for="cliente" style={{ width:120, fontSize: "1.1rem" }}>
+                  <InputGroup size="sm" style={{ flexGrow: 1, alignItems: "center", marginBottom: "0px" }}>
+                    <Label for="cliente" style={{ width: 105, fontSize: "1.1rem" }}>
                       Observacion:
                     </Label>
 
@@ -4894,42 +5378,37 @@ const felicitarCliente = async (id, sucursal) => {
                 </Col>
                 <Col xs="6" style={{ display: "flex", alignItems: "center", marginBottom: "0px" }}>
                   <FormGroup style={{ display: "flex", alignItems: "center", marginBottom: "0px" }}>
-
-                <InputGroup size="sm" style={{ flexGrow: 1, alignItems: "center", marginBottom: "0px" }}>
-                  <Label for="cliente" style={{ width:70, fontSize: "1.1rem" }}>
-                      Ptos:
-                    </Label>
-                    <Input
-                      bsSize="sm"
-                      disabled
-                      value={dataPuntosporCliente[0]?.puntosTotal || 0}
-                      type="text"
-                      name="puntos"
-                      id="puntos"
-                      style={{ fontSize: "1.1rem" }}
+                    <InputGroup size="sm" style={{ flexGrow: 1, alignItems: "center", marginBottom: "0px" }}>
+                      <Label for="cliente" style={{ width: 55, fontSize: "1.1rem" }}>
+                        Ptos:
+                      </Label>
+                      <Input
+                        bsSize="sm"
+                        disabled
+                        value={dataPuntosporCliente[0]?.puntosTotal || 0}
+                        type="text"
+                        name="puntos"
+                        id="puntos"
+                        style={{ fontSize: "1.1rem" }}
                       />
-                  </InputGroup>
-                      </FormGroup>
+                    </InputGroup>
+                  </FormGroup>
                 </Col>
 
                 <Col xs="6">
-                <FormGroup style={{ display: "flex", alignItems: "center", marginBottom: "0px" }}>
-
-                  <InputGroup size="sm" style={{ flexGrow: 1, alignItems: "center", marginBottom: "0px" }}>
-                    <Label style={{ width:120, fontSize: "1.1rem" }} >
-                      Clasificacion
-                    </Label>
-                    <Input
-                      disabled
-                      value={dataClasificacion[0]?.descripcion ? dataClasificacion[0]?.descripcion : 0}
-                      type="text"
-                      name="clasificacion"
-                      id="clasificacion"
-                      style={{ fontSize: "1.1rem" }}
-                    />
-                  </InputGroup>
-
-                </FormGroup>
+                  <FormGroup style={{ display: "flex", alignItems: "center", marginBottom: "0px" }}>
+                    <InputGroup size="sm" style={{ flexGrow: 1, alignItems: "center", marginBottom: "0px" }}>
+                      <Label style={{ width: 105, fontSize: "1.1rem" }}>Clasificacion</Label>
+                      <Input
+                        disabled
+                        value={dataClasificacion[0]?.descripcion ? dataClasificacion[0]?.descripcion : 0}
+                        type="text"
+                        name="clasificacion"
+                        id="clasificacion"
+                        style={{ fontSize: "1.1rem" }}
+                      />
+                    </InputGroup>
+                  </FormGroup>
                 </Col>
 
                 <Col xs="6">
@@ -4946,9 +5425,8 @@ const felicitarCliente = async (id, sucursal) => {
                   </FormGroup>
                 </Col>
                 <Col xs="6">
-                <FormGroup style={{ display: "flex", alignItems: "center", marginBottom: "0px" }}>
-
-                    <Label for="fecha" style={{ width:120, fontSize: "1.1rem" }}>
+                  <FormGroup style={{ display: "flex", alignItems: "center", marginBottom: "0px" }}>
+                    <Label for="fecha" style={{ width: 105, fontSize: "1.1rem" }}>
                       Fecha:
                     </Label>
                     <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -4984,7 +5462,6 @@ const felicitarCliente = async (id, sucursal) => {
                             InputProps={{ endAdornment: null }} // Aquí se elimina el ícono
                             sx={{
                               fontSize: "1.1rem",
-                              backgroundColor: "#ffccac",
                               "& .MuiInputBase-input": {
                                 height: "30px", // Ajusta la altura aquí
                                 padding: "0 14px", // Ajusta el padding para centrar el texto
@@ -5009,12 +5486,11 @@ const felicitarCliente = async (id, sucursal) => {
                         )}
                       />
                     </LocalizationProvider>
-
-                </FormGroup>
+                  </FormGroup>
                 </Col>
                 <Col xs="6">
                   <FormGroup style={{ display: "flex", alignItems: "center", marginBottom: "0px" }}>
-                  <Label for="cliente" style={{ width:70, fontSize: "1.1rem" }}>
+                    <Label for="cliente" style={{ width: 55, fontSize: "1.1rem" }}>
                       Hora:
                     </Label>
                     <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -5036,7 +5512,6 @@ const felicitarCliente = async (id, sucursal) => {
                           "& .MuiSvgIcon-root": {
                             // Aquí se oculta el ícono
                             width: "0.8rem",
-                            backgroundColor: "#ffccac",
                           },
                         }}
                         renderInput={(props) => (
@@ -5045,7 +5520,6 @@ const felicitarCliente = async (id, sucursal) => {
                             size="small"
                             style={{
                               fontSize: "1.1rem",
-                              backgroundColor: "#ffccac",
                             }}
                           />
                         )}
@@ -5055,7 +5529,7 @@ const felicitarCliente = async (id, sucursal) => {
                 </Col>
                 <Col xs="6">
                   <InputGroup size="sm" style={{ flexGrow: 1, alignItems: "center", marginBottom: "0px" }}>
-                    <Label for="atiende" style={{ width:120, fontSize: "1.1rem" }}>
+                    <Label for="atiende" style={{ width: 105, fontSize: "1.1rem" }}>
                       Atiende:
                     </Label>
                     <Input
@@ -5117,14 +5591,13 @@ const felicitarCliente = async (id, sucursal) => {
                 Ingresar servicios...
               </Button>
               <ThemeProvider theme={theme}>
-
-              <DataGrid
-                autoHeight
-                slots={{ noRowsOverlay: CustomNoRowsOverlay }}
-                sx={{ "--DataGrid-overlayHeight": "250px" }}
-                rows={dataCitasServicios}
-                columns={columnsCitasServicios}
-              />
+                <DataGrid
+                  autoHeight
+                  slots={{ noRowsOverlay: CustomNoRowsOverlay }}
+                  sx={{ "--DataGrid-overlayHeight": "250px" }}
+                  rows={dataCitasServicios}
+                  columns={columnsCitasServicios}
+                />
               </ThemeProvider>
 
               <Box marginLeft={0} marginRight={0} marginTop={1} gap={1} display="flex" justifyContent={"center"} alignItems={"center"}>
