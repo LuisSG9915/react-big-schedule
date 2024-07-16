@@ -14,6 +14,8 @@ import { startOfToday, setHours, parse } from "date-fns";
 import { MdOutlineFolder, MdOutlineModeEdit, MdDelete } from "react-icons/md";
 import { MaterialReactTable } from "material-react-table";
 import "../css/style.css";
+import { FaExchangeAlt } from "react-icons/fa";
+
 import { useDetalleCuentaPendietes } from "../functions/crearCita/useDetalleCuentaPendietes";
 import { useDetalleSaldosPendientes } from "../functions/crearCita/useDetalleSaldosPendientes";
 function EditarCita() {
@@ -259,7 +261,7 @@ function EditarCita() {
     let día = fechaActual.getDate();
     let fechaSinHora = new Date(año, mes, día);
     peinadosApi
-      .put("/DetalleCitasReducido", null, {
+      .put("/DetalleCitasReducido2", null, {
         params: {
           id: formCita.id,
           no_estilista: formCita.no_estilista,
@@ -275,6 +277,7 @@ function EditarCita() {
           observacion: "",
           user_uc: 0,
           estatus: formCita.cambioCitaModo && formCita.estatusAsignado ? 2 : formCita.cambioCitaModo && formCita.estatusRequerido ? 3 : 4,
+          tiempo: formCita.tiempo
           // estatus: formCita.estatusAsignado ? 3 : formCita.estatusRequerido ? 2 : 4,
         },
       })
@@ -823,17 +826,27 @@ function EditarCita() {
               <Label style={{ fontSize: "1.2rem", maxWidth: "100px", width: "100px" }} for="fecha">
                 Fecha cita:
               </Label>
-              <Input
-                style={{ fontSize: "1.2rem" }}
-                disabled={formCita.cambioCitaModo == 1}
-                type="date"
-                name="fecha"
-                id="fecha"
-                value={format(new Date(fecha), "yyyy-MM-dd")}
-                onChange={(e) => {
-                  setTempFormCita({ ...tempFormCita, fecha: e.target.value });
-                }}
-              />
+              <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <DateTimePicker
+                  disabled
+                  value={new Date(formCita.fecha)}
+                  timeSteps={{ minutes: 15 }}
+                  minTime={minDateTime}
+                  maxTime={maxDateTime}
+                  sx={{ width: "100%", height: "50%", ml: 0.3 }}
+                  slotProps={{ textField: { size: "small" } }}
+                  timezone={"America/Mexico_City"}
+                  ampm={false}
+                  format="dd/MM/yyyy" // Formato DDMMAAAA HH:mm (hora en formato 24 horas)
+                  onChange={(fecha) => {
+                    setFormCita({ ...formCita, fecha: fecha });
+                    // setDatosParametros({
+                    //   ...datosParametros,
+                    //   fecha: fecha,
+                    // });
+                  }}
+                />
+              </LocalizationProvider>
             </InputGroup>
           </Col>
         </Row>
@@ -886,7 +899,7 @@ function EditarCita() {
           <Col xs={6}>
             <InputGroup>
               <Label style={{ fontSize: "1.2rem", maxWidth: "100px", width: "100px" }}>Modo:</Label>
-              <Input style={{ fontSize: "1.2rem" }} disabled value={formCita.estatusRequerido ? "R" : "A"}></Input>
+              <Input style={{ fontSize: "1.2rem" }} disabled value={estadoCita == 2 ? "R" : "A"}></Input>
             </InputGroup>
           </Col>
         </Row>
@@ -902,7 +915,7 @@ function EditarCita() {
           <Col xs={6}>
             <InputGroup>
               <Label style={{ fontSize: "1.2rem", maxWidth: "100px", width: "100px" }}>Tiempo:</Label>
-              <Input style={{ fontSize: "1.2rem" }} disabled value={formCita.tiempo}>
+              <Input style={{ fontSize: "1.2rem" }} disabled value={tiempo}>
                 {" "}
               </Input>
             </InputGroup>
@@ -963,9 +976,9 @@ function EditarCita() {
                 id="cliente"
                 size={"small"}
               />
-              <Button size="sm" onClick={() => setClientesModal(true)}>
+              {/* <Button size="sm" onClick={() => setClientesModal(true)}>
                 Buscar
-              </Button>
+              </Button> */}
             </InputGroup>
           </FormGroup>
         </Row>
@@ -1012,8 +1025,11 @@ function EditarCita() {
             ) : (
               <InputGroup>
                 <Label style={{ fontSize: "1.2rem", maxWidth: "100px", width: "100px" }}>Modo:</Label>
-                <Input style={{ fontSize: "1.2rem" }} disabled value={formCita.estatusRequerido ? "R" : "A"}></Input>
-                <Button>Cambio Modo</Button>
+                <Input style={{ fontSize: "1.2rem" }} disabled value={formCita.estatusRequerido ==true ? "R" : "A"}></Input>
+                <Button onClick={() => setFormCita({ ...formCita, estatusRequerido: formCita.estatusRequerido ? false : true, estatusAsignado: formCita.estatusAsignado ? false: true })}>
+                <FaExchangeAlt />
+
+                </Button>
               </InputGroup>
             )}
           </Col>
@@ -1022,9 +1038,6 @@ function EditarCita() {
           <Col xs={6}>
             <InputGroup>
               <Label style={{ fontSize: "1.2rem", maxWidth: "100px", width: "80px" }}>Hora:</Label>
-              {/* <Input style={{ fontSize: "0.8rem" }} disabled={formCita.cambioCitaModo == 1} value={format(new Date(fecha), "hh:mm")}>
-                {" "}
-              </Input> */}
               <LocalizationProvider dateAdapter={AdapterDateFns}>
                 <TimePicker
                   disabled={formCita.cambioCitaModo == 1}
@@ -1035,7 +1048,7 @@ function EditarCita() {
                   onChange={(hora) => handleChangeFechaServicio("hora", hora)}
                   sx={{
                     "& .MuiInputBase-input": {
-                      width: "128px",
+                      width: "100px",
                     },
                     "& .MuiPickersDay-dayWithMargin": {
                       // Oculta el ícono del DatePicker
@@ -1043,8 +1056,8 @@ function EditarCita() {
                     },
                     "& .MuiSvgIcon-root": {
                       // Aquí se oculta el ícono
-                      width: "0.8rem",
-                      backgroundColor: "#ffccac",
+                      width: "1.2rem",
+                      
                     },
                   }}
                   renderInput={(props) => (
@@ -1053,7 +1066,7 @@ function EditarCita() {
                       size="small"
                       style={{
                         fontSize: "1.2rem",
-                        backgroundColor: "#ffccac",
+                  
                       }}
                     />
                   )}

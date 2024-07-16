@@ -432,6 +432,7 @@ function Basic() {
       flag: 0,
       estadoCita: event.estadoCita,
       tiempo: event.tiempo,
+      idServicio: event.idServicios
     });
     return;
     setDatosParametros({
@@ -962,8 +963,8 @@ function Basic() {
     // },
   ];
 
-  // const ligaPruebas = "http://localhost:5173/";
-  const ligaPruebas = "http://cbinfo.no-ip.info:9019/";
+  const ligaPruebas = "http://localhost:5173/";
+  // const ligaPruebas = "http://cbinfo.no-ip.info:9019/";
   const handleOpenNewWindow = ({ idCita, idUser, idCliente, fecha, flag }) => {
     const url = `${ligaPruebas}miliga/crearcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idSuc=${1}&idRec=${1}&flag=${flag}`; // Reemplaza esto con la URL que desees abrir
     const width = 390;
@@ -973,7 +974,7 @@ function Basic() {
     const features = `width=${width},height=${height},left=${left},top=${top},toolbar=0,location=0,menubar=0,scrollbars=1,resizable=1`;
     window.open(url, "_blank", features);
   };
-  const handleOpenNewWindowEdit = ({ idCita, idUser, idCliente, fecha, flag, estadoCita, tiempo }) => {
+  const handleOpenNewWindowEdit = ({ idCita, idUser, idCliente, fecha, flag, estadoCita, tiempo, idServicio }) => {
     const url = `${ligaPruebas}miliga/editarcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idSuc=${1}&idRec=${1}&flag=${flag}&estadoCita=${estadoCita}&tiempo=${tiempo}`; // Reemplaza esto con la URL que desees abrir
     const width = 600;
     const height = 800;
@@ -1058,12 +1059,12 @@ function Basic() {
           serv: "1",
           importe: 100,
           cancelada: false,
-          stao_estilista: datosParametrosCitaTemp.estadoCita,
+          stao_estilista: datosParametrosCitaTemp.estadoCita2,
           nota_canc: 0,
           registrada: true,
           observacion: 0,
           user_uc: 0,
-          estatus: datosParametrosCitaTemp.estadoCita,
+          estatus: datosParametrosCitaTemp.estadoCita2,
         },
       })
       .then((response) => {
@@ -1665,11 +1666,11 @@ function Basic() {
     {
       field: "Accion",
       headerName: "Accion",
-      width: 50,
+      width: 55,
       renderCell: (cell) => (
         <>
           <AiFillDelete
-            size={28}
+            size={33}
             onClick={() => {
               setDataVentaTemporal({ ...dataVentaTemporal, id: cell.row.id });
 
@@ -1690,7 +1691,7 @@ function Basic() {
             Eliminar
           </AiFillDelete>
           <AiFillEdit
-            size={28}
+            size={33}
             onClick={() => {
               console.log(cell.row);
               setModalEdicionServicios(true);
@@ -1716,12 +1717,9 @@ function Basic() {
     {
       field: "observaciones",
       headerName: "Descripción",
-      width: 250,
+      width: 350,
       renderCell: (cell) => {
-        // Divide el texto en dos partes por el espacio
-        const [parte1, parte2] = cell.row.descripcion.split(" ");
-
-        return <p>{cell.row.descripcion}</p>;
+        return <p className="centered-cell">{cell.row.descripcion}</p>;
       },
     },
     {
@@ -1735,7 +1733,7 @@ function Basic() {
       field: "tiempo",
       headerName: "Tiempo",
       width: 70,
-      renderCell: (cell) => <p className="centered-cell">{cell.row.tiempo + " Min"}</p>,
+      renderCell: (cell) => <p className="centered-cell">{cell.row.tiempo + ""}</p>,
       cellClassName: "centered-cell", // Agrega esta línea para aplicar la clase CSS
     },
     { field: "cantidad", headerName: "Cantidad", width: 70 },
@@ -1852,11 +1850,10 @@ function Basic() {
       total: "$200.00",
     },
   ];
-  const [open, setOpen] = useState(false);
   const handleOpen = () => {
     postCrearCita();
   };
-  const handleClose = () => setOpen(false);
+  const handleClose = () => null;
   function renderButtonClient(params) {
     return (
       <div>
@@ -2002,41 +1999,8 @@ function Basic() {
         } `,
         confirmButtonColor: "#3085d6", // Cambiar el color del botón OK
       });
-    } else {
-      await fetchCitaEmpalme().then(async (res) => {
-        if (res && res.data[0].id > 0) {
-          Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: `El estilista no tiene horario disponible, empalme`,
-          });
-          return;
-        } else {
-          await fetchHorarioDisponibleEstilistas().then((res) => {
-            if (res) {
-              console.log(res.data[0].clave_empleado);
-              if (res.data[0].clave_empleado == "Cita sin restricciones") {
-                console.log(0);
-              } else {
-                Swal.fire({
-                  icon: "error",
-                  title: "Error",
-                  text: `El estilista no tiene horario disponible`,
-                  confirmButtonColor: "#3085d6",
-                  confirmButtonText: "Quiere continuar?",
-                  showConfirmButton: true,
-                  showCancelButton: true,
-                }).then((isConfirmed) => {
-                  if (!isConfirmed.isConfirmed) return;
-                  else {
-                  }
-                });
-              }
-            }
-          });
-        }
-      });
-
+    } 
+    else {
       if (esValida === false) {
         Swal.fire({
           icon: "error",
@@ -2074,9 +2038,6 @@ function Basic() {
                   });
                   setProductosModal(true);
                   setFormCitaServicio({ ...formCitaServicio, idCita: response.data.mensaje2 });
-                  setOpen(true);
-                  setAgregarServicios(true);
-
                   return response.data.mensaje2;
                 } catch (error) {
                   alert(`Hubo un error, ${error}`);
@@ -2118,9 +2079,6 @@ function Basic() {
           });
           setProductosModal(true);
           setFormCitaServicio({ ...formCitaServicio, idCita: response.data.mensaje2 });
-          setOpen(true);
-          setAgregarServicios(true);
-
           return response.data.mensaje2;
         } catch (error) {
           alert(`Hubo un error, ${error}`);
@@ -2151,8 +2109,6 @@ function Basic() {
 
   const cumpleaños = ["2024-04-11", "1999-09-07", "2024-04-18", "2024-01-01T00:00:00.000Z", "2024-12-12T06:00:00.000Z"];
   const cumpleañosFormateados = cumpleaños.map((fecha) => formatFecha(fecha));
-
-  console.log(cumpleañosFormateados); // Debería imprimir algo como ["11-4", "7-9", "18-4", "1-1", "12-12"]
 
   const columnsClientes2 = useMemo(() => [
     {
@@ -2468,18 +2424,18 @@ function Basic() {
   ];
   const columnsDataVentasHistoriales = [
     { field: "x", headerName: "Seleccion", renderCell: renderButtonVentaHistorial, width: 130 },
-    { field: "sucursal", headerName: "Sucursal", width: 130 },
-    { field: "fecha", headerName: "Fecha", width: 250 },
-    { field: "no_venta2", headerName: "No_venta2", width: 130 },
-    { field: "no_venta", headerName: "No_venta", width: 130 },
+    { field: "sucursal", headerName: "Suc", width: 60 },
+    { field: "fecha", headerName: "Fecha", width: 100, renderCell: (params) => <p>{format(new Date(params.row.fecha), "dd/MM/yyyy")}</p> },
+    { field: "no_venta", headerName: "No_venta", width: 100, headerAlign: "center", cellClassName: "cell-center" },
+    { field: "no_venta2", headerName: "No_venta2", width: 100, cellClassName: "cell-center" },
   ];
   const columnsDataVentasOperaciones = [
     // { field: "x", headerName: "Seleccion", renderCell: renderButtonProduct, width: 130 },
-    { field: "nombre", headerName: "Nombre estilista", width: 250 },
-    { field: "descripcion", headerName: "Producto", width: 250 },
-    { field: "cant_producto", headerName: "Cantidad", width: 250 },
-    { field: "precio", headerName: "Precio", width: 130 },
-    { field: "precio", headerName: "Importe", width: 130 },
+    { field: "nombre", headerName: "Nombre estilista", width: 330 },
+    { field: "descripcion", headerName: "Producto", width: 330 },
+    { field: "cant_producto", headerName: "C", width: 30 },
+    { field: "precio", headerName: "$", width: 40 },
+    { field: "precio", headerName: "Total", width: 130 },
   ];
 
   const columnsPuntos = [
@@ -2600,11 +2556,10 @@ function Basic() {
               sucursal: params.row.sucursal,
               fecha: params.row.fecha,
             });
-            setModalVentasHistorial(false);
             setModalVentasOperaciones(true);
           }}
         >
-          Agregar
+          Seleccion
         </Button>
       </div>
     );
@@ -2887,7 +2842,6 @@ function Basic() {
     //   }
     // });
   };
-  const [agregarServicios, setAgregarServicios] = useState(false);
   // const postCitasServicios = (clave, tiempo, precio) => {
   //   verificarDisponibilidad().then(async () => {
   //     peinadosApi
@@ -2944,8 +2898,9 @@ function Basic() {
   //     // }
   //   });
   // };
-  const postCitasServicios = (clave, tiempo, precio) => {
-    verificarDisponibilidad(formVentaTemporal.tiempo, formCita.fecha, formCita.no_estilista, formCitaServicio.idCita).then((isVerified) => {
+  const postCitasServicios = async(clave, tiempo, precio) => {
+  await  verificarDisponibilidad(tiempo, formCita.fecha, formCita.no_estilista, formCitaServicio.idCita).then((isVerified) => {
+    console.log(isVerified);
       if (isVerified) {
         peinadosApi
           .post(`/sp_detalleCitasServiciosAdd7`, null, {
@@ -3098,22 +3053,20 @@ function Basic() {
         showConfirmButton: true,
         showCancelButton: true,
       });
-
-      if (!isConfirmed.isConfirmed) {
+      if (!isConfirmed.isConfirmed) { //si no confirma
         return false;
       } else {
         const res = await validarContraseña();
         if (!res) return false;
-
-        return true;
       }
       // return false;
-    } else {
-      if (resHorario) {
+      
+    } 
+      if(!resHorario)return false
         if (resHorario.data[0].clave_empleado == "Cita sin restricciones" || resHorario.data[0].clave_empleado == "Prosiga") {
-          console.log(0);
+          console.log('')
         } else if (resHorario.data[0].clave_empleado == "Cita fuera del horario de salida del estilista") {
-          const isConfirmed = await Swal.fire({
+          const isConfirmed2 = await Swal.fire({
             icon: "error",
             title: "Error",
             text: `El estilista no tiene horario disponible`,
@@ -3122,9 +3075,11 @@ function Basic() {
             showConfirmButton: true,
             showCancelButton: true,
           });
-          if (!isConfirmed.isConfirmed) return true;
+          if (!isConfirmed2.isConfirmed) return false;
+          const res = await validarContraseña();
+          if (!res) return false;
         } else {
-          const isConfirmed = await Swal.fire({
+          Swal.fire({
             icon: "error",
             title: "Error",
             text: `El estilista no tiene horario disponible desde temprano`,
@@ -3132,9 +3087,7 @@ function Basic() {
           });
           return false;
         }
-      }
-    }
-    return true;
+        return true
   }
   const [colummEdit, setColummEdit] = useState("");
   const handleCellDoubleClick = (params) => {
@@ -3181,7 +3134,7 @@ function Basic() {
         accessorKey: "cumpleaños",
         Cell: ({ cell }) => {
           const fechaCompleta1 = cell.row.original.cumpleaños;
-          const fechaFormateada1 = fechaCompleta1 ? formatFecha2(fechaCompleta1) : "";
+          const fechaFormateada1 = fechaCompleta1 ? formatFecha(fechaCompleta1) : "";
 
           return <span>{fechaFormateada1}</span>;
         },
@@ -3645,7 +3598,7 @@ function Basic() {
             columns={columnsClientes2}
             data={dataClientes}
             initialState={{ density: "compact" }}
-            muiTableContainerProps={{ sx: { maxHeight: "250px", overflow: "auto" } }}
+            muiTableContainerProps={{ sx: { maxHeight: "500px", overflow: "auto" } }}
             muiTableBodyProps={{ sx: { fontSize: "16px" } }}
             muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
             muiTableBodyCellProps={{
@@ -3965,7 +3918,11 @@ function Basic() {
             <Label>Hora: {formPuntosObservaciones.fecha ? format(new Date(formPuntosObservaciones.fecha), "HH:mm") : ""}</Label>
           </div>
           <ThemeProvider theme={theme}>
-            <DataGrid autoHeight rows={dataOperaciones} columns={columnsConultaPuntos} />
+            <DataGrid
+              autoHeight
+              rows={dataOperaciones}
+              columns={columnsConultaPuntos}
+            />
           </ThemeProvider>
 
           <hr />
@@ -4126,7 +4083,6 @@ function Basic() {
             </Col>
           </Row>
           <Button style={{ marginBottom: "18px" }} color="success" onClick={() => fetchVentasHistoriales()}>
-            {" "}
             Consultar
           </Button>
           <ThemeProvider theme={theme}>
@@ -4188,7 +4144,6 @@ function Basic() {
             <DataGrid
               rows={DataVentasOperaciones}
               columns={columnsDataVentasOperaciones}
-              getRowId={(row) => Number(row.sucursal) + Number(row.no_venta)}
             />
           </ThemeProvider>
         </Box>
@@ -5179,7 +5134,7 @@ function Basic() {
           <h3>Fechas de la promoción: </h3>
           <MaterialReactTable
             columns={columnsPromoDias}
-            data={dataPromocionesZonas.length > 0 ? dataPromocionesZonas.filter((item) => item.id == cell.row.original.id) : []}
+            data={dataPromocionesZonas.length > 0 ? dataPromocionesZonas.filter((item) => item.id == formPromocion.id) : []}
             initialState={{ density: "compact" }}
             muiTableBodyProps={{ sx: { fontSize: "16px" } }}
             muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}

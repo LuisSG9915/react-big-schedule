@@ -20,7 +20,8 @@ export const useHorarioDisponibleEstilistas6 = ({ fecha, cveEmpleado, tiempo }) 
   };
 
   useEffect(() => {
-    if (tiempo == "" || !tiempo) return;
+    if (tiempo == "" || !tiempo || tiempo<=0) return;
+    console.log(tiempo + 'TIEMPO EN USE HORARIOS')
     fetchHorarioDisponibleEstilistas();
   }, [tiempo]);
   return { dataHorarioDisponibleEstilistas, fetchHorarioDisponibleEstilistas };

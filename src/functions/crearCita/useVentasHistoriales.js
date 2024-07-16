@@ -8,7 +8,7 @@ export const useVentasHistoriales = ({ userID, claveProd, sucursal, fechaInicio,
   const fetchVentasHistoriales = async () => {
     try {
       const response = await peinadosApi.get(
-        `/sp_detalleVentasHistorialSel2?UserID=${userID ? userID : ""}&ClaveProd=${claveProd ? claveProd : ""}&Sucursal=${
+        `/sp_detalleVentasHistorialSel2?UserID=${userID>0 ? userID : ""}&ClaveProd=${claveProd ? claveProd : ""}&Sucursal=${
           sucursal ? sucursal : ""
         }&FechaInicio=${fechaInicio ? fechaInicio : ""}&FechaFin=${fechaFin ? fechaFin : ""}&IdCliente=${idCliente}
 `
