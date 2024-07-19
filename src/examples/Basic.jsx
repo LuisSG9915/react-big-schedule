@@ -63,6 +63,7 @@ import { IoRefreshCircle } from "react-icons/io5";
 import { usePromocionesZonas } from "../functions/crearCita/usePromocionesZonas";
 import { usePromocionesGrupos } from "../functions/crearCita/usePromocionesGrupos";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
+import { useProductosAreaDeptoSub } from "../functions/crearCita/useProductosAreaDeptoSub";
 
 let schedulerData;
 
@@ -432,7 +433,7 @@ function Basic() {
       flag: 0,
       estadoCita: event.estadoCita,
       tiempo: event.tiempo,
-      idServicio: event.idServicios
+      idServicio: event.idServicios,
     });
     return;
     setDatosParametros({
@@ -632,7 +633,7 @@ function Basic() {
             size={23}
             disabled
             onClick={() => {
-              if (params.row.id == 1) {
+              if (params.row.idVenta > 1) {
                 Swal.fire({
                   icon: "error",
                   title: "Error",
@@ -696,7 +697,7 @@ function Basic() {
                 idCita: params.row.id,
                 estatusCita: params.row.estatusCita,
               });
-              if (params.row.id == 1) {
+              if (params.row.idVenta > 1) {
                 setModalCitas(false);
                 setModalEdicionVenta(true);
                 return;
@@ -737,8 +738,14 @@ function Basic() {
       },
       renderCell: (params) => (
         <p style={{ lineHeight: "28px", height: "28px", margin: 0, fontSize: "16px" }}>
-          {params.row.estatusCita == 4
-            ? params.row.stao_estilista
+          {params.row.stao_estilista == 4 && params.row.estatusCita == 2
+            ? "RD"
+            : params.row.stao_estilista == 4 && params.row.estatusCita == 3
+            ? "AD"
+            : params.row.stao_estilista == 5 && params.row.estatusCita == 2
+            ? "RD"
+            : params.row.stao_estilista == 5 && params.row.estatusCita == 3
+            ? "AD"
             : params.row.estatusCita == 2
             ? "R"
             : params.row.estatusCita == 3
@@ -963,8 +970,8 @@ function Basic() {
     // },
   ];
 
-  const ligaPruebas = "http://localhost:5173/";
-  // const ligaPruebas = "http://cbinfo.no-ip.info:9019/";
+  // const ligaPruebas = "http://localhost:5173/";
+  const ligaPruebas = "http://cbinfo.no-ip.info:9019/";
   const handleOpenNewWindow = ({ idCita, idUser, idCliente, fecha, flag }) => {
     const url = `${ligaPruebas}miliga/crearcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idSuc=${1}&idRec=${1}&flag=${flag}`; // Reemplaza esto con la URL que desees abrir
     const width = 390;
@@ -994,12 +1001,8 @@ function Basic() {
   };
   const handleOpenNewWindowListaEspera = () => {
     const url = `${ligaPruebas}miliga/listaEspera`; // Reemplaza esto con la URL que desees abrir
-
-    // confirm(
-    //   `Do you want to create a new event? {slotId: ${slotId}, slotName: ${slotName}, start: ${start}, end: ${end}, type: ${type}, item: ${item}}`
-    // )
-    const width = 1200;
-    const height = 800;
+    const width = 1500;
+    const height = 900;
     const left = (window.screen.width - width) / 2;
     const top = (window.screen.height - height) / 2;
     const features = `width=${width},height=${height},left=${left},top=${top},toolbar=0,location=0,menubar=0,scrollbars=1,resizable=1`;
@@ -1327,6 +1330,7 @@ function Basic() {
   const [modalEdicionVenta, setModalEdicionVenta] = useState(false);
   const [productosModal, setProductosModal] = useState(false);
   const [productosModalLectura, setProductosModalLectura] = useState(false);
+  const [productosModalGrupos, setproductosModalGrupos] = useState(false);
   const [modalCitasObservaciones, setModalCitasObservaciones] = useState(false);
   const [verificarContraModal, setVerificarContraModal] = useState(false);
 
@@ -1561,6 +1565,7 @@ function Basic() {
 
   const { dataPromocionesZonas } = usePromocionesZonas();
   const { dataPromocionesGrupos } = usePromocionesGrupos({ idPromocion: formPromocion.id });
+  const { fetchProductosAreaDeptoSub, dataProductosAreaDeptoSub, setDataProductosAreaDeptoSub } = useProductosAreaDeptoSub();
   const putCitasObservaciones = (estado, idCita) => {
     setModalCitasObservaciones(false);
     if (estado == 1) {
@@ -1999,8 +2004,7 @@ function Basic() {
         } `,
         confirmButtonColor: "#3085d6", // Cambiar el color del botón OK
       });
-    } 
-    else {
+    } else {
       if (esValida === false) {
         Swal.fire({
           icon: "error",
@@ -2213,28 +2217,26 @@ function Basic() {
     },
     {
       accessorKey: "clave_prod",
-      header: "Clave_prod",
-      size: 100,
+      header: "Cve",
+      size: 50,
     },
     {
       accessorKey: "descripcion",
       header: "Descripcion",
-      size: 100,
+      size: 555,
     },
     {
       accessorKey: "tiempox",
-      header: "Tiempo",
-      size: 100,
-      Cell: ({ cell }) => <p className="centered-cell">{cell.row.original.tiempox + " min"}</p>,
+      header: "T",
+      size: 50,
+      Cell: ({ cell }) => <p className="centered-cell">{cell.row.original.tiempox + ""}</p>,
       className: "centered-cell", // Agrega esta línea para aplicar la clase CSS
     },
     {
       accessorKey: "precio_lista",
       header: "Precio",
-      size: 100,
-      Cell: ({ cell }) => (
-        <p className="centered-cell">{Number(cell.row.original.precio).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}</p>
-      ),
+      size: 50,
+      Cell: ({ cell }) => <p className="centered-cell">{Number(cell.row.original.precio)}</p>,
       className: "centered-cell", // Agrega esta línea para aplicar la clase CSS
     },
     // {
@@ -2250,29 +2252,39 @@ function Basic() {
   const columnsProductosMRTLectura = useMemo(() => [
     {
       accessorKey: "clave_prod",
-      header: "Clave_prod",
-      size: 100,
+      header: "Cve",
+      size: 50, //small column
+      maxSize: 60,
+      grow: false, //allow this column to grow to fill in remaining space - new in v2.8
     },
     {
       accessorKey: "descripcion",
       header: "Descripcion",
-      size: 100,
+      minSize: 100, //min size enforced during resizing
+      maxSize: 800, //max size enforced during resizing
+      size: 666, //medium column
+      grow: true, //allow this column to grow to fill in remaining space - new in v2.8
     },
     {
       accessorKey: "tiempox",
-      header: "Tiempo",
-      size: 30,
+      header: "T",
+      size: 50, //small column
+      maxSize: 60,
 
-      Cell: ({ cell }) => <p className="centered-cell">{cell.row.original.tiempox + " min"}</p>,
+      grow: false, //allow this column to grow to fill in remaining space - new in v2.8
+
+      Cell: ({ cell }) => <p className="centered-cell">{cell.row.original.tiempox + ""}</p>,
       className: "centered-cell", // Agrega esta línea para aplicar la clase CSS
     },
     {
       accessorKey: "precio_lista",
-      header: "Precio",
-      size: 30,
-      Cell: ({ cell }) => (
-        <p className="centered-cell">{Number(cell.row.original.precio).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}</p>
-      ),
+      header: "$",
+      size: 50, //small column
+      maxSize: 60,
+
+      grow: false, //allow this column to grow to fill in remaining space - new in v2.8
+
+      Cell: ({ cell }) => <p className="centered-cell">{Number(cell.row.original.precio)}</p>,
       className: "centered-cell", // Agrega esta línea para aplicar la clase CSS
     },
   ]);
@@ -2280,7 +2292,7 @@ function Basic() {
     {
       accessorKey: "acciones",
       header: "Acción",
-      size: 100,
+      size: 55,
       Cell: ({ cell }) => (
         <div>
           <Button
@@ -2319,34 +2331,32 @@ function Basic() {
     },
     {
       accessorKey: "clave_prod",
-      header: "Clave_prod",
-      size: 100,
+      header: "Cve",
+      size: 55,
     },
     {
       accessorKey: "descripcion",
       header: "Descripcion",
-      size: 100,
+      size: 500,
     },
     {
       accessorKey: "tiempox",
-      header: "Tiempo",
-      size: 100,
-      Cell: ({ cell }) => <p className="centered-cell">{cell.row.original.tiempox + " min"}</p>,
+      header: "T",
+      size: 50,
+      Cell: ({ cell }) => <p className="centered-cell">{cell.row.original.tiempox + ""}</p>,
       className: "centered-cell", // Agrega esta línea para aplicar la clase CSS
     },
     {
       accessorKey: "precio",
       header: "Precio",
-      size: 100,
-      Cell: ({ cell }) => (
-        <p className="centered-cell">{Number(cell.row.original.precio).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}</p>
-      ),
+      size: 55,
+      Cell: ({ cell }) => <p className="centered-cell">{Number(cell.row.original.precio)}</p>,
       className: "centered-cell", // Agrega esta línea para aplicar la clase CSS
     },
     {
       accessorKey: "precioPromocion",
       header: "Precio",
-      size: 100,
+      size: 50,
       Cell: ({ cell }) => (
         <p className="centered-cell">{Number(cell.row.original.precioPromocion).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}</p>
       ),
@@ -2431,7 +2441,7 @@ function Basic() {
   ];
   const columnsDataVentasOperaciones = [
     // { field: "x", headerName: "Seleccion", renderCell: renderButtonProduct, width: 130 },
-    { field: "nombre", headerName: "Nombre estilista", width: 330 },
+    { field: "nombre", headerName: "Nombre", width: 330 },
     { field: "descripcion", headerName: "Producto", width: 330 },
     { field: "cant_producto", headerName: "C", width: 30 },
     { field: "precio", headerName: "$", width: 40 },
@@ -2898,9 +2908,9 @@ function Basic() {
   //     // }
   //   });
   // };
-  const postCitasServicios = async(clave, tiempo, precio) => {
-  await  verificarDisponibilidad(tiempo, formCita.fecha, formCita.no_estilista, formCitaServicio.idCita).then((isVerified) => {
-    console.log(isVerified);
+  const postCitasServicios = async (clave, tiempo, precio) => {
+    await verificarDisponibilidad(tiempo, formCita.fecha, formCita.no_estilista, formCitaServicio.idCita).then((isVerified) => {
+      console.log(isVerified);
       if (isVerified) {
         peinadosApi
           .post(`/sp_detalleCitasServiciosAdd7`, null, {
@@ -2948,6 +2958,22 @@ function Basic() {
     }
     setFormCita({ ...formCita, fecha: newDateTime });
   };
+  const handleChangeFechaEvent = (type, value) => {
+    let newDateTime;
+    if (type === "fecha") {
+      onSelectDate(state.viewModel, format(value, "yyyy-MM-dd"));
+      newDateTime = value ? new Date(value) : null;
+      if (event.fecha) {
+        const time = new Date(event.fecha).toTimeString().split(" ")[0];
+        newDateTime = new Date(`${value.toDateString()} ${time}`);
+      }
+    } else {
+      newDateTime = event.fecha ? new Date(event.fecha) : new Date();
+      newDateTime.setHours(value.getHours());
+      newDateTime.setMinutes(value.getMinutes());
+    }
+    setEvent({ ...event, hora1: newDateTime });
+  };
   const handleChangeFechaEdicionServicio = (type, value) => {
     let newDateTime;
     if (type === "fecha") {
@@ -2961,7 +2987,6 @@ function Basic() {
       newDateTime = formCitaServioActualizacion?.hora_cita ? new Date(formCitaServioActualizacion?.hora_cita) : new Date();
       newDateTime.setHours(value.getHours());
       newDateTime.setMinutes(value.getMinutes());
-      console.log(newDateTime);
     }
     setFormCitaServioActualizacion({ ...formCitaServioActualizacion, hora_cita: newDateTime });
   };
@@ -2978,7 +3003,6 @@ function Basic() {
       newDateTime = formDetalleCitasServicios.fecha ? new Date(formDetalleCitasServicios.fecha) : new Date();
       newDateTime.setHours(value.getHours());
       newDateTime.setMinutes(value.getMinutes());
-      console.log(newDateTime);
     }
     setFormDetalleCitasServicios({ ...formDetalleCitasServicios, fecha: newDateTime });
   };
@@ -2995,7 +3019,6 @@ function Basic() {
       newDateTime = formDetalleCitasServicios.fechaFinal ? new Date(formDetalleCitasServicios.fechaFinal) : new Date();
       newDateTime.setHours(value.getHours());
       newDateTime.setMinutes(value.getMinutes());
-      console.log(newDateTime);
     }
     setFormDetalleCitasServicios({ ...formDetalleCitasServicios, fechaFinal: newDateTime });
   };
@@ -3053,41 +3076,42 @@ function Basic() {
         showConfirmButton: true,
         showCancelButton: true,
       });
-      if (!isConfirmed.isConfirmed) { //si no confirma
+      if (!isConfirmed.isConfirmed) {
+        //si no confirma
         return false;
       } else {
         const res = await validarContraseña();
         if (!res) return false;
       }
       // return false;
-      
-    } 
-      if(!resHorario)return false
-        if (resHorario.data[0].clave_empleado == "Cita sin restricciones" || resHorario.data[0].clave_empleado == "Prosiga") {
-          console.log('')
-        } else if (resHorario.data[0].clave_empleado == "Cita fuera del horario de salida del estilista") {
-          const isConfirmed2 = await Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: `El estilista no tiene horario disponible`,
-            confirmButtonColor: "#3085d6",
-            confirmButtonText: "Quiere continuar?",
-            showConfirmButton: true,
-            showCancelButton: true,
-          });
-          if (!isConfirmed2.isConfirmed) return false;
-          const res = await validarContraseña();
-          if (!res) return false;
-        } else {
-          Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: `El estilista no tiene horario disponible desde temprano`,
-            confirmButtonColor: "#3085d6",
-          });
-          return false;
-        }
-        return true
+    }
+    if (!resHorario) return false;
+    if (resHorario.data[0].clave_empleado == "Cita sin restricciones" || resHorario.data[0].clave_empleado == "Prosiga") {
+      console.log("");
+    } else if (resHorario.data[0].clave_empleado == "Cita fuera del horario de salida del estilista") {
+      const isConfirmed2 = await Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: `El estilista se encuentra fuera de horario, desea registrar la cita`,
+        confirmButtonColor: "#3085d6",
+        confirmButtonText: "Si?",
+        cancelButtonText: "CANCELAR",
+        showConfirmButton: true,
+        showCancelButton: true,
+      });
+      if (!isConfirmed2.isConfirmed) return false;
+      const res = await validarContraseña();
+      if (!res) return false;
+    } else {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: `El estilista no tiene horario disponible desde temprano, no se podria poner a las: ${format(fecha, "HH:mm")}`,
+        confirmButtonColor: "#3085d6",
+      });
+      return false;
+    }
+    return true;
   }
   const [colummEdit, setColummEdit] = useState("");
   const handleCellDoubleClick = (params) => {
@@ -3099,7 +3123,7 @@ function Basic() {
       params.field == "d_cliente"
     )
       return;
-    if (params.row.id == 1) {
+    if (params.row.idVenta > 0) {
       if (params.field == "descripcion") return;
 
       setModalCitaEditEstilistaVenta(true);
@@ -3189,7 +3213,7 @@ function Basic() {
       {
         accessorKey: "descripcionPromo",
         header: "Promoción",
-        size: 130,
+        size: 250,
       },
       {
         accessorKey: "f2",
@@ -3201,10 +3225,9 @@ function Basic() {
 
           return (
             <span
-              style={{ flex: 1, display: "flex", justifyContent: "center", height: "100%" }}
+              style={{ flex: 1, display: "flex", justifyContent: "center", height: "100%", textAlign: "center", alignItems: "center" }}
               onDoubleClick={() => {
                 setFormPromocion({ id: cell.row.original.id });
-
                 setModalPromocionesFechas(true);
               }}
             >
@@ -3212,19 +3235,6 @@ function Basic() {
             </span>
           );
         },
-        onCellDoubleClick: (cell) => {
-          console.log("HOLA");
-        },
-        handleCellDoubleClick: (cell) => {
-          console.log("HOLA");
-        },
-      },
-
-      {
-        accessorKey: "descuentoPorcentaje",
-        header: "% Descuento",
-        size: 100,
-        Cell: ({ cell }) => <span>{cell.getValue().toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%</span>,
       },
       // {
       //   accessorKey: "acciones",
@@ -3354,6 +3364,11 @@ function Basic() {
         console.log(error);
       });
   };
+  function convertirMinutosAHorasYMinutos(minutos) {
+    var horas = Math.floor(minutos / 60);
+    var minutosRestantes = minutos % 60;
+    return horas + ":" + (minutosRestantes < 10 ? "0" : "") + minutosRestantes + " Hrs";
+  }
   return (
     <>
       {/* <div className="barra-titulo">
@@ -3509,7 +3524,6 @@ function Basic() {
             <Button
               color="success"
               onClick={() => {
-                console.log(event);
                 setFormCitaServicio({
                   ...formCitaServicio,
                   idCita: event.idCita,
@@ -3751,10 +3765,51 @@ function Basic() {
             </Row>
             <Row style={{ marginBottom: "10px" }}>
               <Col xs={6}>
-                <InputGroup>
+                <FormGroup style={{ display: "flex", alignItems: "center", marginBottom: "0px" }}>
+                  <Label for="cliente" style={{ width: 55, fontSize: "1.1rem" }}>
+                    Hora:
+                  </Label>
+                  <LocalizationProvider dateAdapter={AdapterDateFns}>
+                    <TimePicker
+                      timeSteps={{ minutes: 15 }}
+                      slotProps={{ textField: { size: "small" } }}
+                      value={event?.hora1 ? new Date(decodeURIComponent(event?.hora1)) : null}
+                      // value={formCita.fecha ? new Date(formCita.fecha).toTimeString().substring(0, 5) : null}
+                      onChange={(hora) => handleChangeFechaEvent("hora", hora)}
+                      sx={{
+                        "& .MuiInputBase-input": {
+                          width: "128px",
+                        },
+                        "& .MuiPickersDay-dayWithMargin": {
+                          // Oculta el ícono del DatePicker
+                          display: "none",
+                        },
+                        "& .MuiSvgIcon-root": {
+                          // Aquí se oculta el ícono
+                          width: "0.8rem",
+                        },
+                      }}
+                      renderInput={(props) => (
+                        <Input
+                          {...props}
+                          size="small"
+                          style={{
+                            fontSize: "1.1rem",
+                          }}
+                        />
+                      )}
+                    />
+                  </LocalizationProvider>
+                </FormGroup>
+                {/* <InputGroup>
                   <Label style={{ fontSize: "1.2rem", minWidth: "70px" }}>Hora:</Label>
-                  <Input style={{ fontSize: "1.2rem" }} disabled value={event?.hora1 ? format(new Date(event?.hora1), "hh:mm") : ""}></Input>
-                </InputGroup>
+                  <Input
+                    type="time"
+                    style={{ fontSize: "1.2rem" }}
+                    value={event?.hora1 ? format(new Date(event?.hora1), "hh:mm aa") : ""}
+                    onChange={(e) => setEvent({ ...event, hora1: new Date(`${event.fecha} ${e.target.value}`) })}
+                  ></Input>
+                </InputGroup> */}
               </Col>
               <Col xs={6}>
                 <InputGroup>
@@ -3825,14 +3880,14 @@ function Basic() {
         </Box>
       </Modal>
       <Modal open={productosModal} onClose={() => setProductosModal(false)}>
-        <Box sx={style}>
+        <Box sx={styleAltaServicio}>
           <Typography variant="h4">Agregar productos</Typography>
           {/* <DataGrid rows={dataProductos} columns={columnsProductos} /> */}
           {dataProductos ? (
             <MaterialReactTable
               columns={columnsProductosMRT}
               data={dataProductos}
-              initialState={{ density: "compact" }}
+              initialState={{ density: "compact", pagination: { pageSize: 7, pageIndex: 0 } }}
               muiTableContainerProps={{ sx: { maxHeight: "330px" } }}
               muiTableBodyProps={{ sx: { fontSize: "16px" } }}
               muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
@@ -3846,17 +3901,39 @@ function Basic() {
         </Box>
       </Modal>
       <Modal open={productosModalLectura} onClose={() => setProductosModalLectura(false)}>
-        <Box sx={style}>
+        <Box sx={styleAltaServicio}>
           <Typography variant="h4">Lectura productos</Typography>
           {/* <DataGrid rows={dataProductos} columns={columnsProductos} /> */}
           {dataProductos ? (
             <MaterialReactTable
               columns={columnsProductosMRTLectura}
               data={dataProductos}
-              initialState={{ density: "compact" }}
-              muiTableContainerProps={{ sx: { maxHeight: "330px" } }}
+              initialState={{ density: "compact", pagination: { pageSize: 7, pageIndex: 0 } }}
+              muiTableContainerProps={{ sx: { maxHeight: "400px" } }}
               muiTableBodyProps={{ sx: { fontSize: "16px" } }}
               muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
+              muiTableBodyCellProps={{
+                sx: {
+                  fontSize: "16px", // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
+                },
+              }}
+            />
+          ) : null}
+        </Box>
+      </Modal>
+      <Modal open={productosModalGrupos} onClose={() => setproductosModalGrupos(false)}>
+        <Box sx={styleAltaServicio}>
+          <Typography variant="h4">Productos del grupo</Typography>
+          {/* <DataGrid rows={dataProductos} columns={columnsProductos} /> */}
+          {dataProductos ? (
+            <MaterialReactTable
+              columns={columnsProductosMRTLectura}
+              data={dataProductosAreaDeptoSub}
+              initialState={{ density: "compact", pagination: { pageSize: 7, pageIndex: 0 } }}
+              muiTableContainerProps={{ sx: { maxHeight: "400px" } }}
+              muiTableBodyProps={{ sx: { fontSize: "16px" } }}
+              muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
+              state={{ isLoading: dataProductosAreaDeptoSub.length == 0 }}
               muiTableBodyCellProps={{
                 sx: {
                   fontSize: "16px", // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
@@ -3918,11 +3995,7 @@ function Basic() {
             <Label>Hora: {formPuntosObservaciones.fecha ? format(new Date(formPuntosObservaciones.fecha), "HH:mm") : ""}</Label>
           </div>
           <ThemeProvider theme={theme}>
-            <DataGrid
-              autoHeight
-              rows={dataOperaciones}
-              columns={columnsConultaPuntos}
-            />
+            <DataGrid autoHeight rows={dataOperaciones} columns={columnsConultaPuntos} />
           </ThemeProvider>
 
           <hr />
@@ -3961,7 +4034,7 @@ function Basic() {
       </Modal>
 
       <Modal open={puntosModal} onClose={() => setPuntosModal(false)}>
-        <Box sx={style}>
+        <Box sx={styleAltaServicio}>
           <Typography variant="h4">Agregar productos</Typography>
           <ThemeProvider theme={theme}>
             <DataGrid rows={dataClientesPuntos} columns={columnsProductos} />
@@ -4141,16 +4214,13 @@ function Basic() {
             </Col>
           </Row>
           <ThemeProvider theme={theme}>
-            <DataGrid
-              rows={DataVentasOperaciones}
-              columns={columnsDataVentasOperaciones}
-            />
+            <DataGrid rows={DataVentasOperaciones} columns={columnsDataVentasOperaciones} />
           </ThemeProvider>
         </Box>
       </Modal>
 
       <Modal open={ProductosModalEdicion} onClose={() => setProductosModalEdicion(false)}>
-        <Box sx={style}>
+        <Box sx={styleAltaServicio}>
           <Typography variant="h4">Agregar productos</Typography>
           {/* <DataGrid rows={dataProductos} columns={columnsProductos} /> */}
           {dataProductos ? (
@@ -4501,7 +4571,7 @@ function Basic() {
                     format="dd/MM/yyyy"
                     sx={{
                       "& .MuiInputBase-input": {
-                        width: "128px",
+                        width: "190px",
                       },
                       "& .MuiPickersDay-dayWithMargin": {
                         // Oculta el ícono del DatePicker
@@ -4550,20 +4620,20 @@ function Basic() {
               </FormGroup>
             </Col>
             <Col md={3}>
-              <FormGroup>
+              <InputGroup>
                 <Label for="fecha" style={{ fontSize: "1.2rem", marginRight: "5px" }}>
                   Hora de cita:
                 </Label>
                 <LocalizationProvider dateAdapter={AdapterDateFns}>
                   <TimePicker
-                    timeSteps={15}
+                    timeSteps={{ minutes: 15 }}
                     slotProps={{ textField: { size: "small" } }}
                     value={formDetalleCitasServicios.fecha ? new Date(decodeURIComponent(formDetalleCitasServicios.fecha)) : null}
                     // value={formCita.fecha ? new Date(formCita.fecha).toTimeString().substring(0, 5) : null}
                     onChange={(hora) => handleChangeFechaServicio("hora", hora)}
                     sx={{
                       "& .MuiInputBase-input": {
-                        width: "128px",
+                        width: "160px",
                       },
                       "& .MuiPickersDay-dayWithMargin": {
                         // Oculta el ícono del DatePicker
@@ -4585,7 +4655,7 @@ function Basic() {
                     )}
                   />
                 </LocalizationProvider>
-              </FormGroup>
+              </InputGroup>
             </Col>
             <Col md="3">
               <Label style={{ fontSize: "1.2rem" }}>Estatus Cita</Label>
@@ -5146,7 +5216,7 @@ function Basic() {
           />
           <br />
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <Button color="danger" onClick={() => setModalPromociones(false)}>
+            <Button color="danger" onClick={() => setModalPromocionesFechas(false)}>
               Salir
             </Button>
           </div>
@@ -5158,26 +5228,38 @@ function Basic() {
           <Table>
             <thead>
               <tr>
+                <th>Selector</th>
                 <th>Área</th>
                 <th>Depto</th>
                 <th>Subdepto</th>
                 <th>Producto</th>
-                <th>Descuento Porcentaje</th>
-                <th>Precio fijo</th>
-                <th>Tipo redondeo</th>
+                <th>%</th>
+                <th>Precio</th>
               </tr>
             </thead>
 
             <tbody>
               {dataPromocionesGrupos.map((dato) => (
                 <tr key={dato.id}>
+                  <td>
+                    {" "}
+                    <Button
+                      disabled={dato.d_producto != "Todos"}
+                      onClick={() => {
+                        setDataProductosAreaDeptoSub([]);
+                        fetchProductosAreaDeptoSub(0, 0, 1, "1", "%", "%", 2, 2, 2, 0, dato.idArea, dato.idDepto, dato.idSubdepto);
+                        setproductosModalGrupos(true);
+                      }}
+                    >
+                      Prod del grupo
+                    </Button>
+                  </td>
                   <td> {dato.d_area}</td>
                   <td>{dato.d_depto}</td>
                   <td>{dato.d_subdepto}</td>
                   <td>{dato.d_producto}</td>
                   <td>{Math.trunc(dato.descuentoPorcentaje * 100)} %</td>
                   <td>{dato.precioFijo}</td>
-                  <td>{dato.d_redondeo}</td>
                 </tr>
               ))}
             </tbody>
@@ -5586,7 +5668,7 @@ function Basic() {
 
                   <FormGroup>
                     <Label for="horas">Horas</Label>
-                    <Input type="text" name="horas" id="horas" placeholder={(formVentaTemporal.tiempo / 60).toFixed(2) + " Hrs"} disabled />
+                    <Input type="text" name="horas" id="horas" placeholder={convertirMinutosAHorasYMinutos(formVentaTemporal.tiempo)} disabled />
                   </FormGroup>
 
                   <ButtonGroup style={{ marginBottom: "10%" }}>

@@ -495,18 +495,16 @@ function ListaEspera() {
     },
     {
       accessorKey: "tiempox",
-      header: "Tiempo",
-      size: 100,
-      Cell: ({ cell }) => <p className="centered-cell">{cell.row.original.tiempox + " min"}</p>,
+      header: "T",
+      size: 50,
+      Cell: ({ cell }) => <p className="centered-cell">{cell.row.original.tiempox + ""}</p>,
       className: "centered-cell", // Agrega esta línea para aplicar la clase CSS
     },
     {
       accessorKey: "precio_lista",
       header: "Precio",
-      size: 100,
-      Cell: ({ cell }) => (
-        <p className="centered-cell">{Number(cell.row.original.precio).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}</p>
-      ),
+      size: 50,
+      Cell: ({ cell }) => <p className="centered-cell">{Number(cell.row.original.precio)}</p>,
       className: "centered-cell", // Agrega esta línea para aplicar la clase CSS
     },
     // {
@@ -689,7 +687,7 @@ function ListaEspera() {
       <ThemeProvider theme={theme}>
         <DataGrid rows={dataListaEspera} columns={columnListaEspera} />
       </ThemeProvider>
-      <Modal isOpen={openListaEspera} toggle={() => closeOpenListaEspera()} size="xl">
+      <Modal isOpen={openListaEspera} toggle={() => closeOpenListaEspera()} size="lg">
         <ModalHeader toggle={() => closeOpenListaEspera()}>
           {formClienteEspera.esEdicion ? "Edicion	de lista de espera" : "Agregar Lista de espera"}
         </ModalHeader>
@@ -857,7 +855,7 @@ function ListaEspera() {
           </Button>
         </ModalFooter>
       </Modal>
-      <Modal isOpen={clientesModal} toggle={() => setClientesModal(!clientesModal)} centered size="xl">
+      <Modal isOpen={clientesModal} toggle={() => setClientesModal(!clientesModal)} size="lg" centered={true}>
         <ModalHeader toggle={() => setClientesModal(!clientesModal)}>Agregar cliente</ModalHeader>
         <ModalBody>
           {/* <DataGrid rows={dataClientes} columns={columnsClientes} /> */}
@@ -882,7 +880,7 @@ function ListaEspera() {
           </Button>
         </ModalFooter>
       </Modal>
-      <Modal isOpen={productosModal} toggle={() => setProductosModal(!productosModal)} size="xl" centered>
+      <Modal isOpen={productosModal} toggle={() => setProductosModal(!productosModal)} size="lg" centered>
         <ModalHeader toggle={() => setProductosModal(!productosModal)}>Agregar producto</ModalHeader>
         <ModalBody>
           {/* <DataGrid rows={dataProductos} columns={columnsProductosMRT} /> */}
