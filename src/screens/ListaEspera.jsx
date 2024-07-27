@@ -17,6 +17,15 @@ import { createTheme, ThemeProvider } from "@mui/material/styles";
 
 function ListaEspera() {
   const [openListaEspera, setOpenListaEspera] = useState(false);
+  const idUser = new URLSearchParams(window.location.search).get("idUser");
+  const fecha = new URLSearchParams(window.location.search).get("fecha");
+  const idRec = new URLSearchParams(window.location.search).get("idRec");
+  const idSuc = new URLSearchParams(window.location.search).get("idSuc");
+  const idCita = new URLSearchParams(window.location.search).get("idCita");
+  const idCliente = new URLSearchParams(window.location.search).get("idCliente");
+  const estadoCita = new URLSearchParams(window.location.search).get("estadoCita");
+  const cambioCitaModo = new URLSearchParams(window.location.search).get("flag");
+  const tiempo = new URLSearchParams(window.location.search).get("tiempo");
 
   const rows = [
     {
@@ -88,7 +97,7 @@ function ListaEspera() {
     getEstilistas();
     getProductos();
   }, []);
-  const { dataListaEspera, fetchListaEspera } = useListaEspera({ id: 0, sucursal: 1 });
+  const { dataListaEspera, fetchListaEspera } = useListaEspera({ id: 0, sucursal: idSuc });
   const getClientes = () => {
     peinadosApi.get("/clientes?id=0").then((response) => {
       setDataClientes(response.data);
@@ -345,7 +354,7 @@ function ListaEspera() {
       peinadosApi
         .post("/sp_listaEsperaAdd3", null, {
           params: {
-            sucursal: formClienteEspera.sucursal ? formClienteEspera.sucursal : 1,
+            sucursal: idSuc ? idSuc : 1,
             idListaEspera: idListaEspera,
             tipo: tipo,
           },
@@ -437,7 +446,7 @@ function ListaEspera() {
               confirmButtonText: "Sí, eliminar",
             }).then((result) => {
               if (result.isConfirmed) {
-                peinadosApi.delete(`/ListaEspera2?id=${params.id}&usuario=${10}`).then(() => {
+                peinadosApi.delete(`/ListaEspera2?id=${params.id}&usuario=${idRec}`).then(() => {
                   Swal.fire({
                     icon: "success",
                     text: "Registro eliminado con éxito",
@@ -568,7 +577,7 @@ function ListaEspera() {
       .put("/sp_catListaEsperaUpd5", null, {
         params: {
           id: formClienteEspera.id,
-          sucursal: 1,
+          sucursal: idSuc,
           no_cliente: formClienteEspera.no_cliente,
           clave_prod: formClienteEspera.clave_prod,
           hora_estimada: formClienteEspera.hora_estimada,
@@ -602,7 +611,7 @@ function ListaEspera() {
     } else {
       peinadosApi.post("/ListaEspera", null, {
         params: {
-          sucursal: 1,
+          sucursal: idSuc,
           no_cliente: formClienteEspera.no_cliente,
           fecha: new Date(),
           clave_prod: formClienteEspera.clave_prod,

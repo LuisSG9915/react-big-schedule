@@ -64,6 +64,8 @@ import { usePromocionesZonas } from "../functions/crearCita/usePromocionesZonas"
 import { usePromocionesGrupos } from "../functions/crearCita/usePromocionesGrupos";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { useProductosAreaDeptoSub } from "../functions/crearCita/useProductosAreaDeptoSub";
+import { usePrepagos } from "../functions/crearCita/usePrepagos";
+import { useVentasOperacionesMediosPagos2 } from "../functions/crearCita/useVentasOperacionesMediosPagos2";
 
 let schedulerData;
 
@@ -86,6 +88,49 @@ function reducer(state, action) {
 }
 
 function Basic() {
+  const [dataEvent, setDataEvent] = useState({
+    id: 0,
+    event_id: "",
+    title: "",
+    description: "",
+    start: new Date("20230713"),
+    end: new Date("20230713"),
+    admin_id: 0,
+    color: "",
+    horaFin: new Date("20230713"),
+    fechaCita: new Date("20230713"),
+    idUsuario: 0,
+    cia: 0,
+    sucursal: 0,
+    d_sucursal: "",
+    idCliente: 0,
+    nombreCliente: "",
+    tiempo: 0,
+    idEstilista: 0,
+    nombreEstilista: "",
+    nombreRecepcionista: "",
+    fechaAlta: "",
+    estatus: 0,
+    descripcionEstatus: "",
+    fechaCambio: "",
+    idcolor: 0,
+    idEstatus: 0,
+  });
+
+  const idSuc = new URLSearchParams(window.location.search).get("idSuc");
+  const suc = new URLSearchParams(window.location.search).get("suc");
+  const idRec = new URLSearchParams(window.location.search).get("idRec");
+  const fecha = new Date();
+  // ?
+  const idUser = new URLSearchParams(window.location.search).get("idRec");
+
+  useEffect(() => {
+    if (!idSuc) {
+      alert("Favor de ingresar en la página principal");
+    }
+    setDataEvent({ ...dataEvent, sucursal: Number(idSuc), d_sucursal: suc, idRec: Number(idRec) });
+  }, []);
+
   const theme = createTheme({
     components: {
       MuiDataGrid: {
@@ -113,6 +158,7 @@ function Basic() {
     };
   }, []);
 
+  const [clavePrepago, setClavePrepago] = useState(0);
   const [arreglo, setArreglo] = useState([]);
 
   const [arregloCitaDia, setArregloCitaDia] = useState([]);
@@ -232,7 +278,10 @@ function Basic() {
   const getCitas = async (fecha) => {
     try {
       const response = await peinadosApi.get(
-        `/DetalleAgendaSelv18?fecha=${format(fecha ? fecha : datosParametros.fecha, "yyyyMMdd")}&suc=1&nomberEstilista=${"%"}&nombreCliente=${"%"}`
+        `/DetalleAgendaSelv20?fecha=${format(
+          fecha ? fecha : datosParametros.fecha,
+          "yyyyMMdd"
+        )}&suc=${idSuc}&nomberEstilista=${"%"}&nombreCliente=${"%"}`
       );
       setArregloCita(
         response.data.map((item) => {
@@ -248,7 +297,9 @@ function Basic() {
             title: "",
             type: 2,
             bgColor:
-              item.estadoCita == 1
+              item.estadoCita == 6
+                ? "#bababa"
+                : item.estadoCita == 1
                 ? "#F8C471" // Sandy Orange
                 : item.esDomicilio == true
                 ? "#DDA0DD" // Plum
@@ -280,7 +331,9 @@ function Basic() {
           type: 2,
           // bgColor: "red",
           bgColor:
-            item.estadoCita == 1
+            item.estadoCita == 6
+              ? "#bababa"
+              : item.estadoCita == 1
               ? "#F8C471" // Sandy Orange
               : item.esDomicilio == true
               ? "#DDA0DD" // Plum
@@ -290,8 +343,6 @@ function Basic() {
               ? "#FFF26C" // Lemon Chiffon
               : item.estadoCita == 4
               ? "#90EE90" // Light Green
-              : item.estadoCita == 5
-              ? "#DDA0DD" // Plum
               : "#bababa", // Light Gray
         };
       });
@@ -302,7 +353,7 @@ function Basic() {
 
   const fetchData = async () => {
     await peinadosApi
-      .get(`/Estilistas?id=0`)
+      .get(`/Estilistas4?id=0&sucursal=${idSuc}`)
       .then((response) => {
         setArreglo(
           response.data.map((item) => {
@@ -324,7 +375,7 @@ function Basic() {
   const getCitasDia = (elimina) => {
     peinadosApi
       .get(
-        `/ClientesCitasDia10?suc=1&cliente=0&fecha=${format(datosParametros.fecha, "yyyyMMdd")}&tipoCita=${
+        `/ClientesCitasDia10?suc=${idSuc}&cliente=0&fecha=${format(datosParametros.fecha, "yyyyMMdd")}&tipoCita=${
           tipoCita ? tipoCita : "%"
         }&nombreEstilista=${elimina ? "" : datosParametros.nombreEstilista}&nombreCliente=${elimina ? "" : datosParametros.nombreCliente}`
       )
@@ -428,12 +479,15 @@ function Basic() {
     handleOpenNewWindowEdit({
       idCita: event.idCita,
       idUser: event.no_estilista,
+      idRec: idRec,
       idCliente: event.no_cliente,
       fecha: event.hora1,
       flag: 0,
       estadoCita: event.estadoCita,
       tiempo: event.tiempo,
       idServicio: event.idServicios,
+      nombreCliente: event.nombre,
+      idSuc: idSuc,
     });
     return;
     setDatosParametros({
@@ -650,6 +704,7 @@ function Basic() {
                 idCita: params.row.id,
                 no_estilista: params.row.idEstilista,
                 verificacion: true,
+                hora1Verifica: params.row.hora_cita,
               });
               setFormCitaServicio({
                 ...formCitaServicio,
@@ -718,7 +773,7 @@ function Basic() {
                 return;
               }
 
-              putDetalleCitasServiciosUpd4(0, params.row.sucursal, params.row.id, 0, params.row.idEstilista, 0, 0, 1, 0, 0, new Date());
+              putDetalleCitasServiciosUpd4(0, params.row.sucursal, params.row.id, 0, params.row.idEstilista, 0, 0, idUser, 0, 0, new Date());
             }}
           >
             Cancelar
@@ -884,7 +939,9 @@ function Basic() {
           <FaTrash
             disabled
             size={23}
-            onClick={() => putDetalleCitasServiciosUpd4(0, params.row.sucursal, params.row.id, 0, params.row.idEstilista, 0, 0, 1, 0, 0, new Date())}
+            onClick={() =>
+              putDetalleCitasServiciosUpd4(0, params.row.sucursal, params.row.id, 0, params.row.idEstilista, 0, 0, idUser, 0, 0, new Date())
+            }
           >
             Cancelar
           </FaTrash>
@@ -970,8 +1027,8 @@ function Basic() {
     // },
   ];
 
-  // const ligaPruebas = "http://localhost:5173/";
-  const ligaPruebas = "http://cbinfo.no-ip.info:9019/";
+  const ligaPruebas = "http://localhost:5173/";
+  // const ligaPruebas = "http://cbinfo.no-ip.info:9019/";
   const handleOpenNewWindow = ({ idCita, idUser, idCliente, fecha, flag }) => {
     const url = `${ligaPruebas}miliga/crearcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idSuc=${1}&idRec=${1}&flag=${flag}`; // Reemplaza esto con la URL que desees abrir
     const width = 390;
@@ -981,8 +1038,8 @@ function Basic() {
     const features = `width=${width},height=${height},left=${left},top=${top},toolbar=0,location=0,menubar=0,scrollbars=1,resizable=1`;
     window.open(url, "_blank", features);
   };
-  const handleOpenNewWindowEdit = ({ idCita, idUser, idCliente, fecha, flag, estadoCita, tiempo, idServicio }) => {
-    const url = `${ligaPruebas}miliga/editarcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idSuc=${1}&idRec=${1}&flag=${flag}&estadoCita=${estadoCita}&tiempo=${tiempo}`; // Reemplaza esto con la URL que desees abrir
+  const handleOpenNewWindowEdit = ({ idCita, idUser, idCliente, fecha, flag, estadoCita, tiempo, nombreCliente, idSuc }) => {
+    const url = `${ligaPruebas}miliga/editarcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idRec=${idRec}&flag=${flag}&estadoCita=${estadoCita}&tiempo=${tiempo}&nombreCliente=${nombreCliente}&idSuc=${idSuc}`; // Reemplaza esto con la URL que desees abrir
     const width = 600;
     const height = 800;
     const left = (window.screen.width - width) / 2;
@@ -1000,7 +1057,7 @@ function Basic() {
     window.open(url, "_blank", features);
   };
   const handleOpenNewWindowListaEspera = () => {
-    const url = `${ligaPruebas}miliga/listaEspera`; // Reemplaza esto con la URL que desees abrir
+    const url = `${ligaPruebas}miliga/listaEspera?idUser=${idUser}&fecha=${fecha}`; // Reemplaza esto con la URL que desees abrir
     const width = 1500;
     const height = 900;
     const left = (window.screen.width - width) / 2;
@@ -1019,7 +1076,7 @@ function Basic() {
           cantidad: 0,
           tiempo: 0,
           precio: 0,
-          usuarioCambio: 0,
+          usuarioCambio: idUser,
           idEstilista: 0,
           fechaCita: 0,
           estatusCita: 0,
@@ -1057,7 +1114,7 @@ function Basic() {
           hora_cita: format(new Date(datosParametrosFechaCitaTemp.fecha), "yyyy-MM-dd'T'HH:mm:ss"),
           fecha: fechaSinHora,
           tiempo: datosParametrosCitaTemp.tiempo,
-          user: datosParametrosFechaCitaTemp.usuarioEstilista,
+          user: idUser,
           tipo_servicio: "1",
           serv: "1",
           importe: 100,
@@ -1148,7 +1205,7 @@ function Basic() {
             dia_cita: eventItem.hora1,
             hora_cita: eventItem.hora1,
             fecha: fechaSinHora,
-            user: eventItem.no_estilista,
+            user: idUser,
             cancelada: true,
             stao_estilista: 1,
             nota_canc: 0,
@@ -1254,7 +1311,7 @@ function Basic() {
 
   const [formCita, setFormCita] = useState({
     cia: 1,
-    sucursal: 1,
+    sucursal: idSuc,
     no_estilista: 0,
     no_cliente: 0,
     dia_cita: new Date(),
@@ -1283,13 +1340,13 @@ function Basic() {
   });
   const [formVentaOperaciones, setFormVentaOperaciones] = useState({
     no_venta: 0,
-    sucursal: 0,
+    sucursal: idSuc,
     idCliente: 0,
   });
   const [formVentaHistoriales, setFormVentaHistoriales] = useState({
     userId: null,
     claveProd: null,
-    sucursal: null,
+    sucursal: idSuc,
     fechaInicio: null,
     fechaFin: null,
     idCliente: null,
@@ -1313,7 +1370,7 @@ function Basic() {
   });
   const [formPuntosObservaciones, setFormPuntosObservaciones] = useState({
     idMovto: 0,
-    sucursal: 0,
+    sucursal: idSuc,
     fecha_movto: null,
   });
   const [movableReactPrueba, setMovableReactPrueba] = useState(true);
@@ -1422,17 +1479,13 @@ function Basic() {
     });
   }
 
-  const idUser = new URLSearchParams(window.location.search).get("idUser");
-  const fecha = new URLSearchParams(window.location.search).get("fecha");
-  const idRec = new URLSearchParams(window.location.search).get("idRec");
-  const idSuc = new URLSearchParams(window.location.search).get("idSuc");
   const minDateTime = setHours(startOfToday(), 8);
 
   const maxDateTime = setHours(startOfToday(), 20);
   useEffect(() => {
     console.log("actualizando.........");
-    setFormCita({ ...formCita, fecha: fecha, no_estilista: idUser, sucursal: idSuc });
-  }, [idUser, fecha, idRec, idSuc]);
+    setFormCita({ ...formCita, fecha: new Date(), no_estilista: idUser, sucursal: idSuc });
+  }, [idUser, idRec, idSuc]);
 
   useEffect(() => {
     console.log("ESTAMOS");
@@ -1509,7 +1562,7 @@ function Basic() {
 
   const { dataCitasServicios, fetchDetalleCitasServicios, setdataCitasServicios } = useDetalleCitasServicios({
     noCliente: formCita.no_cliente,
-    sucursal: 1,
+    sucursal: idSuc,
     fecha: formCita.fecha ? format(new Date(formCita.fecha), "yyyy/MM/dd") : new Date(),
     idCita: formCitaServicio.idCita,
   });
@@ -1520,7 +1573,7 @@ function Basic() {
   const { dataTrabajadores } = useNominaTrabajadores();
   const { DataVentasOperaciones } = useVentasOperaciones({
     noVenta: formVentaOperaciones.no_venta,
-    sucursal: formVentaOperaciones.sucursal,
+    sucursal: idSuc,
     idCliente: formCita.no_cliente,
   });
   const { dataClasificacion } = usesp_ClasificacionSel({ idCliente: formCita.no_cliente });
@@ -1530,7 +1583,7 @@ function Basic() {
     fechaFin: formVentaHistoriales.fechaFin,
     fechaInicio: formVentaHistoriales.fechaInicio,
     idCliente: formCita.no_cliente,
-    sucursal: formVentaHistoriales.sucursal,
+    sucursal: idSuc,
     userID: formVentaHistoriales.userId,
   });
   const { dataCitaEmpalme, fetchCitaEmpalme } = useCitaEmpalme({
@@ -1560,11 +1613,15 @@ function Basic() {
   });
   const [modalCumpleanios, setModalCumpleanios] = useState(false);
   const [modalPromociones, setModalPromociones] = useState(false);
+  const [modalPrepagos, setModalPrepagos] = useState(false);
   const [modalPromocionesFechas, setModalPromocionesFechas] = useState(false);
   const [modalPromocionesGrupos, setModalPromocionesGrupos] = useState(false);
 
   const { dataPromocionesZonas } = usePromocionesZonas();
   const { dataPromocionesGrupos } = usePromocionesGrupos({ idPromocion: formPromocion.id });
+  const { dataVentasOperacionesMediosPagos2 } = useVentasOperacionesMediosPagos2({ sucursal: idSuc, folioVenta: formVentaOperaciones.no_venta });
+
+  const { dataPrepagos, fetchPrepagos } = usePrepagos();
   const { fetchProductosAreaDeptoSub, dataProductosAreaDeptoSub, setDataProductosAreaDeptoSub } = useProductosAreaDeptoSub();
   const putCitasObservaciones = (estado, idCita) => {
     setModalCitasObservaciones(false);
@@ -1681,13 +1738,13 @@ function Basic() {
 
               putDetalleCitasServiciosUpd4(
                 cell.row.id,
-                1, //sucursal: 2 sucursal: 1
+                idSuc, //sucursal: 2 sucursal: 1
                 formCitaServicio.idCita,
                 cell.row.tiempo,
                 cell.row.idEstilista,
                 1,
                 cell.row.id_servicio,
-                0,
+                idUser,
                 0,
                 cell.row.precio
               );
@@ -1763,13 +1820,13 @@ function Basic() {
 
               putDetalleCitasServiciosUpd4(
                 cell.row.id,
-                1, //sucursal: 2 sucursal: 1
+                idSuc, //sucursal: 2 sucursal: 1
                 formCitaServicio.idCita,
                 cell.row.tiempo,
                 cell.row.idEstilista,
                 1,
                 cell.row.id_servicio,
-                0,
+                idUser,
                 0,
                 cell.row.precio
               );
@@ -1901,9 +1958,9 @@ function Basic() {
                     tiempo: elemento.tiempo,
                     precio: elemento.precio,
                     observaciones: "0",
-                    usuarioAlta: 0,
+                    usuarioAlta: idUser,
                     usuarioCambio: 0,
-                    sucursal: 1,
+                    sucursal: idSuc,
                     fecha: new Date(),
                     idCliente: formCita.no_cliente,
                     fechaCita: new Date(formCita.fecha),
@@ -2021,14 +2078,14 @@ function Basic() {
                   const response = await peinadosApi.post("/DetalleCitas", null, {
                     params: {
                       cia: 1,
-                      sucursal: 1,
+                      sucursal: idSuc,
                       no_estilista: formCita.no_estilista,
                       no_cliente: formCita.no_cliente,
                       dia_cita: new Date(formCita.fecha),
                       hora_cita: new Date(formCita.fecha),
                       fecha: fechaSinHora,
                       tiempo: 0,
-                      user: formCita.no_estilista,
+                      user: idUser,
                       importe: 0,
                       cancelada: false,
                       stao_estilista: 1,
@@ -2062,14 +2119,14 @@ function Basic() {
           const response = await peinadosApi.post("/DetalleCitas", null, {
             params: {
               cia: 1,
-              sucursal: 1,
+              sucursal: idSuc,
               no_estilista: formCita.no_estilista,
               no_cliente: formCita.no_cliente,
               dia_cita: formCita.fecha,
               hora_cita: formCita.fecha,
               fecha: fechaSinHora,
               tiempo: 0,
-              user: formCita.no_estilista,
+              user: idUser,
               importe: 0,
               cancelada: false,
               stao_estilista: 1,
@@ -2435,17 +2492,26 @@ function Basic() {
   const columnsDataVentasHistoriales = [
     { field: "x", headerName: "Seleccion", renderCell: renderButtonVentaHistorial, width: 130 },
     { field: "sucursal", headerName: "Suc", width: 60 },
-    { field: "fecha", headerName: "Fecha", width: 100, renderCell: (params) => <p>{format(new Date(params.row.fecha), "dd/MM/yyyy")}</p> },
+    {
+      field: "fecha",
+      headerName: "Fecha",
+      width: 100,
+      renderCell: (params) => <p className="centered-cell">{format(new Date(params.row.fecha), "dd/MM/yyyy")}</p>,
+    },
     { field: "no_venta", headerName: "No_venta", width: 100, headerAlign: "center", cellClassName: "cell-center" },
     { field: "no_venta2", headerName: "No_venta2", width: 100, cellClassName: "cell-center" },
   ];
   const columnsDataVentasOperaciones = [
     // { field: "x", headerName: "Seleccion", renderCell: renderButtonProduct, width: 130 },
-    { field: "nombre", headerName: "Nombre", width: 330 },
-    { field: "descripcion", headerName: "Producto", width: 330 },
-    { field: "cant_producto", headerName: "C", width: 30 },
-    { field: "precio", headerName: "$", width: 40 },
+    { field: "nombre_agenda", headerName: "Estilista", width: 110 },
+    { field: "descripcion", headerName: "Producto", width: 333 },
+    { field: "cant_producto", headerName: "C.", width: 30 },
     { field: "precio", headerName: "Total", width: 130 },
+  ];
+  const columnsDataVentasOperacionesMedios = [
+    // { field: "x", headerName: "Seleccion", renderCell: renderButtonProduct, width: 130 },
+    { field: "descripcion", headerName: "Medio Pago", width: 150 },
+    { field: "PAGO", headerName: "Total", width: 130 },
   ];
 
   const columnsPuntos = [
@@ -2774,7 +2840,7 @@ function Basic() {
                     setFormCita({
                       ...formCita,
                       cia: null,
-                      sucursal: null,
+                      sucursal: idSuc,
                       no_estilista: 0,
                     });
 
@@ -2921,9 +2987,9 @@ function Basic() {
               tiempo: tiempo,
               precio: precio,
               observaciones: formCitasObservaciones2 ? formCitasObservaciones2 : "",
-              usuarioAlta: formCita.no_estilista,
+              usuarioAlta: idUser,
               usuarioCambio: formCita.no_estilista,
-              sucursal: 1,
+              sucursal: idSuc,
               fecha: new Date(),
               idCliente: formCita.no_cliente,
               idEstilista: formCita.no_estilista,
@@ -3004,7 +3070,13 @@ function Basic() {
       newDateTime.setHours(value.getHours());
       newDateTime.setMinutes(value.getMinutes());
     }
-    setFormDetalleCitasServicios({ ...formDetalleCitasServicios, fecha: newDateTime });
+    const fechaInicio = new Date(newDateTime);
+    const fechaFinal = new Date(fechaInicio.getTime() + parseInt(formDetalleCitasServicios.tiempo) * 60000);
+    setFormDetalleCitasServicios({
+      ...formDetalleCitasServicios,
+      fecha: newDateTime,
+      fechaFinal: fechaFinal ? fechaFinal : formDetalleCitasServicios.fechaFinal,
+    });
   };
   const handleChangeFechaFinalServicio = (type, value) => {
     let newDateTime;
@@ -3040,7 +3112,7 @@ function Basic() {
           dia_cita: event?.hora1,
           hora_cita: event?.hora1,
           fecha: fechaSinHora,
-          user: event?.no_estilista,
+          user: idUser,
           cancelada: false,
           stao_estilista: 1,
           nota_canc: 0,
@@ -3195,7 +3267,7 @@ function Basic() {
       {
         accessorKey: "acciones",
         header: "Acción",
-        size: 100,
+        size: 90,
         Cell: ({ cell }) => (
           <>
             <Button
@@ -3213,7 +3285,7 @@ function Basic() {
       {
         accessorKey: "descripcionPromo",
         header: "Promoción",
-        size: 250,
+        size: 333,
       },
       {
         accessorKey: "f2",
@@ -3251,6 +3323,37 @@ function Basic() {
     ],
     [dataPromocionesZonas]
   );
+  const columnsPrepagos = useMemo(
+    () => [
+      {
+        accessorKey: "d_serv1",
+        header: "Servicio 1",
+        size: 100,
+      },
+      {
+        accessorKey: "d_serv2",
+        header: "Servicio 2",
+        size: 100,
+      },
+      {
+        accessorKey: "d_serv3",
+        header: "Servicio 3",
+        size: 100,
+      },
+      {
+        accessorKey: "d_serv4",
+        header: "Servicio 4",
+        size: 100,
+      },
+      {
+        accessorKey: "d_serv5",
+        header: "Servicio 5",
+        size: 100,
+      },
+    ],
+    []
+  );
+
   const columnsPromoDias = useMemo(
     () => [
       {
@@ -3512,7 +3615,7 @@ function Basic() {
                     text: "No se puede cancelar una cita pasada ",
                   });
                 }
-                putDetalleCitasServiciosUpd4(0, event.sucursal, event.idCita, 0, event.no_estilista, 0, 0, 1, 0, 0, new Date());
+                putDetalleCitasServiciosUpd4(0, event.sucursal, event.idCita, 0, event.no_estilista, 0, 0, idUser, 0, 0, new Date());
                 setIsModalOpen(false);
               }}
             >
@@ -3536,6 +3639,7 @@ function Basic() {
                   esServicioDomicilio: event.esDomicilio,
                   estatusCita: event.estadoCita,
                 });
+                setEvent({ ...event, hora1: new Date() });
                 setIsModalOpen(false);
                 setModalServicioUso(true);
               }}
@@ -3555,6 +3659,8 @@ function Basic() {
                   flag: 1,
                   estadoCita: event.estadoCita,
                   tiempo: event.tiempo,
+                  idSuc: idSuc,
+                  nombreCliente: event.nombre,
                 });
               }}
               style={{ marginBottom: "10px" }}
@@ -3766,15 +3872,14 @@ function Basic() {
             <Row style={{ marginBottom: "10px" }}>
               <Col xs={6}>
                 <FormGroup style={{ display: "flex", alignItems: "center", marginBottom: "0px" }}>
-                  <Label for="cliente" style={{ width: 55, fontSize: "1.1rem" }}>
+                  <Label style={{ fontSize: "1.2rem", minWidth: "70px" }} for="cliente">
                     Hora:
                   </Label>
                   <LocalizationProvider dateAdapter={AdapterDateFns}>
                     <TimePicker
                       timeSteps={{ minutes: 15 }}
                       slotProps={{ textField: { size: "small" } }}
-                      value={event?.hora1 ? new Date(decodeURIComponent(event?.hora1)) : null}
-                      // value={formCita.fecha ? new Date(formCita.fecha).toTimeString().substring(0, 5) : null}
+                      value={event?.hora1 ? new Date(event?.hora1) : null}
                       onChange={(hora) => handleChangeFechaEvent("hora", hora)}
                       sx={{
                         "& .MuiInputBase-input": {
@@ -3786,7 +3891,7 @@ function Basic() {
                         },
                         "& .MuiSvgIcon-root": {
                           // Aquí se oculta el ícono
-                          width: "0.8rem",
+                          width: "1.2rem",
                         },
                       }}
                       renderInput={(props) => (
@@ -3801,15 +3906,6 @@ function Basic() {
                     />
                   </LocalizationProvider>
                 </FormGroup>
-                {/* <InputGroup>
-                  <Label style={{ fontSize: "1.2rem", minWidth: "70px" }}>Hora:</Label>
-                  <Input
-                    type="time"
-                    style={{ fontSize: "1.2rem" }}
-                    value={event?.hora1 ? format(new Date(event?.hora1), "hh:mm aa") : ""}
-                    onChange={(e) => setEvent({ ...event, hora1: new Date(`${event.fecha} ${e.target.value}`) })}
-                  ></Input>
-                </InputGroup> */}
               </Col>
               <Col xs={6}>
                 <InputGroup>
@@ -3851,11 +3947,15 @@ function Basic() {
                 color="primary"
                 disabled={dataCitasServicios.length == 0}
                 onClick={() => {
+                  let fecha1 = new Date(event.hora1);
+                  let fecha2 = new Date();
+                  let diferenciaEnMinutos = Math.abs(fecha2.getTime() - fecha1.getTime()) / 1000 / 60;
+                  let hora1 = diferenciaEnMinutos > 5 || diferenciaEnMinutos < -5 ? event.hora1 : new Date();
                   verificarDisponibilidad(
                     dataCitasServicios.length > 0
                       ? dataCitasServicios.reduce((acc, service) => acc + Number(service.tiempo) * Number(service.cantidad), 0)
                       : "",
-                    new Date(),
+                    hora1,
                     event?.no_estilista,
                     formCitaServicio.idCita
                   ).then((isVerified) => {
@@ -3991,7 +4091,7 @@ function Basic() {
           <Input style={{ marginBottom: "10px" }} disabled value={formCitaDescripciones.descripcion_no_cliente}></Input>
           <div style={{ display: "flex", justifyContent: "space-evenly" }}>
             <Label>Suc: {formPuntosObservaciones.sucursal ? formPuntosObservaciones.sucursal : ""}</Label>
-            <Label>Fecha: {formPuntosObservaciones.fecha ? format(new Date(formPuntosObservaciones.fecha), "dd/MM/yyyy") : ""} </Label>
+            <Label>Fecha: {formPuntosObservaciones.fecha ? format(new Date(formPuntosObservaciones.fecha), "dd/MM/yyyy HH:mm") : ""} </Label>
             <Label>Hora: {formPuntosObservaciones.fecha ? format(new Date(formPuntosObservaciones.fecha), "HH:mm") : ""}</Label>
           </div>
           <ThemeProvider theme={theme}>
@@ -4178,10 +4278,8 @@ function Basic() {
             <Col md={1}>
               <Label>Cliente:</Label>
             </Col>
-            <Col md={5}>
-              <Input disabled placeholder="cveCliente" value={formCita.no_cliente ? formCita.no_cliente : ""}></Input>
-            </Col>
-            <Col md={6}>
+
+            <Col md={12}>
               <Input
                 disabled
                 placeholder="nombreCliente"
@@ -4189,12 +4287,12 @@ function Basic() {
               ></Input>
             </Col>
           </Row>
-          <Row style={{ marginTop: "18px", marginBottom: "18px" }}>
+          <Row style={{ marginTop: "18px", marginBottom: "10px" }}>
             <Col md={1}>
               <Label>Sucursal:</Label>
             </Col>
             <Col md={3}>
-              <Input disabled value={formVentaOperaciones.sucursal} placeholder="Sucursal"></Input>
+              <Input disabled value={DataVentasOperaciones.length > 0 ? DataVentasOperaciones[0]?.d_sucursal : ""} placeholder="Sucursal"></Input>
             </Col>
             <Col md={1}>
               <Label>Fecha:</Label>
@@ -4207,15 +4305,37 @@ function Basic() {
               ></Input>
             </Col>
             <Col md={1}>
-              <Label>Folio:</Label>
+              <Label>Folio venta:</Label>
             </Col>
             <Col md={3}>
               <Input disabled value={formVentaOperaciones.no_venta} placeholder="No_venta"></Input>
             </Col>
           </Row>
           <ThemeProvider theme={theme}>
-            <DataGrid rows={DataVentasOperaciones} columns={columnsDataVentasOperaciones} />
+            <div style={{ height: "222px", width: "100%" }}>
+              <DataGrid rows={DataVentasOperaciones} columns={columnsDataVentasOperaciones} />
+            </div>
           </ThemeProvider>
+          <br />
+          <h5>Medios de pago usados</h5>
+          <ThemeProvider theme={theme}>
+            <div style={{ height: "150px", width: "100%" }}>
+              <DataGrid
+                rows={dataVentasOperacionesMediosPagos2}
+                columns={columnsDataVentasOperacionesMedios}
+                getRowId={(row) => Number(row.no_venta) + "" + row.descripcion}
+                initialState={{ density: "compact" }}
+              />
+            </div>
+          </ThemeProvider>
+          <br />
+          <br />
+          <br />
+          <br />
+          <br />
+          <br />
+          <br />
+          <br />
         </Box>
       </Modal>
 
@@ -4444,13 +4564,13 @@ function Basic() {
                   onClick={() => {
                     putDetalleCitasServiciosUpd4(
                       formDetalleCitasServicios.id,
-                      1, //SUCURSAL: 1 SUCURSAL: 2
+                      idSuc, //SUCURSAL: 1 SUCURSAL: 2
                       formCitaServicio.idCita,
                       formDetalleCitasServicios.tiempo,
                       formDetalleCitasServicios.idEstilista,
                       1,
                       formDetalleCitasServicios.idServicio,
-                      0,
+                      idUser,
                       formDetalleCitasServicios.cantidad,
                       formDetalleCitasServicios.precio,
                       formDetalleCitasServicios.fecha
@@ -4556,7 +4676,7 @@ function Basic() {
             </Col>
             <Col md={3}>
               <FormGroup>
-                <Label for="fecha" style={{ fontSize: "1.2rem" }}>
+                <Label for="fecha" style={{ fontSize: "1.2rem", marginRight: 20 }}>
                   Fecha:
                 </Label>
 
@@ -4571,7 +4691,7 @@ function Basic() {
                     format="dd/MM/yyyy"
                     sx={{
                       "& .MuiInputBase-input": {
-                        width: "190px",
+                        width: "160px",
                       },
                       "& .MuiPickersDay-dayWithMargin": {
                         // Oculta el ícono del DatePicker
@@ -4679,13 +4799,13 @@ function Basic() {
                     onClick={() => {
                       putDetalleCitasServiciosUpd7(
                         formDetalleCitasServicios.id,
-                        1, //SUCURSAL: 1 SUCURSAL: 2
+                        idSuc, //SUCURSAL: 1 SUCURSAL: 2
                         formCitaServicio.idCita,
                         formDetalleCitasServicios.tiempo,
                         formDetalleCitasServicios.idEstilista,
                         1,
                         formDetalleCitasServicios.idServicio,
-                        0,
+                        idUser,
                         formDetalleCitasServicios.cantidad,
                         formDetalleCitasServicios.precio,
                         formDetalleCitasServicios.fecha,
@@ -4733,7 +4853,10 @@ function Basic() {
                   <Input
                     value={formDetalleCitasServicios.tiempo}
                     onChange={(v) => {
-                      setFormDetalleCitasServicios({ ...formDetalleCitasServicios, tiempo: v.target.value });
+                      const fechaInicio = new Date(formDetalleCitasServicios.fecha);
+                      const minutos = parseInt(v.target.value);
+                      const fechaFinal = new Date(fechaInicio.getTime() + minutos * 60000);
+                      setFormDetalleCitasServicios({ ...formDetalleCitasServicios, tiempo: v.target.value, fechaFinal });
                     }}
                   ></Input>
                 </FormGroup>
@@ -4780,6 +4903,7 @@ function Basic() {
                   </Label>
                   <LocalizationProvider dateAdapter={AdapterDateFns}>
                     <TimePicker
+                      disabled
                       timeSteps={15}
                       slotProps={{ textField: { size: "small" } }}
                       value={formDetalleCitasServicios.fechaFinal ? new Date(decodeURIComponent(formDetalleCitasServicios.fechaFinal)) : null}
@@ -4948,13 +5072,13 @@ function Basic() {
                 console.log(formCitaServioActualizacion);
                 putDetalleCitasServiciosUpd7(
                   formCitaServioActualizacion.no_cliente,
-                  1, //SUCURSAL: 1 SUCURSAL: 2
+                  idSuc, //SUCURSAL: 1 SUCURSAL: 2
                   formCitaServioActualizacion.id,
                   formCitaServioActualizacion.tiempo,
                   formCitaServioActualizacion.idEstilista,
                   1,
                   formCitaServioActualizacion.idServicio,
-                  0,
+                  idUser,
                   formCitaServioActualizacion.cantidad,
                   formCitaServioActualizacion.importe / formCitaServioActualizacion.cantidad,
                   formCitaServioActualizacion.hora_cita,
@@ -5178,7 +5302,12 @@ function Basic() {
       </Modal>
       <Modal open={modalPromociones} onClose={() => setModalPromociones(false)} disableAutoFocus disableEnforceFocus>
         <Box sx={{ ...styleAltaServicio }}>
-          <h3>Promociones</h3>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
+            <h3>Promociones</h3>
+            <Button color="primary" onClick={() => setModalPrepagos(true)}>
+              Prepagos
+            </Button>
+          </div>
           <MaterialReactTable
             columns={columnsPromo}
             data={dataPromocionesZonas}
@@ -5194,6 +5323,53 @@ function Basic() {
           <br />
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <Button color="danger" onClick={() => setModalPromociones(false)}>
+              Salir
+            </Button>
+          </div>
+        </Box>
+      </Modal>
+      <Modal open={modalPrepagos} onClose={() => setModalPrepagos(false)} disableAutoFocus disableEnforceFocus>
+        <Box sx={{ ...styleAltaServicio }}>
+          <h3>Prepagos</h3>
+          <br />
+          <select
+            onChange={(e) => {
+              setClavePrepago(e.target.value);
+              // setFormCitaServicio({ ...formCitaServicio, clave_prepago: e.target.value });
+            }}
+          >
+            <option value="Seleccione el prepago"></option>
+            {dataPrepagos
+              .reduce((acc, item) => {
+                if (!acc.includes(item.clave_prepago)) {
+                  acc.push(item.clave_prepago);
+                }
+                return acc;
+              }, [])
+              .map((clave) => (
+                <option key={clave} value={clave}>
+                  {dataPrepagos.find((item) => item.clave_prepago === clave).d_prepago}
+                </option>
+              ))}
+          </select>
+
+          <br />
+          <MaterialReactTable
+            columns={columnsPrepagos}
+            data={dataPrepagos.filter((item) => Number(item.clave_prepago) === Number(clavePrepago))}
+            initialState={{ density: "compact" }}
+            muiTableBodyProps={{ sx: { fontSize: "16px" } }}
+            muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
+            getRowId={(row) => row.clave_prepago}
+            muiTableBodyCellProps={{
+              sx: {
+                fontSize: "16px", // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
+              },
+            }}
+          />
+          <br />
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <Button color="danger" onClick={() => setModalPrepagos(false)}>
               Salir
             </Button>
           </div>

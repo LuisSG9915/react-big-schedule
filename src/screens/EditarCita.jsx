@@ -47,7 +47,7 @@ function EditarCita() {
     id: 0,
     cia: 1,
     sucursal: 1,
-    no_estilista: 0,
+    no_estilista: idUser,
     no_cliente: 0,
     dia_cita: new Date(),
     hora_cita: new Date(),
@@ -69,7 +69,7 @@ function EditarCita() {
     id: 0,
     cia: 1,
     sucursal: 1,
-    no_estilista: 0,
+    no_estilista: idUser,
     no_cliente: 0,
     dia_cita: new Date(),
     hora_cita: new Date(),
@@ -120,7 +120,7 @@ function EditarCita() {
   const [productosModalEdit, setProductosModalEdit] = useState(false);
   const [puntosModal, setPuntosModal] = useState(false);
   const [editModal, setEditModal] = useState(false);
-  const [loadingModal, setLoadingModal] = useState(false);
+  const [loadingModal, setLoadingModal] = useState(true);
   const [ventaTemporal, setVentaTemporal] = useState([]);
   const [dataClientes, setDataClientes] = useState([]);
   const [dataClientesPuntos, setDataClientesPuntos] = useState({});
@@ -139,6 +139,7 @@ function EditarCita() {
   const estadoCita = new URLSearchParams(window.location.search).get("estadoCita");
   const cambioCitaModo = new URLSearchParams(window.location.search).get("flag");
   const tiempo = new URLSearchParams(window.location.search).get("tiempo");
+  const nombreCliente = new URLSearchParams(window.location.search).get("nombreCliente");
 
   const minDateTime = setHours(startOfToday(), 8);
 
@@ -158,11 +159,11 @@ function EditarCita() {
       esServicioDomicilio: estadoCita == 5 ? true : false,
       tiempo: tiempo,
     });
+    console.log(idUser);
     // if (estadoCita == 2) setFormCita({ ...formCita, estatusRequerido: true });
     // if (estadoCita == 3) setFormCita({ ...formCita, estatusAsignado: true });
     // if (estadoCita == 5) setFormCita({ ...formCita, esServicioDomicilio: true });
   }, [idUser, fecha, idRec, idSuc, idCliente, idCita, tiempo]);
-
   useEffect(() => {
     if (dataClientes.length > 0) {
       console.log(formCita.no_cliente);
@@ -182,7 +183,7 @@ function EditarCita() {
     getClientes();
     getEstilistas();
     getProductos();
-  }, []);
+  }, [idSuc]);
 
   useEffect(() => {
     getClientesePuntos();
@@ -192,13 +193,13 @@ function EditarCita() {
 
   const getDetalleCitasServicios = () => {
     peinadosApi
-      .get(`/DetalleCitasServicios?fecha=${formCita.fecha}&no_cliente=${formCita.no_cliente}&sucursal=${formCita.sucursal}&idCita=${idCita}`)
+      .get(`/DetalleCitasServicios?fecha=${formCita.fecha}&no_cliente=${formCita.no_cliente}&sucursal=${idSuc}&idCita=${idCita}`)
       .then((response) => {
         setDataCitasServicios(response.data);
       });
   };
   const getEstilistas = () => {
-    peinadosApi.get("/estilistas?id=0").then((response) => {
+    peinadosApi.get(`/estilistas4?id=0&sucursal=${idSuc}`).then((response) => {
       setDataEstilistas(response.data);
     });
   };
@@ -260,6 +261,13 @@ function EditarCita() {
     let mes = fechaActual.getMonth(); // Nota: getMonth() devuelve un valor de 0 a 11, donde 0 es enero y 11 es diciembre
     let día = fechaActual.getDate();
     let fechaSinHora = new Date(año, mes, día);
+    if (formCita.fecha < new Date()) {
+      return Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: "La fecha debe ser mayor o igual a la fecha actual",
+      });
+    }
     peinadosApi
       .put("/DetalleCitasReducido2", null, {
         params: {
@@ -269,15 +277,15 @@ function EditarCita() {
           dia_cita: formCita.fecha,
           hora_cita: formCita.fecha,
           fecha: fechaSinHora,
-          user: formCita.no_estilista,
+          user: idUser,
           cancelada: false,
           stao_estilista: 1,
           nota_canc: 0,
           registrada: false,
           observacion: "",
           user_uc: 0,
-          estatus: formCita.cambioCitaModo && formCita.estatusAsignado ? 2 : formCita.cambioCitaModo && formCita.estatusRequerido ? 3 : 4,
-          tiempo: formCita.tiempo
+          estatus: formCita.cambioCitaModo && formCita.estatusAsignado ? 3 : formCita.cambioCitaModo && formCita.estatusRequerido ? 2 : 4,
+          tiempo: formCita.tiempo,
           // estatus: formCita.estatusAsignado ? 3 : formCita.estatusRequerido ? 2 : 4,
         },
       })
@@ -480,7 +488,7 @@ function EditarCita() {
             observaciones: "0",
             usuarioAlta: 0,
             usuarioCambio: 0,
-            sucursal: 1,
+            sucursal: idSuc,
             fecha: new Date(),
             idCliente: formCita.no_cliente,
           },
@@ -526,7 +534,7 @@ function EditarCita() {
         .post("/DetalleCitas", null, {
           params: {
             cia: 1,
-            sucursal: 1,
+            sucursal: idSuc,
             no_estilista: formCita.no_estilista,
             no_cliente: formCita.no_cliente,
             dia_cita: formCita.fecha,
@@ -855,16 +863,7 @@ function EditarCita() {
             <Label style={{ fontSize: "1.2rem", maxWidth: "100px", width: "80px" }} for="cliente">
               Cliente:{" "}
             </Label>
-            <Input
-              style={{ fontSize: "1.2rem" }}
-              bsSize="sm"
-              disabled
-              value={formCitaDescripciones.descripcion_no_cliente}
-              type="text"
-              name="cliente"
-              id="cliente"
-              size={"small"}
-            />
+            <Input style={{ fontSize: "1.2rem" }} bsSize="sm" disabled value={nombreCliente} type="text" name="cliente" id="cliente" size={"small"} />
           </InputGroup>
         </Row>
         <Row style={{ marginBottom: "10px" }}>
@@ -879,7 +878,7 @@ function EditarCita() {
                 type="select"
                 name="atiende"
                 id="atiende"
-                value={idUser}
+                value={formCita.no_estilista}
                 onChange={(valor) => {
                   setFormCita({ ...formCita, no_estilista: valor.target.value });
                 }}
@@ -938,7 +937,6 @@ function EditarCita() {
               </Label>
               <LocalizationProvider dateAdapter={AdapterDateFns}>
                 <DateTimePicker
-                  disabled
                   value={new Date(formCita.fecha)}
                   timeSteps={{ minutes: 15 }}
                   minTime={minDateTime}
@@ -950,10 +948,6 @@ function EditarCita() {
                   format="dd/MM/yyyy" // Formato DDMMAAAA HH:mm (hora en formato 24 horas)
                   onChange={(fecha) => {
                     setFormCita({ ...formCita, fecha: fecha });
-                    // setDatosParametros({
-                    //   ...datosParametros,
-                    //   fecha: fecha,
-                    // });
                   }}
                 />
               </LocalizationProvider>
@@ -970,15 +964,12 @@ function EditarCita() {
                 style={{ fontSize: "1.2rem" }}
                 bsSize="sm"
                 disabled
-                value={formCitaDescripciones.descripcion_no_cliente}
+                value={nombreCliente}
                 type="text"
                 name="cliente"
                 id="cliente"
                 size={"small"}
               />
-              {/* <Button size="sm" onClick={() => setClientesModal(true)}>
-                Buscar
-              </Button> */}
             </InputGroup>
           </FormGroup>
         </Row>
@@ -1025,10 +1016,17 @@ function EditarCita() {
             ) : (
               <InputGroup>
                 <Label style={{ fontSize: "1.2rem", maxWidth: "100px", width: "100px" }}>Modo:</Label>
-                <Input style={{ fontSize: "1.2rem" }} disabled value={formCita.estatusRequerido ==true ? "R" : "A"}></Input>
-                <Button onClick={() => setFormCita({ ...formCita, estatusRequerido: formCita.estatusRequerido ? false : true, estatusAsignado: formCita.estatusAsignado ? false: true })}>
-                <FaExchangeAlt />
-
+                <Input style={{ fontSize: "1.2rem" }} disabled value={formCita.estatusRequerido == true ? "R" : "A"}></Input>
+                <Button
+                  onClick={() =>
+                    setFormCita({
+                      ...formCita,
+                      estatusRequerido: formCita.estatusRequerido ? false : true,
+                      estatusAsignado: formCita.estatusAsignado ? false : true,
+                    })
+                  }
+                >
+                  <FaExchangeAlt />
                 </Button>
               </InputGroup>
             )}
@@ -1057,7 +1055,6 @@ function EditarCita() {
                     "& .MuiSvgIcon-root": {
                       // Aquí se oculta el ícono
                       width: "1.2rem",
-                      
                     },
                   }}
                   renderInput={(props) => (
@@ -1066,7 +1063,6 @@ function EditarCita() {
                       size="small"
                       style={{
                         fontSize: "1.2rem",
-                  
                       }}
                     />
                   )}
@@ -1190,12 +1186,6 @@ function EditarCita() {
             Guardar edición
           </Button>
         </Box>
-      </Modal>
-
-      <Modal open={loadingModal} onClose={() => setLoadingModal(false)}>
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
-          <Spinner></Spinner>
-        </div>
       </Modal>
 
       <Modal open={ModalCantidad} onClose={() => setModalCantidad(false)} size={"sm"}>

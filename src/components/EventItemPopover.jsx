@@ -46,8 +46,6 @@ function EventItemPopover({
 
   // http://cbinfo.no-ip.info:9018/sp_detalleCitasServiciosResumen_Result?idCita=2087
   const getEstilistas = () => {
-    console.log({ eventItem });
-
     peinadosApi
       .get(
         `/sp_detalleCitasServiciosResumen5?idCita=${eventItem.idCita}&cve_cliente=${eventItem.no_cliente}&estilista=${eventItem.no_estilista}&idVenta=${eventItem.idVenta}`
