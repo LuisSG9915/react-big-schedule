@@ -99,13 +99,13 @@ function ListaEspera() {
   }, []);
   const { dataListaEspera, fetchListaEspera } = useListaEspera({ id: 0, sucursal: idSuc });
   const getClientes = () => {
-    peinadosApi.get("/clientes?id=0").then((response) => {
+    peinadosApi.get(`/clientesZonas?id=0&idSuc=${idSuc ? idSuc : 0}`).then((response) => {
       setDataClientes(response.data);
     });
   };
 
   const getEstilistas = () => {
-    peinadosApi.get("/estilistas?id=0").then((response) => {
+    peinadosApi.get(`/estilistas4?id=0&sucursal=${idSuc}`).then((response) => {
       setDataEstilistas(response.data);
     });
   };
@@ -352,11 +352,12 @@ function ListaEspera() {
         return;
       }
       peinadosApi
-        .post("/sp_listaEsperaAdd3", null, {
+        .post("/sp_listaEsperaAdd4", null, {
           params: {
             sucursal: idSuc ? idSuc : 1,
             idListaEspera: idListaEspera,
             tipo: tipo,
+            fecha: fecha,
           },
         })
         .then((response) => {
@@ -366,7 +367,9 @@ function ListaEspera() {
             text: "Se creo exitosamente.",
             confirmButtonText: "Entendido",
           });
-          fetchListaEspera();
+          setTimeout(() => {
+            fetchListaEspera();
+          }, 1000);
           console.log(response);
         });
     }
@@ -374,7 +377,7 @@ function ListaEspera() {
   const [formListaEsperaVerificacion, setFormListaEsperaVerificacion] = useState();
   function renderDeleteListaEspera(params) {
     return (
-      <div>
+      <div style={{ display: "flex" }}>
         <MdCalendarMonth
           onClick={() => {
             listaEsperaPost(params.row.id, 1, params.row.tiempo_servicio, params.row.estilista, new Date(params.row.hora_estimada));
@@ -382,13 +385,10 @@ function ListaEspera() {
           title="C"
           size={25}
         />
-
         <MdFolderOpen
           title="S"
           size={25}
           onClick={() => {
-            console.log(params.row);
-
             setModalCitaServicio(true);
             setFormListaEsperaVerificacion({
               id: params.row.id,
@@ -397,7 +397,7 @@ function ListaEspera() {
               estilista_descripcion: params.row.nombreEstilsta,
               servicio_descripcion: params.row.descripcion,
               cliente_descripcion: params.row.nombreCompleto,
-              hora_estimada: params.row.hora_estimada,
+              hora_estimada: new Date(),
               max_detalle_venta_id: params.row.max_detalle_venta_id,
               tiempo: params.row.tiempo_servicio,
             });
@@ -927,7 +927,7 @@ function ListaEspera() {
         </ModalFooter>
       </Modal>
       <Modal isOpen={modalCitaServicio} toggle={() => setModalCitaServicio(!modalCitaServicio)} size="xl">
-        <ModalHeader toggle={() => setModalCitaServicio(!modalCitaServicio)}>Folio y Hora</ModalHeader>
+        <ModalHeader toggle={() => setModalCitaServicio(!modalCitaServicio)}>Servicio y Hora</ModalHeader>
         <ModalBody>
           <FormGroup>
             <Label style={{ fontSize: "1.2rem" }}>Cliente</Label>
@@ -953,8 +953,7 @@ function ListaEspera() {
               <LocalizationProvider dateAdapter={AdapterDateFns}>
                 <TimePicker
                   slotProps={{ textField: { size: "small" } }}
-                  disabled
-                  value={formListaEsperaVerificacion?.hora_estimada ? parseISO(formListaEsperaVerificacion.hora_estimada) : null}
+                  value={formListaEsperaVerificacion?.hora_estimada ? formListaEsperaVerificacion.hora_estimada : null}
                   inputFormat="HH:mm"
                   renderInput={(params) => <TextField {...params} style={{ fontSize: "1.2rem", height: "4rem" }} />}
                 />

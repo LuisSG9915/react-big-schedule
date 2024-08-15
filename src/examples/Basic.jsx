@@ -50,7 +50,7 @@ import { useVentasOperaciones } from "../functions/crearCita/useVentasOperacione
 import { useSucursales } from "../functions/crearCita/useSucursales";
 import { useNominaTrabajadores } from "../functions/crearCita/useNominaTrabajadores";
 import { useDetalleCitasObservaciones } from "../functions/crearCita/useDetalleCitasObservaciones";
-import { AiFillDelete, AiFillEdit, AiOutlineClose, AiOutlineSearch, AiOutlineReload } from "react-icons/ai";
+import { AiFillDelete, AiFillEdit, AiOutlineClose, AiOutlineSearch, AiOutlineReload, AiFillBook } from "react-icons/ai";
 import { useObservaciones } from "../functions/crearCita/useObservaciones";
 import { styled } from "@mui/material/styles";
 import { Box, Typography, Modal, FormControlLabel, Checkbox, FormControl } from "@mui/material";
@@ -127,6 +127,7 @@ function Basic() {
   useEffect(() => {
     if (!idSuc) {
       alert("Favor de ingresar en la página principal");
+      window.location.href = "http://cbinfo.no-ip.info:9020/";
     }
     setDataEvent({ ...dataEvent, sucursal: Number(idSuc), d_sucursal: suc, idRec: Number(idRec) });
   }, []);
@@ -483,7 +484,7 @@ function Basic() {
       idCliente: event.no_cliente,
       fecha: event.hora1,
       flag: 0,
-      estadoCita: event.estadoCita,
+      estadoCita: event.estadoCita2,
       tiempo: event.tiempo,
       idServicio: event.idServicios,
       nombreCliente: event.nombre,
@@ -617,14 +618,14 @@ function Basic() {
 
   const newEvent = (schedulerData, slotId, slotName, start, end, type, item) => {
     console.log(schedulerData);
-
-    handleOpenNewWindow({
-      idCita: 0,
-      idUser: slotId,
-      idCliente: 0,
-      fecha: start,
-      flag: 0,
-    });
+    // return
+    //     handleOpenNewWindow({
+    //       idCita: 0,
+    //       idUser: slotId,
+    //       idCliente: 0,
+    //       fecha: start,
+    //       flag: 0,
+    //     });
     // if (
     //   confirm(
     //     `Do you want to create a new event? {slotId: ${slotId}, slotName: ${slotName}, start: ${start}, end: ${end}, type: ${type}, item: ${item}}`
@@ -1027,8 +1028,8 @@ function Basic() {
     // },
   ];
 
-  const ligaPruebas = "http://localhost:5173/";
-  // const ligaPruebas = "http://cbinfo.no-ip.info:9019/";
+  // const ligaPruebas = "http://localhost:5173/";
+  const ligaPruebas = "http://cbinfo.no-ip.info:9019/";
   const handleOpenNewWindow = ({ idCita, idUser, idCliente, fecha, flag }) => {
     const url = `${ligaPruebas}miliga/crearcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idSuc=${1}&idRec=${1}&flag=${flag}`; // Reemplaza esto con la URL que desees abrir
     const width = 390;
@@ -1047,6 +1048,15 @@ function Basic() {
     const features = `width=${width},height=${height},left=${left},top=${top},toolbar=0,location=0,menubar=0,scrollbars=1,resizable=1`;
     window.open(url, "_blank", features);
   };
+  const handleOpenAgenda2 = ({ idRec, suc, idSuc }) => {
+    const url = `${ligaPruebas}miliga/Agenda2?idRec=${idRec}&suc=${suc}&idSuc=${idSuc}`; // Reemplaza esto con la URL que desees abrir
+    const width = 1200;
+    const height = 600;
+    const left = (window.screen.width - width) / 2;
+    const top = (window.screen.height - height) / 2;
+    const features = `width=${width},height=${height},left=${left},top=${top},toolbar=0,location=0,menubar=0,scrollbars=1,resizable=1`;
+    window.open(url, "_blank", features);
+  };
   const handleOpenNewWindowNewSchedule = () => {
     const url = `${ligaPruebas}miliga/crearcita?fecha=${datosParametros.fecha}`; // Reemplaza esto con la URL que desees abrir
     const width = 450;
@@ -1057,7 +1067,7 @@ function Basic() {
     window.open(url, "_blank", features);
   };
   const handleOpenNewWindowListaEspera = () => {
-    const url = `${ligaPruebas}miliga/listaEspera?idUser=${idUser}&fecha=${fecha}`; // Reemplaza esto con la URL que desees abrir
+    const url = `${ligaPruebas}miliga/listaEspera?idUser=${idRec}&fecha=${fecha}&idSuc=${idSuc}`; // Reemplaza esto con la URL que desees abrir
     const width = 1500;
     const height = 900;
     const left = (window.screen.width - width) / 2;
@@ -1295,6 +1305,8 @@ function Basic() {
     border: "2px solid #000",
     boxShadow: 24,
     p: 4,
+    overflow: "auto", // Habilita el scroll
+    maxHeight: "100%", // Limita la altura máxima para el contenido
   };
   const styleAltaServicio = {
     position: "absolute",
@@ -1307,6 +1319,8 @@ function Basic() {
     border: "2px solid #000",
     boxShadow: 24,
     p: 4,
+    overflow: "auto", // Habilita el scroll
+    maxHeight: "100%", // Limita la altura máxima para el contenido
   };
 
   const [formCita, setFormCita] = useState({
@@ -1483,8 +1497,7 @@ function Basic() {
 
   const maxDateTime = setHours(startOfToday(), 20);
   useEffect(() => {
-    console.log("actualizando.........");
-    setFormCita({ ...formCita, fecha: new Date(), no_estilista: idUser, sucursal: idSuc });
+    setFormCita({ ...formCita, fecha: new Date(), user: idUser, sucursal: idSuc });
   }, [idUser, idRec, idSuc]);
 
   useEffect(() => {
@@ -1515,12 +1528,12 @@ function Basic() {
   }, [formPuntosObservaciones]);
 
   const getEstilistas = () => {
-    peinadosApi.get("/estilistas?id=0").then((response) => {
+    peinadosApi.get(`/estilistas4?id=0&sucursal=${idSuc}`).then((response) => {
       setDataEstilistas(response.data);
     });
   };
   const getClientes = () => {
-    peinadosApi.get("/clientes?id=0").then((response) => {
+    peinadosApi.get(`/clientesZonas?id=0&idSuc=${idSuc ? idSuc : 0}`).then((response) => {
       setDataClientes(response.data);
     });
   };
@@ -2046,13 +2059,13 @@ function Basic() {
       });
       return;
     }
+    console.log(formCita);
     if (
       formCita.no_estilista == 0 ||
       !formCita.no_estilista ||
       formCita.no_cliente == 0 ||
       (formCita.estatusAsignado == false && formCita.estatusRequerido == false)
     ) {
-      console.log("errror");
       Swal.fire({
         icon: "error",
         title: "Error",
@@ -2140,6 +2153,7 @@ function Basic() {
           });
           setProductosModal(true);
           setFormCitaServicio({ ...formCitaServicio, idCita: response.data.mensaje2 });
+          if (formCita.esServicioDomicilio) postCitasServicios(11948, 0, 1, response.data.mensaje2);
           return response.data.mensaje2;
         } catch (error) {
           alert(`Hubo un error, ${error}`);
@@ -2503,7 +2517,8 @@ function Basic() {
   ];
   const columnsDataVentasOperaciones = [
     // { field: "x", headerName: "Seleccion", renderCell: renderButtonProduct, width: 130 },
-    { field: "nombre_agenda", headerName: "Estilista", width: 110 },
+    { field: "nombreEstilista", headerName: "Estilista", width: 110 },
+    // { field: "nombreUsuario", headerName: "Atendió", width: 110 },
     { field: "descripcion", headerName: "Producto", width: 333 },
     { field: "cant_producto", headerName: "C.", width: 30 },
     { field: "precio", headerName: "Total", width: 130 },
@@ -2974,14 +2989,14 @@ function Basic() {
   //     // }
   //   });
   // };
-  const postCitasServicios = async (clave, tiempo, precio) => {
+  const postCitasServicios = async (clave, tiempo, precio, idCita) => {
     await verificarDisponibilidad(tiempo, formCita.fecha, formCita.no_estilista, formCitaServicio.idCita).then((isVerified) => {
       console.log(isVerified);
       if (isVerified) {
         peinadosApi
           .post(`/sp_detalleCitasServiciosAdd7`, null, {
             params: {
-              id_Cita: formCitaServicio.idCita,
+              id_Cita: idCita ? idCita : formCitaServicio.idCita,
               id_servicio: clave,
               cantidad: formCitaServicio.cantidad ? formCitaServicio.cantidad : 1,
               tiempo: tiempo,
@@ -3297,7 +3312,7 @@ function Basic() {
 
           return (
             <span
-              style={{ flex: 1, display: "flex", justifyContent: "center", height: "100%", textAlign: "center", alignItems: "center" }}
+              style={{ textAlign: "center" }}
               onDoubleClick={() => {
                 setFormPromocion({ id: cell.row.original.id });
                 setModalPromocionesFechas(true);
@@ -3510,6 +3525,19 @@ function Basic() {
             </ButtonGroup>
             <ButtonGroup variant="contained" aria-label="outlined primary button group">
               <Button
+                color="info"
+                onClick={() =>
+                  handleOpenAgenda2({
+                    idRec: dataEvent.idRec,
+                    idSuc: idSuc,
+                    suc: dataEvent.d_sucursal,
+                  })
+                }
+              >
+                <AiFillBook size={20} />
+                Agenda2
+              </Button>
+              <Button
                 size="sm"
                 onClick={() => {
                   setModalCrear(true);
@@ -3657,7 +3685,7 @@ function Basic() {
                   idCliente: event.no_cliente,
                   fecha: event.hora1,
                   flag: 1,
-                  estadoCita: event.estadoCita,
+                  estadoCita: event.estadoCita2,
                   tiempo: event.tiempo,
                   idSuc: idSuc,
                   nombreCliente: event.nombre,
@@ -4270,24 +4298,23 @@ function Basic() {
 
       <Modal open={ModalVentasOperaciones} onClose={() => setModalVentasOperaciones(false)}>
         <Box sx={styleAltaServicio}>
-          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <Typography variant="h4">Consulta de operaciones</Typography>
             <AiOutlineClose onClick={() => setModalVentasOperaciones(false)} />
           </div>
-          <Typography variant="h4">Consulta de operaciones</Typography>
           <Row>
-            <Col md={1}>
-              <Label>Cliente:</Label>
-            </Col>
-
             <Col md={12}>
-              <Input
-                disabled
-                placeholder="nombreCliente"
-                value={formCitaDescripciones.descripcion_no_cliente ? formCitaDescripciones.descripcion_no_cliente : ""}
-              ></Input>
+              <FormGroup>
+                <Label>Cliente:</Label>
+                <Input
+                  disabled
+                  placeholder="nombreCliente"
+                  value={formCitaDescripciones.descripcion_no_cliente ? formCitaDescripciones.descripcion_no_cliente : ""}
+                ></Input>
+              </FormGroup>
             </Col>
           </Row>
-          <Row style={{ marginTop: "18px", marginBottom: "10px" }}>
+          <Row style={{ marginTop: "18px", marginBottom: "5px" }}>
             <Col md={1}>
               <Label>Sucursal:</Label>
             </Col>
@@ -4300,7 +4327,7 @@ function Basic() {
             <Col md={3}>
               <Input
                 disabled
-                value={format(formVentaOperaciones.fecha ? new Date(formVentaOperaciones.fecha) : new Date(), "yyyy-MM-dd")}
+                value={format(formVentaOperaciones.fecha ? new Date(formVentaOperaciones.fecha) : new Date(), "yyyy-MM-dd HH:mm")}
                 placeholder="Fecha"
               ></Input>
             </Col>
@@ -4311,20 +4338,34 @@ function Basic() {
               <Input disabled value={formVentaOperaciones.no_venta} placeholder="No_venta"></Input>
             </Col>
           </Row>
+          <div style={{ display: "flex", justifyContent: "jusify-between" }}>
+            <h5>Operaciones</h5>
+            <h5>
+              Total de la venta: {DataVentasOperaciones.reduce((acc, service) => acc + Number(service.precio) * Number(service.cant_producto), 0)}
+            </h5>
+          </div>
           <ThemeProvider theme={theme}>
             <div style={{ height: "222px", width: "100%" }}>
-              <DataGrid rows={DataVentasOperaciones} columns={columnsDataVentasOperaciones} />
+              <DataGrid
+                rows={DataVentasOperaciones}
+                columns={columnsDataVentasOperaciones}
+                initialState={{ density: "compact" }}
+                hideFooter
+                columnHeaders={false}
+              />
             </div>
           </ThemeProvider>
           <br />
           <h5>Medios de pago usados</h5>
           <ThemeProvider theme={theme}>
-            <div style={{ height: "150px", width: "100%" }}>
+            <div style={{ height: "222px", width: "100%" }}>
               <DataGrid
                 rows={dataVentasOperacionesMediosPagos2}
                 columns={columnsDataVentasOperacionesMedios}
                 getRowId={(row) => Number(row.no_venta) + "" + row.descripcion}
                 initialState={{ density: "compact" }}
+                hideFooter
+                columnHeaders={false}
               />
             </div>
           </ThemeProvider>
@@ -4336,6 +4377,7 @@ function Basic() {
           <br />
           <br />
           <br />
+          <p>,</p>
         </Box>
       </Modal>
 
@@ -4677,7 +4719,7 @@ function Basic() {
             <Col md={3}>
               <FormGroup>
                 <Label for="fecha" style={{ fontSize: "1.2rem", marginRight: 20 }}>
-                  Fecha:
+                  Fecha de cita:
                 </Label>
 
                 <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -5310,7 +5352,7 @@ function Basic() {
           </div>
           <MaterialReactTable
             columns={columnsPromo}
-            data={dataPromocionesZonas}
+            data={dataPromocionesZonas.filter((promocion) => new Date(promocion.f2) >= new Date())}
             initialState={{ density: "compact" }}
             muiTableBodyProps={{ sx: { fontSize: "16px" } }}
             muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
@@ -5332,13 +5374,16 @@ function Basic() {
         <Box sx={{ ...styleAltaServicio }}>
           <h3>Prepagos</h3>
           <br />
-          <select
+          <h5>Seleccione el prepago</h5>
+          <Input
             onChange={(e) => {
               setClavePrepago(e.target.value);
               // setFormCitaServicio({ ...formCitaServicio, clave_prepago: e.target.value });
             }}
+            type="select"
+            defaultValue={"Seleccione el prepago"}
           >
-            <option value="Seleccione el prepago"></option>
+            <option value="Seleccione el prepago">Seleccione el prepago</option>
             {dataPrepagos
               .reduce((acc, item) => {
                 if (!acc.includes(item.clave_prepago)) {
@@ -5351,8 +5396,7 @@ function Basic() {
                   {dataPrepagos.find((item) => item.clave_prepago === clave).d_prepago}
                 </option>
               ))}
-          </select>
-
+          </Input>
           <br />
           <MaterialReactTable
             columns={columnsPrepagos}
@@ -5632,6 +5676,7 @@ function Basic() {
                         type="checkbox"
                         checked={formCita.esServicioDomicilio}
                         onChange={handleCheckboxChangeDomicilio}
+                        disabled={formCitaServicio.idCita}
                       />
                       <strong style={{ fontSize: "1.1rem" }}>Servicio a domicilio</strong>
                     </Label>
@@ -5755,7 +5800,7 @@ function Basic() {
                       onChange={(e) => setFormCita({ ...formCita, no_estilista: e.target.value })}
                       style={{ fontSize: "1.1rem" }}
                     >
-                      <option value="0">Seleccione un estilista</option>
+                      <option value={0}>Seleccione un estilista</option>
                       {dataEstilistas.map((opcion, index) => (
                         <option value={opcion.id} key={index}>
                           {opcion.estilista}

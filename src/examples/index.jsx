@@ -7,6 +7,7 @@ import { AuthProvider } from "../context/AuthContext";
 import CrearCita from "../screens/CrearCita";
 import ListaEspera from "../screens/ListaEspera";
 import EditarCita from "../screens/EditarCita";
+import Agenda2 from "../screens/Agenda2";
 createRoot(document.getElementById("app")).render(
   <AuthProvider>
     {/* <Example /> */}
@@ -16,6 +17,7 @@ createRoot(document.getElementById("app")).render(
         <Route path="/miliga/crearcita" element={<CrearCita />} />
         <Route path="/miliga/listaEspera" element={<ListaEspera />} />
         <Route path="/miliga/editarcita" element={<EditarCita />} />
+        <Route path="/miliga/Agenda2" element={<Agenda2 />} />
       </Routes>
     </Router>
   </AuthProvider>

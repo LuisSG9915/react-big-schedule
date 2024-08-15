@@ -18,6 +18,8 @@ import { FaExchangeAlt } from "react-icons/fa";
 
 import { useDetalleCuentaPendietes } from "../functions/crearCita/useDetalleCuentaPendietes";
 import { useDetalleSaldosPendientes } from "../functions/crearCita/useDetalleSaldosPendientes";
+import { useHorarioDisponibleEstilistas6 } from "../functions/crearCita/useHorarioDisponibleEstilistas6";
+import { useCitaEmpalme5 } from "../functions/crearCita/useCitaEmpalme5";
 function EditarCita() {
   const style = {
     position: "absolute",
@@ -204,7 +206,7 @@ function EditarCita() {
     });
   };
   const getClientes = () => {
-    peinadosApi.get("/clientes?id=0").then((response) => {
+    peinadosApi.get(`/clientesZonas?id=0&idSuc=${idSuc ? idSuc : 0}`).then((response) => {
       setDataClientes(response.data);
     });
   };
@@ -253,6 +255,9 @@ function EditarCita() {
   };
 
   const updateCita = async () => {
+    const isVerified = await verificarDisponibilidad(formCita.tiempo, formCita.fecha, formCita.no_estilista, formCita.id);
+    if (!isVerified) return;
+
     const contraseñaValidada = await validarContraseña();
     if (!contraseñaValidada) return;
     let fechaActual = new Date(formCita.fecha);
@@ -284,7 +289,14 @@ function EditarCita() {
           registrada: false,
           observacion: "",
           user_uc: 0,
-          estatus: formCita.cambioCitaModo && formCita.estatusAsignado ? 3 : formCita.cambioCitaModo && formCita.estatusRequerido ? 2 : 4,
+          estatus:
+            formCita.cambioCitaModo && formCita.estatusAsignado
+              ? 3
+              : formCita.cambioCitaModo && formCita.estatusRequerido
+              ? 2
+              : estadoCita == 6
+              ? 6
+              : 4,
           tiempo: formCita.tiempo,
           // estatus: formCita.estatusAsignado ? 3 : formCita.estatusRequerido ? 2 : 4,
         },
@@ -818,6 +830,69 @@ function EditarCita() {
     }
     setFormCita({ ...formCita, fecha: newDateTime });
   };
+  const { dataCitaEmpalme5, fetchCitaEmpalme5 } = useCitaEmpalme5({
+    fechacita: formCita.fecha,
+    no_estilista: formCita.no_estilista,
+    tiempoCita: formCita.tiempo,
+    idCita: 0,
+  });
+  const { dataHorarioDisponibleEstilistas, fetchHorarioDisponibleEstilistas } = useHorarioDisponibleEstilistas6({
+    fecha: formCita.fecha,
+    cveEmpleado: formCita.no_estilista,
+    tiempo: formCita.tiempo,
+  });
+  //     const isVerified = await verificarDisponibilidad(formCita.tiempo, formCita.fecha, formCita.no_estilista, formCita.id);
+  async function verificarDisponibilidad(tiempo, fecha, estilista, idCita) {
+    const res = await fetchCitaEmpalme5(tiempo, new Date(fecha), estilista, idCita);
+    const resHorario = await fetchHorarioDisponibleEstilistas(new Date(fecha), estilista, tiempo);
+
+    if (res && res.data[0].id > 0) {
+      const isConfirmed = await Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "El estilista no tiene horario disponible, empalme. ¿Desea asignar la cita?",
+        confirmButtonColor: "#3085d6",
+        confirmButtonText: "Ok",
+        showConfirmButton: true,
+        showCancelButton: true,
+      });
+      if (!isConfirmed.isConfirmed) {
+        //si no confirma
+        return false;
+      } else {
+        const res = await validarContraseña();
+        if (!res) return false;
+      }
+      // return false;
+    }
+    if (!resHorario) return false;
+    if (resHorario.data[0].clave_empleado == "Cita sin restricciones" || resHorario.data[0].clave_empleado == "Prosiga") {
+      console.log("");
+    } else if (resHorario.data[0].clave_empleado == "Cita fuera del horario de salida del estilista") {
+      const isConfirmed2 = await Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: `El estilista se encuentra fuera de horario, desea registrar la cita`,
+        confirmButtonColor: "#3085d6",
+        confirmButtonText: "Si?",
+        cancelButtonText: "CANCELAR",
+        showConfirmButton: true,
+        showCancelButton: true,
+      });
+      if (!isConfirmed2.isConfirmed) return false;
+      const res = await validarContraseña();
+      if (!res) return false;
+    } else {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: `El estilista no tiene horario disponible desde temprano, no se podria poner a las: ${format(fecha, "HH:mm")}`,
+        confirmButtonColor: "#3085d6",
+      });
+      return false;
+    }
+    return true;
+  }
   return (
     <div>
       <Container>
