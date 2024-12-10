@@ -44,7 +44,7 @@ function EventItemPopover({
   const [dataPuntosporCliente, setDataPuntosPorCliente] = useState({});
   const { dataObservaciones, fetchObservaciones } = useObservaciones({ idCliente: eventItem.no_cliente });
 
-  // http://cbinfo.no-ip.info:9018/sp_detalleCitasServiciosResumen_Result?idCita=2087
+  // https://cbinfo.no-ip.info:9018/sp_detalleCitasServiciosResumen_Result?idCita=2087
   const getEstilistas = () => {
     peinadosApi
       .get(

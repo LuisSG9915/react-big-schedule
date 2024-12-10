@@ -354,7 +354,7 @@ function Basic() {
 
   const fetchData = async () => {
     await peinadosApi
-      .get(`/Estilistas4?id=0&sucursal=${idSuc}`)
+      .get(`/Estilistas5?id=0&sucursal=${idSuc}&fecha=${formCita.fecha ? formCita.fecha.toISOString().split("T")[0] : new Date().toISOString().split("T")[0]}`)
       .then((response) => {
         setArreglo(
           response.data.map((item) => {
@@ -389,6 +389,7 @@ function Basic() {
     getCitasDia();
   }, []);
   useEffect(() => {
+    getEstilistas();
     getCitasDia();
   }, [tipoCita, datosParametros.fecha]);
 
@@ -431,16 +432,18 @@ function Basic() {
       const tempFecha = new Date(fecha ? fecha : datosParametrosPrevios.fecha);
       tempFecha.setDate(tempFecha.getDate() + dias);
       if (dias == 0) tempFecha.setDate(tempFecha.getDate() + 1);
-      getCitas(tempFecha).then((response) => {
-        console.log(response);
-        if (dias < 0) {
-          schedulerData.prev();
-        } else if (dias === 0) {
-          schedulerData.setDate(format(tempFecha, "yyyy-MM-dd"));
-        } else {
-          schedulerData.next();
-        }
-        actualizarAgenda(response, schedulerData);
+      fetchData().then((response) => {
+        getCitas(tempFecha).then((response) => {
+          console.log(response);
+          if (dias < 0) {
+            schedulerData.prev();
+          } else if (dias === 0) {
+            schedulerData.setDate(format(tempFecha, "yyyy-MM-dd"));
+          } else {
+            schedulerData.next();
+          }
+          actualizarAgenda(response, schedulerData);
+        });
       });
       return {
         ...datosParametrosPrevios,
@@ -1501,11 +1504,10 @@ function Basic() {
   }, [idUser, idRec, idSuc]);
 
   useEffect(() => {
-    console.log("ESTAMOS");
-    getClientes();
     getEstilistas();
     getProductos();
     getEstilistasDisponibilidadHorario();
+    getClientes();
   }, []);
 
   useEffect(() => {
@@ -1523,14 +1525,14 @@ function Basic() {
     }
   }, [formCita.no_cliente]);
   useEffect(() => {
-    console.log("ESTAMOS");
+
     getOperaciones();
   }, [formPuntosObservaciones]);
 
-  const getEstilistas = () => {
-    peinadosApi.get(`/estilistas4?id=0&sucursal=${idSuc}`).then((response) => {
+  const getEstilistas =  async() => {
+    await peinadosApi.get(`/estilistas5?id=0&sucursal=${idSuc}&fecha=${datosParametros.fecha ? datosParametros.fecha.toISOString().split("T")[0] : new Date().toISOString().split("T")[0]}`).then((response) => {
       setDataEstilistas(response.data);
-    });
+    }); 
   };
   const getClientes = () => {
     peinadosApi.get(`/clientesZonas?id=0&idSuc=${idSuc ? idSuc : 0}`).then((response) => {
@@ -1568,7 +1570,7 @@ function Basic() {
   };
 
   const getEstilistasDisponibilidadHorario = () => {
-    peinadosApi.get("/CatEstilistasDisponiblidad?sucursal=1").then((response) => {
+    peinadosApi.get(`/CatEstilistasDisponiblidad?sucursal=${idSuc}`).then((response) => {
       setdataEstilistaDisponibilidadHorario(response.data);
     });
   };
@@ -1702,7 +1704,6 @@ function Basic() {
   }, [dataCuentasPendientes]);
 
   useEffect(() => {
-    console.log("ESTAMOS");
     if (dataClientesSaldosPendientes.length > 0 && dataClientesSaldosPendientes[0].saldo > 0) {
       alert(`Cuenta pendiente por ${dataClientesSaldosPendientes[0].saldo}`);
       // Swal.fire({
