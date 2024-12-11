@@ -5,20 +5,24 @@ const ESLintWebpackPlugin = require("eslint-webpack-plugin");
 const CompressionWebpackPlugin = require("compression-webpack-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
 
+const isProduction = process.env.NODE_ENV === "production";
+
 module.exports = {
-  mode: "development", // Puedes cambiar a 'production' para la versión final
+  mode: isProduction ? "production" : "development",
   entry: "./src/examples/index.jsx",
   output: {
     path: path.resolve(__dirname, "..", "dist"),
     filename: "bundle.js",
-    // filename: "static/js/[name].js",
   },
   module: {
     rules: [
       {
         test: /\.(js|jsx)$/,
         exclude: /node_modules/,
-        use: { loader: "babel-loader" },
+        use: [
+          "thread-loader", // Habilita hilos para procesamiento paralelo
+          { loader: "babel-loader" },
+        ],
       },
       {
         test: /\.css$/,
@@ -30,22 +34,29 @@ module.exports = {
     extensions: [".js", ".jsx"],
   },
   plugins: [
-    new HtmlWebpackPlugin({ template: "./src/index.html", title: "React Big Schedule" }),
-    new ESLintWebpackPlugin({ emitError: true, emitWarning: false, failOnError: true, extensions: ["js", "jsx"] }),
-    new CompressionWebpackPlugin(),
+    new HtmlWebpackPlugin({
+      template: "./src/index.html",
+      title: "React Big Schedule",
+    }),
+    ...(isProduction
+      ? [new CompressionWebpackPlugin(), new TerserPlugin()]
+      : []),
+    ...(isProduction
+      ? []
+      : [new ESLintWebpackPlugin({ extensions: ["js", "jsx"] })]),
   ],
   devServer: {
-    static: { directory: path.join(__dirname, "..", "dist") },
+    static: path.join(__dirname, "..", "dist"),
     historyApiFallback: true,
-    compress: true,
+    hot: true, // Habilita Hot Module Replacement para recarga rápida
     port: 5173,
   },
-  optimization: {
-    minimize: true,
-    minimizer: [new TerserPlugin()],
-
-    // splitChunks: {
-    //   chunks: "all",
-    // },
+  devtool: isProduction ? "source-map" : "eval-cheap-module-source-map", // Rápido para desarrollo
+  cache: {
+    type: "filesystem", // Usa caché del sistema de archivos
   },
-};
+  optimization: {
+    minimize: isProduction, // Solo minimizar en producción
+    minimizer: isProduction ? [new TerserPlugin()] : [],
+  },
+};  

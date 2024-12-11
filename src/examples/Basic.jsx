@@ -354,7 +354,7 @@ function Basic() {
 
   const fetchData = async () => {
     await peinadosApi
-      .get(`/Estilistas5?id=0&sucursal=${idSuc}&fecha=${formCita.fecha ? formCita.fecha.toISOString().split("T")[0] : new Date().toISOString().split("T")[0]}`)
+      .get(`/Estilistas5?id=0&sucursal=${idSuc}&fecha=${datosParametros.fecha ? datosParametros.fecha.toISOString().split("T")[0] : new Date().toISOString().split("T")[0]}`)
       .then((response) => {
         setArreglo(
           response.data.map((item) => {
@@ -389,7 +389,7 @@ function Basic() {
     getCitasDia();
   }, []);
   useEffect(() => {
-    getEstilistas();
+    // getEstilistas();
     getCitasDia();
   }, [tipoCita, datosParametros.fecha]);
 
@@ -434,11 +434,11 @@ function Basic() {
       if (dias == 0) tempFecha.setDate(tempFecha.getDate() + 1);
       fetchData().then((response) => {
         getCitas(tempFecha).then((response) => {
-          console.log(response);
           if (dias < 0) {
             schedulerData.prev();
           } else if (dias === 0) {
-            schedulerData.setDate(format(tempFecha, "yyyy-MM-dd"));
+            // schedulerData.setDate(format(tempFecha, "yyyy-MM-dd"));
+            schedulerData.setDate((tempFecha ).toISOString().split("T")[0]);
           } else {
             schedulerData.next();
           }
@@ -1504,7 +1504,7 @@ function Basic() {
   }, [idUser, idRec, idSuc]);
 
   useEffect(() => {
-    getEstilistas();
+    // getEstilistas();
     getProductos();
     getEstilistasDisponibilidadHorario();
     getClientes();
