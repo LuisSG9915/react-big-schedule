@@ -352,9 +352,10 @@ function Basic() {
     }
   };
 
-  const fetchData = async () => {
-    await peinadosApi
-      .get(`/Estilistas5?id=0&sucursal=${idSuc}&fecha=${datosParametros.fecha ? datosParametros.fecha.toISOString().split("T")[0] : new Date().toISOString().split("T")[0]}`)
+  const fetchData = async (probando) => {
+    const responseEstilistas = await peinadosApi
+      // .get(`/Estilistas5?id=0&sucursal=${idSuc}&fecha=${probando ? probando.toISOString().split("T")[0] : datosParametros.fecha ? datosParametros.fecha.toISOString().split("T")[0] : new Date().toISOString().split("T")[0]}`)
+      .get(`/Estilistas5?id=0&sucursal=${idSuc}&fecha=${probando ? probando.toISOString().split("T")[0] : datosParametros.fecha ? datosParametros.fecha.toISOString().split("T")[0] : new Date().toISOString().split("T")[0]}`)
       .then((response) => {
         setArreglo(
           response.data.map((item) => {
@@ -371,8 +372,10 @@ function Basic() {
       .catch((err) => {
         console.log(err);
       });
-    getCitas();
+    const responseCitas = await getCitas(probando);
+    return responseCitas;
   };
+
   const getCitasDia = (elimina) => {
     peinadosApi
       .get(
@@ -411,16 +414,17 @@ function Basic() {
     schedulerData.setCalendarPopoverLocale(antdLocale);
     schedulerData.setResources(arreglo);
     schedulerData.setEvents(arregloCita);
-    if (arreglo.length > 0 && arregloCita.length > 0) {
+    // if (arreglo.length > 0 && arregloCita.length > 0) {
       setTimeout(() => {
-        if (inicializarAgenda == false) {
-          dispatch({ type: "INITIALIZE", payload: schedulerData });
-        }
-        setinicializarAgenda(true);
+        dispatch({ type: "INITIALIZE", payload: schedulerData });
+        // if (inicializarAgenda == false) {
+        // }
+        // setinicializarAgenda(true);
+        // 
         return () => dispatch({ type: "REINITIALIZE" });
       }, 1500);
-    }
-  }, [arreglo, arregloCita]);
+    // }
+  }, [arregloCita]);
 
   const actualizarAgenda = (response, schedulerData) => {
     schedulerData.setEvents(response);
@@ -432,8 +436,8 @@ function Basic() {
       const tempFecha = new Date(fecha ? fecha : datosParametrosPrevios.fecha);
       tempFecha.setDate(tempFecha.getDate() + dias);
       if (dias == 0) tempFecha.setDate(tempFecha.getDate() + 1);
-      fetchData().then((response) => {
-        getCitas(tempFecha).then((response) => {
+      fetchData(tempFecha).then((response) => {
+        // getCitas(tempFecha).then((response) => {
           if (dias < 0) {
             schedulerData.prev();
           } else if (dias === 0) {
@@ -443,7 +447,7 @@ function Basic() {
             schedulerData.next();
           }
           actualizarAgenda(response, schedulerData);
-        });
+        // });
       });
       return {
         ...datosParametrosPrevios,
