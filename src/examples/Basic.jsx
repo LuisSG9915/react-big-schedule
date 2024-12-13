@@ -5,7 +5,7 @@ import { Scheduler, SchedulerData, ViewType, wrapperFun, DemoData } from "../ind
 import { jezaApi } from "../api/jezaApi2";
 import { peinadosApi } from "../api/peinadosApi";
 // import Modal from "../components/Modal";
-import { format } from "date-fns-tz";
+import { format, utcToZonedTime } from "date-fns-tz";
 import { isToday } from "date-fns";
 import { DataGrid } from "@mui/x-data-grid";
 import Timer from "../components/Timer";
@@ -351,11 +351,16 @@ function Basic() {
       console.error(err);
     }
   };
+  const zonaHoraria = "America/Mexico_City"; // Ajusta según tu ubicación
 
   const fetchData = async (probando) => {
+    console.log(probando ? probando : 2)
+    
+    const fechaLocal = utcToZonedTime(probando ? probando : new Date(), zonaHoraria); // Reemplaza con la fecha deseada, zonaHoraria);
+
     const responseEstilistas = await peinadosApi
       // .get(`/Estilistas5?id=0&sucursal=${idSuc}&fecha=${probando ? probando.toISOString().split("T")[0] : datosParametros.fecha ? datosParametros.fecha.toISOString().split("T")[0] : new Date().toISOString().split("T")[0]}`)
-      .get(`/Estilistas5?id=0&sucursal=${idSuc}&fecha=${probando ? probando.toISOString().split("T")[0] : datosParametros.fecha ? datosParametros.fecha.toISOString().split("T")[0] : new Date().toISOString().split("T")[0]}`)
+      .get(`/Estilistas5?id=0&sucursal=${idSuc}&fecha=${probando ? format(fechaLocal, "yyyy-MM-dd"):format(fechaLocal, "yyyy-MM-dd")}`)
       .then((response) => {
         setArreglo(
           response.data.map((item) => {
@@ -414,21 +419,30 @@ function Basic() {
     schedulerData.setCalendarPopoverLocale(antdLocale);
     schedulerData.setResources(arreglo);
     schedulerData.setEvents(arregloCita);
-    // if (arreglo.length > 0 && arregloCita.length > 0) {
-      setTimeout(() => {
-        dispatch({ type: "INITIALIZE", payload: schedulerData });
-        // if (inicializarAgenda == false) {
-        // }
-        // setinicializarAgenda(true);
+    setTimeout(() => {
+        if (arreglo.length > 0 && arregloCita.length > 0) {
+        if (inicializarAgenda == false) {
+          setinicializarAgenda(true);
+          dispatch({ type: "INITIALIZE", payload: schedulerData });
+          console.log("INICIALIZADO")
+        }
+        console.log("ACTUALIZADO")
+        console.log(schedulerData)
+      dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
+      }
         // 
-        return () => dispatch({ type: "REINITIALIZE" });
+        // return () => dispatch({ type: "REINITIALIZE" });
       }, 1500);
-    // }
-  }, [arregloCita]);
+  }, [arregloCita, arreglo]);
 
   const actualizarAgenda = (response, schedulerData) => {
     schedulerData.setEvents(response);
-    dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
+    // setTimeout(() => {
+    //   console.log(schedulerData);
+    //   console.log(schedulerData.getDateLabel());
+    //   // dispatch({ type: "INITIALIZE", payload: schedulerData });
+    //   // return () => dispatch({ type: "REINITIALIZE" });
+    // }, 1500);
   };
 
   const actualizarFechayCitas = (schedulerData, dias, fecha) => {
@@ -451,7 +465,7 @@ function Basic() {
       });
       return {
         ...datosParametrosPrevios,
-        fecha: tempFecha,
+        fecha: new Date(tempFecha.setHours(0, 0, 0, 0)), // Aquí se ajusta la hora a 00:00
       };
     });
   };
