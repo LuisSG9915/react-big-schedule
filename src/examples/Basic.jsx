@@ -6,8 +6,8 @@ import { jezaApi } from "../api/jezaApi2";
 import { peinadosApi } from "../api/peinadosApi";
 // import Modal from "../components/Modal";
 import { format } from "date-fns-tz";
-import { isToday } from "date-fns";
 import { DataGrid } from "@mui/x-data-grid";
+
 import Timer from "../components/Timer";
 import {
   Container,
@@ -127,7 +127,7 @@ function Basic() {
   useEffect(() => {
     if (!idSuc) {
       alert("Favor de ingresar en la página principal");
-      window.location.href = "http://cbinfo.no-ip.info:9020/";
+      window.location.href = "https://cbinfo.no-ip.info:9020/";
     }
     setDataEvent({ ...dataEvent, sucursal: Number(idSuc), d_sucursal: suc, idRec: Number(idRec) });
   }, []);
@@ -352,9 +352,9 @@ function Basic() {
     }
   };
 
-  const fetchData = async () => {
+  const fetchData = async (tempFecha) => {
     await peinadosApi
-      .get(`/Estilistas5?id=0&sucursal=${idSuc}&fecha=${datosParametros.fecha ? datosParametros.fecha.toISOString().split("T")[0] : new Date().toISOString().split("T")[0]}`)
+      .get(`/Estilistas5?id=0&sucursal=${idSuc}&fecha=${tempFecha ? tempFecha.toISOString().split("T")[0] : new Date().toISOString().split("T")[0]}`)
       .then((response) => {
         setArreglo(
           response.data.map((item) => {
@@ -373,6 +373,7 @@ function Basic() {
       });
     getCitas();
   };
+  
   const getCitasDia = (elimina) => {
     peinadosApi
       .get(
@@ -429,10 +430,29 @@ function Basic() {
 
   const actualizarFechayCitas = (schedulerData, dias, fecha) => {
     setDatosParametros((datosParametrosPrevios) => {
-      const tempFecha = new Date(fecha ? fecha : datosParametrosPrevios.fecha);
+      console.log({ fecha });
+    
+      // Manejar el caso cuando es un objeto o una fecha string
+      let fechaBase;
+      if (fecha) {
+        fechaBase = fecha;
+      } else if (typeof datosParametrosPrevios.fecha === 'object') {
+        // Si es un objeto Date
+        fechaBase = datosParametrosPrevios.fecha.toISOString().split('T')[0];
+      } else if (typeof datosParametrosPrevios.fecha === 'string') {
+        // Si es string con formato ISO
+        fechaBase = datosParametrosPrevios.fecha.split('T')[0];
+      }
+  
+      const tempFecha = parseISO(fechaBase);
+      console.log({tempFecha});
+      
+      // Ahora podemos sumar los días de manera segura
       tempFecha.setDate(tempFecha.getDate() + dias);
-      if (dias == 0) tempFecha.setDate(tempFecha.getDate() + 1);
-      fetchData().then((response) => {
+      // ... resto del código
+      
+      if (dias == 0) tempFecha.setDate(tempFecha.getDate() + 0);
+      fetchData(tempFecha).then((response) => {
         getCitas(tempFecha).then((response) => {
           if (dias < 0) {
             schedulerData.prev();
@@ -1032,7 +1052,7 @@ function Basic() {
   ];
 
   // const ligaPruebas = "http://localhost:5173/";
-  const ligaPruebas = "http://cbinfo.no-ip.info:9019/";
+  const ligaPruebas = "https://cbinfo.no-ip.info:9019/";
   const handleOpenNewWindow = ({ idCita, idUser, idCliente, fecha, flag }) => {
     const url = `${ligaPruebas}miliga/crearcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idSuc=${1}&idRec=${1}&flag=${flag}`; // Reemplaza esto con la URL que desees abrir
     const width = 390;
@@ -3499,7 +3519,7 @@ function Basic() {
             <Timer />
           </div>
         </div>
-        <Row></Row>
+
       </div>
 
       <div style={{ flex: 1, justifyContent: "right", alignContent: "right", alignItems: "right", display: "flex" }}></div>
@@ -3508,7 +3528,7 @@ function Basic() {
         <div className="nBarra">
           <div className="botones-barra" style={{ justifyContent: "space-between", alignItems: "center", display: "flex", paddingTop: 10 }}>
             <ButtonGroup variant="contained" aria-label="outlined primary button group">
-              <Button size="sm" href="http://cbinfo.no-ip.info:9020/Ventas" color="success">
+              <Button size="sm" href="https://cbinfo.no-ip.info:9020/Ventas" color="success">
                 <FaMoneyBillAlt size={20}></FaMoneyBillAlt>
                 Ventas
               </Button>

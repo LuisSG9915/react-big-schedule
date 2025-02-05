@@ -65,7 +65,7 @@ function EventItemPopover({
           <Row justify="space-between" style={{ width: "100%" }}>
             <div className="status-dot" style={{ backgroundColor: statusColor }} />
             <div>
-              <AiFillEye size={23} onClick={() => window.open("http://cbinfo.no-ip.info:9020/CatClientes", "_blank")} />
+              <AiFillEye size={23} onClick={() => window.open("https://cbinfo.no-ip.info:9020/CatClientes", "_blank")} />
             </div>
           </Row>
         )}

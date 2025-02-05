@@ -117,7 +117,7 @@ function Agenda2() {
   useEffect(() => {
     if (!idSuc) {
       alert("Favor de ingresar en la página principal");
-      window.location.href = "http://cbinfo.no-ip.info:9020/";
+      window.location.href = "https://cbinfo.no-ip.info:9020/";
     }
     setDataEvent({ ...dataEvent, sucursal: Number(idSuc), d_sucursal: suc, idRec: Number(idRec) });
   }, []);
@@ -968,8 +968,8 @@ function Agenda2() {
     // },
   ];
 
-  const ligaPruebas = "http://localhost:5173/";
-  // const ligaPruebas = "http://cbinfo.no-ip.info:9019/";
+  // const ligaPruebas = "http://localhost:5173/";
+  const ligaPruebas = "https://cbinfo.no-ip.info:9019/";
   const handleOpenNewWindow = ({ idCita, idUser, idCliente, fecha, flag }) => {
     const url = `${ligaPruebas}miliga/crearcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idSuc=${1}&idRec=${1}&flag=${flag}`; // Reemplaza esto con la URL que desees abrir
     const width = 390;
