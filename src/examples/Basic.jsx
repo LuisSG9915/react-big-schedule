@@ -371,7 +371,7 @@ function Basic() {
       .catch((err) => {
         console.log(err);
       });
-    getCitas();
+      if (arreglo.length == 0 || !arreglo) getCitas();
   };
   
   const getCitasDia = (elimina) => {
@@ -412,20 +412,24 @@ function Basic() {
     schedulerData.setCalendarPopoverLocale(antdLocale);
     schedulerData.setResources(arreglo);
     schedulerData.setEvents(arregloCita);
-    if (arreglo.length > 0 && arregloCita.length > 0) {
+    // if (arreglo.length > 0 && arregloCita.length > 0) {
       setTimeout(() => {
+        if (arreglo.length > 0 && arregloCita.length > 0) {
         if (inicializarAgenda == false) {
+          setinicializarAgenda(true);
           dispatch({ type: "INITIALIZE", payload: schedulerData });
+          console.log("INICIALIZADO")
         }
-        setinicializarAgenda(true);
-        return () => dispatch({ type: "REINITIALIZE" });
-      }, 1500);
-    }
-  }, [arreglo, arregloCita]);
-
+        console.log("ACTUALIZADO")
+        console.log(schedulerData)
+      dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
+      }
+    }, 1500);
+    // }
+  }, [arregloCita, arreglo]);
   const actualizarAgenda = (response, schedulerData) => {
     schedulerData.setEvents(response);
-    dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
+    // dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
   };
 
   const actualizarFechayCitas = (schedulerData, dias, fecha) => {
@@ -5937,6 +5941,7 @@ function Basic() {
     </>
   );
 }
+
 const StyledGridOverlay = styled("div")(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
