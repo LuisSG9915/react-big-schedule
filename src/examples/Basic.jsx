@@ -390,7 +390,7 @@ function Basic() {
     getCitasDia();
   }, []);
   useEffect(() => {
-    // getEstilistas();
+    getEstilistas();
     getCitasDia();
   }, [tipoCita, datosParametros.fecha]);
 
@@ -435,7 +435,7 @@ function Basic() {
   const actualizarFechayCitas = (schedulerData, dias, fecha) => {
     setDatosParametros((datosParametrosPrevios) => {
       console.log({ fecha });
-    
+      
       // Manejar el caso cuando es un objeto o una fecha string
       let fechaBase;
       if (fecha) {
@@ -2075,7 +2075,17 @@ function Basic() {
     let día = fechaActual.getDate();
     let fechaSinHora = new Date(año, mes, día);
     const esValida = verificaDisponibilidadSucursal();
-    if (new Date(formCita.fecha) < new Date()) {
+
+    const fechaToUse = fecha ? fecha : datosParametrosPrevios.fecha;
+    console.log('tipo de fechaToUse:', typeof fechaToUse);
+    // Convert to string if it's not already and handle null/undefined
+    const fechaStr = String(fechaToUse || '');
+    const fechaLimpia = fechaStr.includes('T') 
+        ? fechaStr.split('T')[0]
+        : fechaStr;
+    console.log({fechaLimpia});
+    console.log(new Date(fechaLimpia));
+    if (new Date(fechaLimpia) < new Date()) {
       Swal.fire({
         icon: "error",
         title: "Error",
@@ -2084,6 +2094,7 @@ function Basic() {
       });
       return;
     }
+    return
     console.log(formCita);
     if (
       formCita.no_estilista == 0 ||
