@@ -2083,8 +2083,6 @@ function Basic() {
     const fechaLimpia = fechaStr.includes('T') 
         ? fechaStr.split('T')[0]
         : fechaStr;
-    console.log({fechaLimpia});
-    console.log(new Date(fechaLimpia));
     if (new Date(fechaLimpia) < new Date()) {
       Swal.fire({
         icon: "error",
@@ -2094,8 +2092,7 @@ function Basic() {
       });
       return;
     }
-    return
-    console.log(formCita);
+    
     if (
       formCita.no_estilista == 0 ||
       !formCita.no_estilista ||
