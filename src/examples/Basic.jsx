@@ -371,9 +371,9 @@ function Basic() {
       .catch((err) => {
         console.log(err);
       });
-      if (arreglo.length == 0 || !arreglo) getCitas();
+    if (arreglo.length == 0 || !arreglo) getCitas();
   };
-  
+
   const getCitasDia = (elimina) => {
     peinadosApi
       .get(
@@ -390,7 +390,7 @@ function Basic() {
     getCitasDia();
   }, []);
   useEffect(() => {
-    // getEstilistas();
+    getEstilistas();
     getCitasDia();
   }, [tipoCita, datosParametros.fecha]);
 
@@ -413,16 +413,16 @@ function Basic() {
     schedulerData.setResources(arreglo);
     schedulerData.setEvents(arregloCita);
     // if (arreglo.length > 0 && arregloCita.length > 0) {
-      setTimeout(() => {
-        if (arreglo.length > 0 && arregloCita.length > 0) {
+    setTimeout(() => {
+      if (arreglo.length > 0 && arregloCita.length > 0) {
         if (inicializarAgenda == false) {
           setinicializarAgenda(true);
           dispatch({ type: "INITIALIZE", payload: schedulerData });
-          console.log("INICIALIZADO")
+          console.log("INICIALIZADO");
         }
-        console.log("ACTUALIZADO")
-        console.log(schedulerData)
-      dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
+        console.log("ACTUALIZADO");
+        console.log(schedulerData);
+        dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
       }
     }, 1500);
     // }
@@ -439,18 +439,21 @@ function Basic() {
       let fechaBase;
       if (fecha) {
         fechaBase = fecha;
-      } else if (typeof datosParametrosPrevios.fecha === 'object') {
+      } else if (typeof datosParametrosPrevios.fecha === "object") {
         // Si es un objeto Date
-        fechaBase = datosParametrosPrevios.fecha.toISOString().split('T')[0];
-      } else if (typeof datosParametrosPrevios.fecha === 'string') {
+        fechaBase = datosParametrosPrevios.fecha.toISOString().split("T")[0];
+      } else if (typeof datosParametrosPrevios.fecha === "string") {
         // Si es string con formato ISO
-        fechaBase = datosParametrosPrevios.fecha.split('T')[0];
+        fechaBase = datosParametrosPrevios.fecha.split("T")[0];
       }
-  
+
       const tempFecha = parseISO(fechaBase);
+      console.log({ tempFecha });
+
       // Ahora podemos sumar los días de manera segura
       tempFecha.setDate(tempFecha.getDate() + dias);
       // ... resto del código
+
       if (dias == 0) tempFecha.setDate(tempFecha.getDate() + 0);
       fetchData(tempFecha).then((response) => {
         getCitas(tempFecha).then((response) => {
@@ -458,7 +461,7 @@ function Basic() {
             schedulerData.prev();
           } else if (dias === 0) {
             // schedulerData.setDate(format(tempFecha, "yyyy-MM-dd"));
-            schedulerData.setDate((tempFecha ).toISOString().split("T")[0]);
+            schedulerData.setDate(tempFecha.toISOString().split("T")[0]);
           } else {
             schedulerData.next();
           }
@@ -1544,14 +1547,19 @@ function Basic() {
     }
   }, [formCita.no_cliente]);
   useEffect(() => {
-
     getOperaciones();
   }, [formPuntosObservaciones]);
 
-  const getEstilistas =  async() => {
-    await peinadosApi.get(`/estilistas5?id=0&sucursal=${idSuc}&fecha=${datosParametros.fecha ? datosParametros.fecha.toISOString().split("T")[0] : new Date().toISOString().split("T")[0]}`).then((response) => {
-      setDataEstilistas(response.data);
-    }); 
+  const getEstilistas = async () => {
+    await peinadosApi
+      .get(
+        `/estilistas5?id=0&sucursal=${idSuc}&fecha=${
+          datosParametros.fecha ? datosParametros.fecha.toISOString().split("T")[0] : new Date().toISOString().split("T")[0]
+        }`
+      )
+      .then((response) => {
+        setDataEstilistas(response.data);
+      });
   };
   const getClientes = () => {
     peinadosApi.get(`/clientesZonas?id=0&idSuc=${idSuc ? idSuc : 0}`).then((response) => {
@@ -2066,16 +2074,13 @@ function Basic() {
     let día = fechaActual.getDate();
     let fechaSinHora = new Date(año, mes, día);
     const esValida = verificaDisponibilidadSucursal();
-    //Quiero agregar datosparametros.fecha la hora de formCita.fecha para la validacion
 
-    const citaDateTime = new Date(datosParametros.fecha);
-    if (formCita.fecha) {
-      // Tomar la hora de formCita.fecha y aplicarla a la fecha de datosParametros
-      citaDateTime.setHours(formCita.fecha.getHours());
-      citaDateTime.setMinutes(formCita.fecha.getMinutes());
-    }
-    
-    if (citaDateTime < new Date()) {
+    const fechaToUse = fecha ? fecha : datosParametrosPrevios.fecha;
+    console.log("tipo de fechaToUse:", typeof fechaToUse);
+    // Convert to string if it's not already and handle null/undefined
+    const fechaStr = String(fechaToUse || "");
+    const fechaLimpia = fechaStr.includes("T") ? fechaStr.split("T")[0] : fechaStr;
+    if (new Date(fechaLimpia) < new Date()) {
       Swal.fire({
         icon: "error",
         title: "Error",
@@ -2084,7 +2089,6 @@ function Basic() {
       });
       return;
     }
-   
     if (
       formCita.no_estilista == 0 ||
       !formCita.no_estilista ||
@@ -3526,7 +3530,6 @@ function Basic() {
             <Timer />
           </div>
         </div>
-
       </div>
 
       <div style={{ flex: 1, justifyContent: "right", alignContent: "right", alignItems: "right", display: "flex" }}></div>

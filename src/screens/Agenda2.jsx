@@ -361,9 +361,9 @@ function Agenda2() {
       .catch((err) => {
         console.log(err);
       });
-      if (arreglo.length == 0 || !arreglo) getCitas();
+    if (arreglo.length == 0 || !arreglo) getCitas();
   };
-  
+
   const getCitasDia = (elimina) => {
     peinadosApi
       .get(
@@ -424,26 +424,25 @@ function Agenda2() {
   const actualizarFechayCitas = (schedulerData, dias, fecha) => {
     setDatosParametros((datosParametrosPrevios) => {
       console.log({ fecha });
-    
       // Manejar el caso cuando es un objeto o una fecha string
       let fechaBase;
       if (fecha) {
         fechaBase = fecha;
-      } else if (typeof datosParametrosPrevios.fecha === 'object') {
+      } else if (typeof datosParametrosPrevios.fecha === "object") {
         // Si es un objeto Date
-        fechaBase = datosParametrosPrevios.fecha.toISOString().split('T')[0];
-      } else if (typeof datosParametrosPrevios.fecha === 'string') {
+        fechaBase = datosParametrosPrevios.fecha.toISOString().split("T")[0];
+      } else if (typeof datosParametrosPrevios.fecha === "string") {
         // Si es string con formato ISO
-        fechaBase = datosParametrosPrevios.fecha.split('T')[0];
+        fechaBase = datosParametrosPrevios.fecha.split("T")[0];
       }
-  
+
       const tempFecha = parseISO(fechaBase);
-      console.log({tempFecha});
-      
+      console.log({ tempFecha });
+
       // Ahora podemos sumar los días de manera segura
       tempFecha.setDate(tempFecha.getDate() + dias);
       // ... resto del código
-      
+
       if (dias == 0) tempFecha.setDate(tempFecha.getDate() + 0);
       fetchData(tempFecha).then((response) => {
         getCitas(tempFecha).then((response) => {
@@ -451,7 +450,7 @@ function Agenda2() {
             schedulerData.prev();
           } else if (dias === 0) {
             // schedulerData.setDate(format(tempFecha, "yyyy-MM-dd"));
-            schedulerData.setDate((tempFecha ).toISOString().split("T")[0]);
+            schedulerData.setDate(tempFecha.toISOString().split("T")[0]);
           } else {
             schedulerData.next();
           }
@@ -1436,10 +1435,16 @@ function Agenda2() {
     getOperaciones();
   }, [formPuntosObservaciones]);
 
-  const getEstilistas = () => {
-    peinadosApi.get(`/estilistas4?id=0&sucursal=${idSuc}`).then((response) => {
-      setDataEstilistas(response.data);
-    });
+  const getEstilistas = async () => {
+    await peinadosApi
+      .get(
+        `/estilistas5?id=0&sucursal=${idSuc}&fecha=${
+          datosParametros.fecha ? datosParametros.fecha.toISOString().split("T")[0] : new Date().toISOString().split("T")[0]
+        }`
+      )
+      .then((response) => {
+        setDataEstilistas(response.data);
+      });
   };
   const getClientes = () => {
     peinadosApi.get(`/clientesZonas?id=0&idSuc=${idSuc ? idSuc : 0}`).then((response) => {
