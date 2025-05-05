@@ -342,9 +342,9 @@ function Agenda2() {
     }
   };
 
-  const fetchData = async () => {
+  const fetchData = async (tempFecha) => {
     await peinadosApi
-      .get(`/Estilistas4?id=0&sucursal=${idSuc}`)
+      .get(`/Estilistas5?id=0&sucursal=${idSuc}&fecha=${tempFecha ? tempFecha.toISOString().split("T")[0] : new Date().toISOString().split("T")[0]}`)
       .then((response) => {
         setArreglo(
           response.data.map((item) => {
@@ -361,8 +361,9 @@ function Agenda2() {
       .catch((err) => {
         console.log(err);
       });
-    getCitas();
+      if (arreglo.length == 0 || !arreglo) getCitas();
   };
+  
   const getCitasDia = (elimina) => {
     peinadosApi
       .get(
@@ -400,37 +401,62 @@ function Agenda2() {
     schedulerData.setCalendarPopoverLocale(antdLocale);
     schedulerData.setResources(arreglo);
     schedulerData.setEvents(arregloCita);
-    if (arreglo.length > 0 && arregloCita.length > 0) {
+    // if (arreglo.length > 0 && arregloCita.length > 0) {
       setTimeout(() => {
+        if (arreglo.length > 0 && arregloCita.length > 0) {
         if (inicializarAgenda == false) {
+          setinicializarAgenda(true);
           dispatch({ type: "INITIALIZE", payload: schedulerData });
+          console.log("INICIALIZADO")
         }
-        setinicializarAgenda(true);
-        return () => dispatch({ type: "REINITIALIZE" });
-      }, 1500);
-    }
-  }, [arreglo, arregloCita]);
-
+        console.log("ACTUALIZADO")
+        console.log(schedulerData)
+      dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
+      }
+    }, 1500);
+    // }
+  }, [arregloCita, arreglo]);
   const actualizarAgenda = (response, schedulerData) => {
     schedulerData.setEvents(response);
-    dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
+    // dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
   };
 
   const actualizarFechayCitas = (schedulerData, dias, fecha) => {
     setDatosParametros((datosParametrosPrevios) => {
-      const tempFecha = new Date(fecha ? fecha : datosParametrosPrevios.fecha);
+      console.log({ fecha });
+    
+      // Manejar el caso cuando es un objeto o una fecha string
+      let fechaBase;
+      if (fecha) {
+        fechaBase = fecha;
+      } else if (typeof datosParametrosPrevios.fecha === 'object') {
+        // Si es un objeto Date
+        fechaBase = datosParametrosPrevios.fecha.toISOString().split('T')[0];
+      } else if (typeof datosParametrosPrevios.fecha === 'string') {
+        // Si es string con formato ISO
+        fechaBase = datosParametrosPrevios.fecha.split('T')[0];
+      }
+  
+      const tempFecha = parseISO(fechaBase);
+      console.log({tempFecha});
+      
+      // Ahora podemos sumar los días de manera segura
       tempFecha.setDate(tempFecha.getDate() + dias);
-      if (dias == 0) tempFecha.setDate(tempFecha.getDate() + 1);
-      getCitas(tempFecha).then((response) => {
-        console.log(response);
-        if (dias < 0) {
-          schedulerData.prev();
-        } else if (dias === 0) {
-          schedulerData.setDate(format(tempFecha, "yyyy-MM-dd"));
-        } else {
-          schedulerData.next();
-        }
-        actualizarAgenda(response, schedulerData);
+      // ... resto del código
+      
+      if (dias == 0) tempFecha.setDate(tempFecha.getDate() + 0);
+      fetchData(tempFecha).then((response) => {
+        getCitas(tempFecha).then((response) => {
+          if (dias < 0) {
+            schedulerData.prev();
+          } else if (dias === 0) {
+            // schedulerData.setDate(format(tempFecha, "yyyy-MM-dd"));
+            schedulerData.setDate((tempFecha ).toISOString().split("T")[0]);
+          } else {
+            schedulerData.next();
+          }
+          actualizarAgenda(response, schedulerData);
+        });
       });
       return {
         ...datosParametrosPrevios,

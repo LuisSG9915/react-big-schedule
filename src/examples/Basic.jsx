@@ -360,7 +360,7 @@ function Basic() {
           response.data.map((item) => {
             const newItem = {
               ...item,
-              name: item.estilista,
+              name: item.clave+" - "+item.estilista,
               id: item.clave,
             };
             delete newItem.toggleExpandStatus;
@@ -434,7 +434,6 @@ function Basic() {
 
   const actualizarFechayCitas = (schedulerData, dias, fecha) => {
     setDatosParametros((datosParametrosPrevios) => {
-      console.log({ fecha });
     
       // Manejar el caso cuando es un objeto o una fecha string
       let fechaBase;
@@ -449,12 +448,9 @@ function Basic() {
       }
   
       const tempFecha = parseISO(fechaBase);
-      console.log({tempFecha});
-      
       // Ahora podemos sumar los días de manera segura
       tempFecha.setDate(tempFecha.getDate() + dias);
       // ... resto del código
-      
       if (dias == 0) tempFecha.setDate(tempFecha.getDate() + 0);
       fetchData(tempFecha).then((response) => {
         getCitas(tempFecha).then((response) => {
@@ -485,7 +481,6 @@ function Basic() {
   };
 
   const onSelectDate = (schedulerData, date) => {
-    console.log({ date });
     actualizarFechayCitas(schedulerData, 0, date);
   };
 
@@ -1055,8 +1050,8 @@ function Basic() {
     // },
   ];
 
-  // const ligaPruebas = "http://localhost:5173/";
-  const ligaPruebas = "https://cbinfo.no-ip.info:9019/";
+  const ligaPruebas = "http://localhost:5173/";
+  // const ligaPruebas = "https://cbinfo.no-ip.info:9019/";
   const handleOpenNewWindow = ({ idCita, idUser, idCliente, fecha, flag }) => {
     const url = `${ligaPruebas}miliga/crearcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idSuc=${1}&idRec=${1}&flag=${flag}`; // Reemplaza esto con la URL que desees abrir
     const width = 390;
@@ -1528,7 +1523,7 @@ function Basic() {
   }, [idUser, idRec, idSuc]);
 
   useEffect(() => {
-    // getEstilistas();
+    getEstilistas();
     getProductos();
     getEstilistasDisponibilidadHorario();
     getClientes();
@@ -2055,10 +2050,6 @@ function Basic() {
     let minutosDesdeMedianocheSalida = horaSalida * 60 + minutoSalida;
     let minutosDesdeMedianocheCita = horaCita * 60 + minutoCita;
 
-    console.log(minutosDesdeMedianocheEntrada);
-    console.log(minutosDesdeMedianocheSalida);
-    console.log(minutosDesdeMedianocheCita);
-
     let esValida = minutosDesdeMedianocheCita >= minutosDesdeMedianocheEntrada && minutosDesdeMedianocheCita <= minutosDesdeMedianocheSalida;
     return esValida;
   };
@@ -2068,23 +2059,32 @@ function Basic() {
       return;
     }
 
-    let fechaActual = new Date(formCita.fecha);
+    let fechaActual = new Date(datosParametros.fecha);
     // Extrae el año, mes y día
     let año = fechaActual.getFullYear();
     let mes = fechaActual.getMonth(); // Nota: getMonth() devuelve un valor de 0 a 11, donde 0 es enero y 11 es diciembre
     let día = fechaActual.getDate();
     let fechaSinHora = new Date(año, mes, día);
     const esValida = verificaDisponibilidadSucursal();
-    if (new Date(formCita.fecha) < new Date()) {
+    //Quiero agregar datosparametros.fecha la hora de formCita.fecha para la validacion
+
+    const citaDateTime = new Date(datosParametros.fecha);
+    if (formCita.fecha) {
+      // Tomar la hora de formCita.fecha y aplicarla a la fecha de datosParametros
+      citaDateTime.setHours(formCita.fecha.getHours());
+      citaDateTime.setMinutes(formCita.fecha.getMinutes());
+    }
+    
+    if (citaDateTime < new Date()) {
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: `Imposible agregar una cita en el pasado ${formCita.fecha}`,
+        text: `Imposible agregar una cita en el pasado ${citaDateTime.toLocaleString()}`,
         confirmButtonColor: "#3085d6", // Cambiar el color del botón OK
       });
       return;
     }
-    console.log(formCita);
+   
     if (
       formCita.no_estilista == 0 ||
       !formCita.no_estilista ||
@@ -2119,8 +2119,10 @@ function Basic() {
                       sucursal: idSuc,
                       no_estilista: formCita.no_estilista,
                       no_cliente: formCita.no_cliente,
-                      dia_cita: new Date(formCita.fecha),
-                      hora_cita: new Date(formCita.fecha),
+                      dia_cita: citaDateTime,
+                      hora_cita: citaDateTime,
+                      // dia_cita: new Date(formCita.fecha),
+                      // hora_cita: new Date(formCita.fecha),
                       fecha: fechaSinHora,
                       tiempo: 0,
                       user: idUser,
@@ -3050,6 +3052,7 @@ function Basic() {
   const handleChangeFecha = (type, value) => {
     let newDateTime;
     if (type === "fecha") {
+      // console.log(value)
       onSelectDate(state.viewModel, format(value, "yyyy-MM-dd"));
       newDateTime = value ? new Date(value) : null;
       if (datosParametros.fecha) {
@@ -4012,6 +4015,11 @@ function Basic() {
                     event?.no_estilista,
                     formCitaServicio.idCita
                   ).then((isVerified) => {
+                    console.log(isVerified);
+                    console.log(dataCitasServicios.reduce((acc, service) => acc + Number(service.tiempo) * Number(service.cantidad), 0));
+                    console.log(hora1);
+                    console.log(event?.no_estilista);
+                    console.log(formCitaServicio.idCita);
                     if (isVerified) {
                       updateCita();
                     } else {
@@ -4724,6 +4732,9 @@ function Basic() {
                     name="cliente"
                     id="cliente"
                     size={"small"}
+                    onChange={(v) => {
+                      setFormDetalleCitasServicios({ ...formDetalleCitasServicios, cantidad: v.target.value });
+                    }}
                   />
                 </InputGroup>
               </FormGroup>
@@ -5781,7 +5792,7 @@ function Basic() {
                         disabled={formCitaServicio.idCita}
                         timeSteps={{ minutes: 15 }}
                         slotProps={{ textField: { size: "small" } }}
-                        value={formCita.fecha ? new Date(decodeURIComponent(formCita.fecha)) : null}
+                        value={datosParametros.fecha ? new Date(datosParametros.fecha) : null}
                         // value={formCita.fecha ? new Date(formCita.fecha).toTimeString().substring(0, 5) : null}
                         onChange={(hora) => handleChangeFecha("hora", hora)}
                         sx={{
