@@ -1530,7 +1530,6 @@ function Basic() {
     getEstilistas();
     getProductos();
     getEstilistasDisponibilidadHorario();
-    getClientes();
   }, []);
 
   useEffect(() => {
@@ -2732,18 +2731,19 @@ function Basic() {
       })
       .then((response) => {
         fetchDetalleCitasServicios();
-        Swal.fire({
-          icon: "success",
-          text: "Registro Realizado ",
-          confirmButtonColor: "#3085d6",
-          confirmButtonText: "Recargar pagina",
-          cancelButtonText: "No",
-          showCancelButton: true,
-        }).then((result) => {
-          if (result.isConfirmed) {
-            window.location.reload();
-          }
-        });
+        // alert(formCita.estatus)
+        // Swal.fire({
+        //   icon: "success",
+        //   text: "Registro Realizado ",
+        //   confirmButtonColor: "#3085d6",
+        //   confirmButtonText: "Recargar pagina",
+        //   cancelButtonText: "No",
+        //   showCancelButton: true,
+        // }).then((result) => {
+        //   if (result.isConfirmed) {
+        //     window.location.reload();
+        //   }
+        // });
         setModalEdicionServicios(false);
         getCitasDia();
       });
@@ -3523,6 +3523,11 @@ function Basic() {
     var minutosRestantes = minutos % 60;
     return horas + ":" + (minutosRestantes < 10 ? "0" : "") + minutosRestantes + " Hrs";
   }
+  useEffect(() => {
+    setTimeout(() => {
+      getClientes();
+    }, 1000);
+  }, []);
   return (
     <>
       {/* <div className="barra-titulo">
