@@ -142,7 +142,7 @@ function EditarCita() {
   const cambioCitaModo = new URLSearchParams(window.location.search).get("flag");
   const tiempo = new URLSearchParams(window.location.search).get("tiempo");
   const nombreCliente = new URLSearchParams(window.location.search).get("nombreCliente");
-
+ const password_chk = new URLSearchParams(window.location.search).get("password_chk");
   const minDateTime = setHours(startOfToday(), 8);
 
   const maxDateTime = setHours(startOfToday(), 20);
@@ -373,7 +373,7 @@ function EditarCita() {
           return new Promise((resolve) => {
             setTimeout(() => {
               // Supongamos que la contraseña es "password"
-              if (contraseña === "1234") {
+              if (contraseña === password_chk) {
                 resolve();
               } else {
                 Swal.fire({

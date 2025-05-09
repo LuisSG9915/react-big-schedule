@@ -66,6 +66,7 @@ import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { useProductosAreaDeptoSub } from "../functions/crearCita/useProductosAreaDeptoSub";
 import { usePrepagos } from "../functions/crearCita/usePrepagos";
 import { useVentasOperacionesMediosPagos2 } from "../functions/crearCita/useVentasOperacionesMediosPagos2";
+import { ConsoleSqlOutlined } from "@ant-design/icons";
 
 let schedulerData;
 
@@ -123,7 +124,7 @@ function Basic() {
   const fecha = new Date();
   // ?
   const idUser = new URLSearchParams(window.location.search).get("idRec");
-
+  const password_chk = new URLSearchParams(window.location.search).get("password_chk"); 
   useEffect(() => {
     if (!idSuc) {
       alert("Favor de ingresar en la página principal");
@@ -223,7 +224,7 @@ function Basic() {
           return new Promise((resolve) => {
             setTimeout(() => {
               // Supongamos que la contraseña es "password"
-              if (contraseña === "1234") {
+              if (contraseña === password_chk) {
                 resolve();
               } else {
                 Swal.fire({
@@ -1053,8 +1054,8 @@ function Basic() {
     // },
   ];
 
-  const ligaPruebas = "http://localhost:5173/";
-  // const ligaPruebas = "https://cbinfo.no-ip.info:9019/";
+  // const ligaPruebas = "http://localhost:5173/";
+  const ligaPruebas = "https://cbinfo.no-ip.info:9019/";
   const handleOpenNewWindow = ({ idCita, idUser, idCliente, fecha, flag }) => {
     const url = `${ligaPruebas}miliga/crearcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idSuc=${1}&idRec=${1}&flag=${flag}`; // Reemplaza esto con la URL que desees abrir
     const width = 390;
@@ -1065,7 +1066,7 @@ function Basic() {
     window.open(url, "_blank", features);
   };
   const handleOpenNewWindowEdit = ({ idCita, idUser, idCliente, fecha, flag, estadoCita, tiempo, nombreCliente, idSuc }) => {
-    const url = `${ligaPruebas}miliga/editarcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idRec=${idRec}&flag=${flag}&estadoCita=${estadoCita}&tiempo=${tiempo}&nombreCliente=${nombreCliente}&idSuc=${idSuc}`; // Reemplaza esto con la URL que desees abrir
+    const url = `${ligaPruebas}miliga/editarcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idRec=${idRec}&flag=${flag}&estadoCita=${estadoCita}&tiempo=${tiempo}&nombreCliente=${nombreCliente}&idSuc=${idSuc}&password_chk=${password_chk}`; // Reemplaza esto con la URL que desees abrir
     const width = 600;
     const height = 800;
     const left = (window.screen.width - width) / 2;
@@ -1074,7 +1075,7 @@ function Basic() {
     window.open(url, "_blank", features);
   };
   const handleOpenAgenda2 = ({ idRec, suc, idSuc }) => {
-    const url = `${ligaPruebas}miliga/Agenda2?idRec=${idRec}&suc=${suc}&idSuc=${idSuc}`; // Reemplaza esto con la URL que desees abrir
+    const url = `${ligaPruebas}miliga/Agenda2?idRec=${idRec}&suc=${suc}&idSuc=${idSuc}&password_chk=${password_chk}`; // Reemplaza esto con la URL que desees abrir
     const width = 1200;
     const height = 600;
     const left = (window.screen.width - width) / 2;
@@ -1083,7 +1084,7 @@ function Basic() {
     window.open(url, "_blank", features);
   };
   const handleOpenNewWindowNewSchedule = () => {
-    const url = `${ligaPruebas}miliga/crearcita?fecha=${datosParametros.fecha}`; // Reemplaza esto con la URL que desees abrir
+    const url = `${ligaPruebas}miliga/crearcita?fecha=${datosParametros.fecha}&password_chk=${password_chk}`; // Reemplaza esto con la URL que desees abrir
     const width = 450;
     const height = 800;
     const left = (window.screen.width - width) / 2;
@@ -1092,7 +1093,7 @@ function Basic() {
     window.open(url, "_blank", features);
   };
   const handleOpenNewWindowListaEspera = () => {
-    const url = `${ligaPruebas}miliga/listaEspera?idUser=${idRec}&fecha=${fecha}&idSuc=${idSuc}`; // Reemplaza esto con la URL que desees abrir
+    const url = `${ligaPruebas}miliga/listaEspera?idUser=${idRec}&fecha=${fecha}&idSuc=${idSuc}&password_chk=${password_chk}`; // Reemplaza esto con la URL que desees abrir
     const width = 1500;
     const height = 900;
     const left = (window.screen.width - width) / 2;
@@ -1487,7 +1488,7 @@ function Basic() {
           return new Promise((resolve) => {
             setTimeout(() => {
               // Supongamos que la contraseña es "password"
-              if (contraseña === "1234") {
+              if (contraseña === password_chk) {
                 resolve();
               } else {
                 Swal.fire({
@@ -2041,6 +2042,7 @@ function Basic() {
     });
   };
   const verificaDisponibilidadSucursal = () => {
+    console.log(dataEstilistaDisponibilidadHorario)
     let entradaSucursal = dataEstilistaDisponibilidadHorario[0].hora_entrada;
     let salidaSucursal = dataEstilistaDisponibilidadHorario[0].hora_salida;
 
@@ -2061,6 +2063,7 @@ function Basic() {
     let esValida = minutosDesdeMedianocheCita >= minutosDesdeMedianocheEntrada && minutosDesdeMedianocheCita <= minutosDesdeMedianocheSalida;
     return esValida;
   };
+
   const postCrearCita = async () => {
     if (formCitaServicio.idCita) {
       setProductosModal(true);
@@ -3069,6 +3072,7 @@ function Basic() {
       newDateTime.setMinutes(value.getMinutes());
       console.log(newDateTime);
     }
+    setDatosParametros({ ...datosParametros, fecha: newDateTime });
     setFormCita({ ...formCita, fecha: newDateTime });
   };
   const handleChangeFechaEvent = (type, value) => {
@@ -5787,7 +5791,7 @@ function Basic() {
                 </Col>
                 <Col xs="6">
                   <FormGroup style={{ display: "flex", alignItems: "center", marginBottom: "0px" }}>
-                    <Label for="cliente" style={{ width: 55, fontSize: "1.1rem" }}>
+                    <Label onClick={()=> console.log(datosParametros.fecha)} for="cliente" style={{ width: 55, fontSize: "1.1rem" }}>
                       Hora:
                     </Label>
                     <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -5897,56 +5901,67 @@ function Basic() {
                 />
               </ThemeProvider>
 
-              <Box marginLeft={0} marginRight={0} marginTop={1} gap={1} display="flex" justifyContent={"center"} alignItems={"center"}>
-                <Col style={{ border: "1px solid black", padding: "10px", margin: "10px", width: "300px", textAlign: "center", fontWeight: "bold" }}>
-                  <Label>Clave de reservación</Label>
-                  {/* <Input value={"100-2-75"}> </Input> */}
-                  <Input value={formCitaServicio.idCita ? formCitaServicio.idCita + "-" + 1 + "-" + format(new Date(formCita.fecha), "ddM") : ""}>
-                    {" "}
-                  </Input>
-                </Col>
-                <Col>
-                  <FormGroup>
-                    <Label for="total2">Total</Label>
-                    <Input type="text" name="total2" id="total2" placeholder={"$" + formVentaTemporal.precioTotal.toFixed(2)} disabled />
-                  </FormGroup>
+              <Box marginTop={2} sx={{ width: '100%' }}>
+                <Row className="d-flex justify-content-center align-items-start g-3">
+                  <Col xs={12} sm={6} md={4} lg={4} className="mb-3">
+                    <div style={{ border: "1px solid black", padding: "15px", borderRadius: "5px", height: "100%", textAlign: "center", fontWeight: "bold" }}>
+                      <Label className="mb-2">Clave de reservación</Label>
+                      <Input 
+                        value={formCitaServicio.idCita ? formCitaServicio.idCita + "-" + 1 + "-" + format(new Date(formCita.fecha), "ddM") : ""}
+                        className="text-center"
+                        style={{ fontSize: "1.1rem", fontWeight: "bold" }}
+                      />
+                    </div>
+                  </Col>
+                  
+                  <Col xs={12} sm={6} md={4} lg={3} className="mb-3">
+                    <div style={{ height: "100%" }}>
+                      <FormGroup className="mb-2">
+                        <Label for="total2">Total</Label>
+                        <Input type="text" name="total2" id="total2" placeholder={"$" + formVentaTemporal.precioTotal.toFixed(2)} disabled />
+                      </FormGroup>
 
-                  <FormGroup>
-                    <Label for="otros">Otros</Label>
-                    <Input type="text" name="otros" id="otros" disabled placeholder={formVentaTemporal.otros} />
-                  </FormGroup>
-                  <FormGroup>
-                    <Label for="total">Total</Label>
-                    <Input type="text" name="total" id="total" placeholder={"$" + formVentaTemporal.precioTotalyOtros.toFixed(2)} disabled />
-                  </FormGroup>
-                </Col>
-                <Col>
-                  <FormGroup>
-                    <Label for="minutos">Minutos</Label>
-                    <Input type="text" name="minutos" id="minutos" placeholder={formVentaTemporal.tiempo + " Min"} disabled />
-                  </FormGroup>
+                      <FormGroup className="mb-2">
+                        <Label for="otros">Otros</Label>
+                        <Input type="text" name="otros" id="otros" disabled placeholder={formVentaTemporal.otros} />
+                      </FormGroup>
+                      
+                      <FormGroup>
+                        <Label for="total">Total</Label>
+                        <Input type="text" name="total" id="total" placeholder={"$" + formVentaTemporal.precioTotalyOtros.toFixed(2)} disabled />
+                      </FormGroup>
+                    </div>
+                  </Col>
+                  
+                  <Col xs={12} sm={6} md={4} lg={3} className="mb-3">
+                    <div style={{ height: "100%" }}>
+                      <FormGroup className="mb-2">
+                        <Label for="minutos">Minutos</Label>
+                        <Input type="text" name="minutos" id="minutos" placeholder={formVentaTemporal.tiempo + " Min"} disabled />
+                      </FormGroup>
 
-                  <FormGroup>
-                    <Label for="horas">Horas</Label>
-                    <Input type="text" name="horas" id="horas" placeholder={convertirMinutosAHorasYMinutos(formVentaTemporal.tiempo)} disabled />
-                  </FormGroup>
+                      <FormGroup className="mb-3">
+                        <Label for="horas">Horas</Label>
+                        <Input type="text" name="horas" id="horas" placeholder={convertirMinutosAHorasYMinutos(formVentaTemporal.tiempo)} disabled />
+                      </FormGroup>
 
-                  <ButtonGroup style={{ marginBottom: "10%" }}>
-                    <Button
-                      color="primary"
-                      block
-                      onClick={() => {
-                        putCitasServiciosTerminado();
-                      }}
-                      // disabled={!agregarServicios}
-                    >
-                      Guardar
-                    </Button>
-                    <Button color="danger" block onClick={() => window.close()}>
-                      Salir
-                    </Button>
-                  </ButtonGroup>
-                </Col>
+                      <div className="d-grid gap-2">
+                        <Button
+                          color="primary"
+                          onClick={() => {
+                            putCitasServiciosTerminado();
+                          }}
+                          // disabled={!agregarServicios}
+                        >
+                          Guardar
+                        </Button>
+                        <Button color="danger" onClick={() => window.close()}>
+                          Salir
+                        </Button>
+                      </div>
+                    </div>
+                  </Col>
+                </Row>
               </Box>
             </Box>
           </Box>

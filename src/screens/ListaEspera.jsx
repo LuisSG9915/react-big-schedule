@@ -26,6 +26,7 @@ function ListaEspera() {
   const estadoCita = new URLSearchParams(window.location.search).get("estadoCita");
   const cambioCitaModo = new URLSearchParams(window.location.search).get("flag");
   const tiempo = new URLSearchParams(window.location.search).get("tiempo");
+  const password_chk = new URLSearchParams(window.location.search).get("password_chk");
 
   const rows = [
     {
@@ -206,7 +207,7 @@ function ListaEspera() {
           return new Promise((resolve) => {
             setTimeout(() => {
               // Supongamos que la contraseña es "password"
-              if (contraseña === "1234") {
+              if (contraseña === password_chk) {
                 resolve();
               } else {
                 Swal.fire({
