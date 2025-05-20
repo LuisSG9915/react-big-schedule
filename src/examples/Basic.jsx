@@ -886,7 +886,7 @@ function Basic() {
     { field: "id", headerName: "Clave", width: 70, align: "center", sortable: false, style: { fontSize: "16px" } }, // Esta es la columna del ID único
 
     {
-      field: "observaciones",
+      field: "observacion",
       headerName: "Observaciones",
       width: 270,
       renderCell: (params) => <p className="centered-cell">{params.row.observaciones}</p>,
