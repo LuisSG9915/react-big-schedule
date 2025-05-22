@@ -354,8 +354,22 @@ function Basic() {
   };
 
   const fetchData = async (tempFecha) => {
+    // Formatear la fecha en formato YYYY-MM-DD usando la fecha local
+    const formatearFecha = (fecha) => {
+      const año = fecha.getFullYear();
+      const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+      const dia = String(fecha.getDate()).padStart(2, '0');
+      return `${año}-${mes}-${dia}`;
+    };
+
+    // Usar la fecha de tempFecha si existe, o la fecha actual
+    const fechaFormateada = tempFecha ? formatearFecha(tempFecha) : formatearFecha(new Date());
+    
+    // Verificar la fecha que se está usando (para depuración)
+    console.log('Fecha utilizada en fetchData:', fechaFormateada);
+
     await peinadosApi
-      .get(`/Estilistas5?id=0&sucursal=${idSuc}&fecha=${tempFecha ? tempFecha.toISOString().split("T")[0] : new Date().toISOString().split("T")[0]}`)
+      .get(`/Estilistas5?id=0&sucursal=${idSuc}&fecha=${fechaFormateada}`)
       .then((response) => {
         setArreglo(
           response.data.map((item) => {
@@ -889,7 +903,7 @@ function Basic() {
       field: "observacion",
       headerName: "Observaciones",
       width: 270,
-      renderCell: (params) => <p className="centered-cell">{params.row.observaciones}</p>,
+      renderCell: (params) => <p className="centered-cell">{params.row.observacion}</p>,
     },
   ];
 
@@ -1551,12 +1565,25 @@ function Basic() {
   }, [formPuntosObservaciones]);
 
   const getEstilistas = async () => {
+    // Obtener la fecha actual en México
+    const fechaActual = new Date();
+    
+    // Formatear la fecha en formato YYYY-MM-DD usando la fecha local
+    const formatearFecha = (fecha) => {
+      const año = fecha.getFullYear();
+      const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+      const dia = String(fecha.getDate()).padStart(2, '0');
+      return `${año}-${mes}-${dia}`;
+    };
+
+    // Usar la fecha de datosParametros si existe, o la fecha actual
+    const fechaFormateada = datosParametros.fecha ? formatearFecha(datosParametros.fecha) : formatearFecha(fechaActual);
+    
+    // Verificar la fecha que se está usando (para depuración)
+    console.log('Fecha utilizada:', fechaFormateada);
+
     await peinadosApi
-      .get(
-        `/estilistas5?id=0&sucursal=${idSuc}&fecha=${
-          datosParametros.fecha ? datosParametros.fecha.toISOString().split("T")[0] : new Date().toISOString().split("T")[0]
-        }`
-      )
+      .get(`/estilistas5?id=0&sucursal=${idSuc}&fecha=${fechaFormateada}`)
       .then((response) => {
         setDataEstilistas(response.data);
       });
