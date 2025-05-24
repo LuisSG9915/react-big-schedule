@@ -67,6 +67,7 @@ import { useProductosAreaDeptoSub } from "../functions/crearCita/useProductosAre
 import { usePrepagos } from "../functions/crearCita/usePrepagos";
 import { useVentasOperacionesMediosPagos2 } from "../functions/crearCita/useVentasOperacionesMediosPagos2";
 import { ConsoleSqlOutlined } from "@ant-design/icons";
+import { useListaEspera } from "../functions/listaEspera/useListaEspera";
 
 let schedulerData;
 
@@ -190,6 +191,8 @@ function Basic() {
     idCliente: 0,
     nombreCliente: "",
     nombreEstilista: "",
+    fecha1: new Date(),
+    fecha2: new Date()
   });
   const [datosParametrosCitaTemp, setDatosParametrosCitaTemp] = useState({});
   const [datosParametrosFechaCitaTemp, setDatosParametrosFechaCitaTemp] = useState({});
@@ -276,6 +279,48 @@ function Basic() {
   const toggleModal = () => {
     setIsModalOpen(!isModalOpen);
   };
+  const { dataListaEspera, fetchListaEspera } = useListaEspera({ id: 0, sucursal: idSuc });
+  
+  // Add CSS for blinking effect
+  useEffect(() => {
+    // Create a style element
+    const styleElement = document.createElement('style');
+    styleElement.innerHTML = `
+      @keyframes blink {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+      }
+      .blinking-button {
+        animation: blink 1s infinite;
+        background-color:rgb(48, 34, 245) !important; /* Warning color */
+        color: #000 !important;
+        font-weight: bold;
+      }
+    `;
+    document.head.appendChild(styleElement);
+
+    // Clean up
+    return () => {
+      document.head.removeChild(styleElement);
+    };
+  }, []);
+  
+  // Refresh lista de espera data every 30 seconds
+  useEffect(() => {
+    // Initial fetch
+    fetchListaEspera();
+    
+    // Set up interval for periodic refresh
+    const intervalId = setInterval(() => {
+      fetchListaEspera();
+    }, 30000); // 30 seconds
+    
+    // Clean up interval on component unmount
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [fetchListaEspera]);
 
   const getCitas = async (fecha) => {
     try {
@@ -390,11 +435,30 @@ function Basic() {
   };
 
   const getCitasDia = (elimina) => {
+    // Format date strings properly
+    const formatDateString = (dateValue) => {
+      if (!dateValue) return "";
+      // If it's already a Date object
+      if (dateValue instanceof Date) {
+        return format(dateValue, "yyyyMMdd");
+      }
+      // If it's a string from the date input (YYYY-MM-DD format)
+      if (typeof dateValue === 'string' && dateValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        return dateValue.replace(/-/g, "");
+      }
+      // Default fallback
+      return format(new Date(), "yyyyMMdd");
+    };
+    
+    const fecha1Formatted = formatDateString(datosParametros.fecha1);
+    const fecha2Formatted = formatDateString(datosParametros.fecha2);
+    const fechaActualFormatted = format(datosParametros.fecha, "yyyyMMdd");
+    
     peinadosApi
       .get(
-        `/ClientesCitasDia10?suc=${idSuc}&cliente=0&fecha=${format(datosParametros.fecha, "yyyyMMdd")}&tipoCita=${
+        `/ClientesCitasDia12?suc=${idSuc}&cliente=0&fecha=${fechaActualFormatted}&tipoCita=${
           tipoCita ? tipoCita : "%"
-        }&nombreEstilista=${elimina ? "" : datosParametros.nombreEstilista}&nombreCliente=${elimina ? "" : datosParametros.nombreCliente}`
+        }&nombreEstilista=${elimina ? "" : datosParametros.nombreEstilista}&nombreCliente=${elimina ? "" : datosParametros.nombreCliente}&fecha1=${fecha1Formatted || fechaActualFormatted}&fecha2=${fecha2Formatted || fechaActualFormatted}`
       )
       .then((response) => {
         setArregloCitaDia(response.data);
@@ -728,6 +792,33 @@ function Basic() {
             size={23}
             disabled
             onClick={() => {
+              // Convert both dates to YYYY-MM-DD format for comparison
+              const formatDateForComparison = (dateValue) => {
+                if (!dateValue) return "";
+                // If it's a Date object
+                if (dateValue instanceof Date) {
+                  return format(dateValue, "yyyy-MM-dd");
+                }
+                // If it's a string in ISO format (like '2025-05-09T00:00:00')
+                if (typeof dateValue === 'string' && dateValue.includes('T')) {
+                  return dateValue.split('T')[0]; // Extract just the date part
+                }
+                return dateValue;
+              };
+              
+              const fecha1 = formatDateForComparison(datosParametros.fecha);
+              const fecha2 = formatDateForComparison(params.row.fecha);
+              
+              console.log('Comparing dates:', fecha1, fecha2);
+              
+              if (fecha1 !== fecha2) {
+                Swal.fire({
+                  icon: "error",
+                  title: "Error",
+                  text: `No puede dar de alta un servicio de otra fecha`,
+                });
+                return;
+              }
               if (params.row.idVenta > 1) {
                 Swal.fire({
                   icon: "error",
@@ -824,6 +915,7 @@ function Basic() {
     },
 
     // Esta es la columna del ID único
+    { field: "dia_cita", headerName: "Fecha", width: 85, align: "center", sortable: false, style: { fontSize: "16px" }, renderCell: (params) => <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0, fontSize: "16px" }}>{format(new Date(params.row.dia_cita), "dd/MM/yyyy")}</p> }, // Esta es la columna del ID único
     { field: "d_stilista", headerName: "Estilista", width: 85, align: "center", sortable: false, style: { fontSize: "16px" } }, // Esta es la columna del ID único
     {
       field: "stao_estilista",
@@ -856,8 +948,9 @@ function Basic() {
         </p>
       ),
     },
-    { field: "d_cliente", headerName: "Cliente", width: 300, style: { fontSize: "16px" } },
+    { field: "d_cliente", headerName: "Cliente", width: 250, style: { fontSize: "16px" } },
     { field: "descripcion", headerName: "Servicio", width: 330, style: { fontSize: "16px" } },
+    { field: "ultimoEmlpeado", headerName: "Ult. Usr", width: 150, style: { fontSize: "16px" } },
     {
       field: "tiempo",
       headerName: "T",
@@ -887,17 +980,17 @@ function Basic() {
         </p>
       ),
     },
-    {
-      field: "importe",
-      headerName: "Total",
-      width: 60,
-      renderCell: (params) => (
-        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0, fontSize: "16px" }}>
-          {Number(params.row.importe).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}
-        </p>
-      ),
-    },
-    { field: "id", headerName: "Clave", width: 70, align: "center", sortable: false, style: { fontSize: "16px" } }, // Esta es la columna del ID único
+    // {
+    //   field: "importe",
+    //   headerName: "Total",
+    //   width: 60,
+    //   renderCell: (params) => (
+    //     <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0, fontSize: "16px" }}>
+    //       {Number(params.row.importe).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}
+    //     </p>
+    //   ),
+    // },
+    // { field: "id", headerName: "Clave", width: 70, align: "center", sortable: false, style: { fontSize: "16px" } }, // Esta es la columna del ID único
 
     {
       field: "observacion",
@@ -1068,8 +1161,8 @@ function Basic() {
     // },
   ];
 
-  // const ligaPruebas = "http://localhost:5173/";
-  const ligaPruebas = "https://cbinfo.no-ip.info:9019/";
+  const ligaPruebas = "http://localhost:5173/";
+  // const ligaPruebas = "https://cbinfo.no-ip.info:9019/";
   const handleOpenNewWindow = ({ idCita, idUser, idCliente, fecha, flag }) => {
     const url = `${ligaPruebas}miliga/crearcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idSuc=${1}&idRec=${1}&flag=${flag}`; // Reemplaza esto con la URL que desees abrir
     const width = 390;
@@ -3064,7 +3157,7 @@ function Basic() {
               precio: precio,
               observaciones: formCitasObservaciones2 ? formCitasObservaciones2 : "",
               usuarioAlta: idUser,
-              usuarioCambio: formCita.no_estilista,
+              usuarioCambio: formCita.user,
               sucursal: idSuc,
               fecha: new Date(),
               idCliente: formCita.no_cliente,
@@ -3620,6 +3713,7 @@ function Basic() {
               <Button
                 size="sm"
                 color={"primary"}
+                className={dataListaEspera && dataListaEspera.length > 0 ? 'blinking-button' : ''}
                 onClick={() => {
                   setIsModalActualizarOpen(true);
                   // setIsModalOpen(true);
@@ -3627,7 +3721,7 @@ function Basic() {
                 }}
               >
                 <IoListCircle size={20}></IoListCircle>
-                Lista de espera
+                Lista de espera {dataListaEspera && dataListaEspera.length > 0 ? `(${dataListaEspera.length})` : ''}
               </Button>
               <Button
                 size="sm"
@@ -3856,6 +3950,30 @@ function Basic() {
                   </InputGroup>
                   <InputGroup style={{ marginBottom: "5px" }}>
                     <Label className="label-fixed-width" style={{ fontSize: "1.2rem" }}>
+                      Fecha inicio:
+                    </Label>
+                    <Input
+                      style={{ fontSize: "1.2rem" }}
+                      onChange={(v) => setDatosParametros({ ...datosParametros, fecha1: v.target.value })}
+                      size={"sm"}
+                      value={datosParametros.fecha1 instanceof Date ? format(datosParametros.fecha1, "yyyy-MM-dd") : datosParametros.fecha1}
+                      type="date"
+                    ></Input>
+                  </InputGroup>
+                  <InputGroup style={{ marginBottom: "5px" }}>
+                    <Label className="label-fixed-width" style={{ fontSize: "1.2rem" }}>
+                      Fecha final:
+                    </Label>
+                    <Input
+                      style={{ fontSize: "1.2rem" }}
+                      onChange={(v) => setDatosParametros({ ...datosParametros, fecha2: v.target.value })}
+                      size={"sm"}
+                      value={datosParametros.fecha2 instanceof Date ? format(datosParametros.fecha2, "yyyy-MM-dd") : datosParametros.fecha2}
+                      type="date"
+                    ></Input>
+                  </InputGroup>
+                  <InputGroup style={{ marginBottom: "5px" }}>
+                    <Label className="label-fixed-width" style={{ fontSize: "1.2rem" }}>
                       Nombre estilista:
                     </Label>
                     <Input
@@ -3882,7 +4000,7 @@ function Basic() {
               <br />
               <ThemeProvider theme={theme}>
                 <DataGrid
-                  rows={arregloCitaDia}
+                  rows={arregloCitaDia.length > 0 ? arregloCitaDia : []}
                   columns={columns2}
                   getRowId={(row) => row.idServicio + row.no_cliente2 + row.importe + row.id + new Date(row.horafinal)}
                   onCellDoubleClick={handleCellDoubleClick}

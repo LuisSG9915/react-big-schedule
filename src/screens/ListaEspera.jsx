@@ -424,8 +424,8 @@ function ListaEspera() {
               observacion: params.row.observacion,
               no_cliente: params.row.no_cliente,
               clave_prod: params.row.clave_prod,
-              usuario_registra: 49,
-              usuario_servicio: 49,
+              usuario_registra: idUser,
+              usuario_servicio: idUser,
               precio: params.row.max_detalle_venta_id,
               esEdicion: true,
             });
@@ -447,7 +447,7 @@ function ListaEspera() {
               confirmButtonText: "Sí, eliminar",
             }).then((result) => {
               if (result.isConfirmed) {
-                peinadosApi.delete(`/ListaEspera2?id=${params.id}&usuario=${idRec}`).then(() => {
+                peinadosApi.delete(`/ListaEspera2?id=${params.id}&usuario=${idUser}`).then(() => {
                   Swal.fire({
                     icon: "success",
                     text: "Registro eliminado con éxito",
@@ -584,8 +584,8 @@ function ListaEspera() {
           hora_estimada: formClienteEspera.hora_estimada,
           estilista: formClienteEspera.estilista,
           tiempo_servicio: formClienteEspera.tiempo_servicio,
-          usuario_registra: 1,
-          usuario_servicio: 0,
+          usuario_registra: idUser,
+          usuario_servicio: idUser,
           precio: formClienteEspera.precio,
           observacion: formClienteEspera.observacion ? formClienteEspera.observacion : "",
         },
@@ -620,9 +620,9 @@ function ListaEspera() {
           atendido: 1,
           estilista: formClienteEspera.estilista ? formClienteEspera.estilista : "",
           tiempo_servicio: formClienteEspera.tiempo_servicio,
-          usuario_registra: 1,
+          usuario_registra: idUser,
           usuario_cita: formClienteEspera.no_cliente,
-          usuario_servicio: 0,
+          usuario_servicio: idUser,
           usuario_elimina: 0,
           precio: formClienteEspera.precio,
           observacion: formClienteEspera.observacion ? formClienteEspera.observacion : "",
