@@ -105,11 +105,18 @@ function ListaEspera() {
     });
   };
 
-  const getEstilistas = () => {
-    peinadosApi.get(`/estilistas4?id=0&sucursal=${idSuc}`).then((response) => {
-      setDataEstilistas(response.data);
-    });
-  };
+  const getEstilistas = async () => {
+    console.log({fecha})
+     await peinadosApi
+       .get(
+         `/estilistas5?id=0&sucursal=${idSuc}&fecha=${
+           fecha ? new Date(fecha).toISOString().split("T")[0] : new Date().toISOString().split("T")[0]
+         }`
+       )
+       .then((response) => {
+         setDataEstilistas(response.data);
+       });
+   };
   const getProductos = () => {
     peinadosApi
       .get("/sp_cPSEAC?id=0&cia=1&sucursal=2&almacen=1&marca=%&descripcion=%&verinventariable=0&esServicio=2&esInsumo=0&obsoleto=0")
@@ -424,8 +431,8 @@ function ListaEspera() {
               observacion: params.row.observacion,
               no_cliente: params.row.no_cliente,
               clave_prod: params.row.clave_prod,
-              usuario_registra: idUser,
-              usuario_servicio: idUser,
+              usuario_registra: idRec,
+              usuario_servicio: idRec,
               precio: params.row.max_detalle_venta_id,
               esEdicion: true,
             });
@@ -556,7 +563,7 @@ function ListaEspera() {
     { field: "nombreEstilsta", headerName: "Estilista", width: 90 },
     { field: "observacion", headerName: "Observacion", width: 500 },
   ];
-  const putListaEspera = (id) => {
+  const putListaEspera = async (id) => {
     console.log(formClienteEspera.no_cliente);
     console.log(formClienteEspera.clave_prod);
     console.log(formClienteEspera.hora_estimada);
@@ -574,8 +581,9 @@ function ListaEspera() {
       alert("Favor de ingresar todos los datos esperados");
       return;
     }
-    peinadosApi
-      .put("/sp_catListaEsperaUpd5", null, {
+    
+    try {
+      await peinadosApi.put("/sp_catListaEsperaUpd5", null, {
         params: {
           id: formClienteEspera.id,
           sucursal: idSuc,
@@ -584,19 +592,38 @@ function ListaEspera() {
           hora_estimada: formClienteEspera.hora_estimada,
           estilista: formClienteEspera.estilista,
           tiempo_servicio: formClienteEspera.tiempo_servicio,
-          usuario_registra: idUser,
-          usuario_servicio: idUser,
+          usuario_registra: idRec,
+          usuario_servicio: idRec,
           precio: formClienteEspera.precio,
           observacion: formClienteEspera.observacion ? formClienteEspera.observacion : "",
         },
-      })
-      .then(() => {
-        Swal.fire({
-          icon: "success",
-          text: "Lista de espera creado con información",
-        });
-        fetchListaEspera();
       });
+      
+      await Swal.fire({
+        icon: "success",
+        text: "Lista de espera actualizada correctamente",
+      });
+      
+      // Add a small delay before fetching to ensure the server has processed the update
+      setTimeout(async () => {
+        try {
+          await fetchListaEspera();
+          console.log("Lista de espera actualizada y recargada correctamente");
+        } catch (fetchError) {
+          console.error("Error al recargar la lista de espera:", fetchError);
+          // Try one more time if the first fetch fails
+          setTimeout(() => fetchListaEspera(), 1000);
+        }
+      }, 500);
+      
+    } catch (error) {
+      console.error("Error al actualizar la lista de espera:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "No se pudo actualizar la lista de espera. Intente nuevamente.",
+      });
+    }
   };
   const postListaEspera = () => {
     if (
@@ -620,20 +647,24 @@ function ListaEspera() {
           atendido: 1,
           estilista: formClienteEspera.estilista ? formClienteEspera.estilista : "",
           tiempo_servicio: formClienteEspera.tiempo_servicio,
-          usuario_registra: idUser,
+          usuario_registra: idRec,
+          usuario_registra: idRec,
           usuario_cita: formClienteEspera.no_cliente,
-          usuario_servicio: idUser,
+          usuario_servicio: idRec,
+          usuario_servicio: idRec,
           usuario_elimina: 0,
           precio: formClienteEspera.precio,
           observacion: formClienteEspera.observacion ? formClienteEspera.observacion : "",
         },
+      }).then(() => {
+        Swal.fire({
+          icon: "success",
+          text: "Lista de espera creado con información",
+        });
+        fetchListaEspera();
       });
     }
-    Swal.fire({
-      icon: "success",
-      text: "Lista de espera creado con información",
-    });
-    fetchListaEspera();
+    
   };
   const timeZone = "America/Mexico_City"; // Ajusta esto a tu zona horaria
   const closeOpenListaEspera = () => {
