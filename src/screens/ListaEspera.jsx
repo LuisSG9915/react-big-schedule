@@ -98,7 +98,7 @@ function ListaEspera() {
     getEstilistas();
     getProductos();
   }, []);
-  const { dataListaEspera, fetchListaEspera } = useListaEspera({ id: 0, sucursal: idSuc });
+  const { dataListaEspera, fetchListaEspera } = useListaEspera({ id: 0, sucursal: idSuc, refreshInterval: 30000 }); // Refresh every 30 seconds
   const getClientes = () => {
     peinadosApi.get(`/clientesZonas?id=0&idSuc=${idSuc ? idSuc : 0}`).then((response) => {
       setDataClientes(response.data);
@@ -431,8 +431,8 @@ function ListaEspera() {
               observacion: params.row.observacion,
               no_cliente: params.row.no_cliente,
               clave_prod: params.row.clave_prod,
-              usuario_registra: idRec,
-              usuario_servicio: idRec,
+              usuario_registra: idUser,
+              usuario_servicio: idUser,
               precio: params.row.max_detalle_venta_id,
               esEdicion: true,
             });
@@ -592,8 +592,8 @@ function ListaEspera() {
           hora_estimada: formClienteEspera.hora_estimada,
           estilista: formClienteEspera.estilista,
           tiempo_servicio: formClienteEspera.tiempo_servicio,
-          usuario_registra: idRec,
-          usuario_servicio: idRec,
+          usuario_registra: idUser,
+          usuario_servicio: idUser,
           precio: formClienteEspera.precio,
           observacion: formClienteEspera.observacion ? formClienteEspera.observacion : "",
         },
@@ -647,11 +647,9 @@ function ListaEspera() {
           atendido: 1,
           estilista: formClienteEspera.estilista ? formClienteEspera.estilista : "",
           tiempo_servicio: formClienteEspera.tiempo_servicio,
-          usuario_registra: idRec,
-          usuario_registra: idRec,
+          usuario_registra: idUser,
           usuario_cita: formClienteEspera.no_cliente,
-          usuario_servicio: idRec,
-          usuario_servicio: idRec,
+          usuario_servicio: idUser,
           usuario_elimina: 0,
           precio: formClienteEspera.precio,
           observacion: formClienteEspera.observacion ? formClienteEspera.observacion : "",

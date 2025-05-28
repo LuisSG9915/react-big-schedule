@@ -279,8 +279,18 @@ function Basic() {
   const toggleModal = () => {
     setIsModalOpen(!isModalOpen);
   };
-  const { dataListaEspera, fetchListaEspera } = useListaEspera({ id: 0, sucursal: idSuc });
+  const { dataListaEspera, fetchListaEspera } = useListaEspera({ id: 0, sucursal: idSuc, refreshInterval: 30000 }); // Refresh every 30 seconds (60,000 ms)
+  const [bitacoraCitas, setbitacoraCitas] = useState([])
+  const [modalBitacora, setModalBitacora] = useState(false)
+  const getBitacoraCitas = async (idCita) => {
+    const response = await peinadosApi.get(`/spBitacoraDetalleCitas?idCita=${idCita}`)
+    setbitacoraCitas(response.data);
+    setModalBitacora(true);
+  }
   
+  const toggleBitacoraModal = () => {
+    setModalBitacora(!modalBitacora);
+  }
   // Add CSS for blinking effect
   useEffect(() => {
     // Create a style element
@@ -910,6 +920,15 @@ function Basic() {
           >
             Cancelar
           </FaTrash>
+          <FaEye
+          size={23}
+          onClick={async () => {
+            await getBitacoraCitas(params.row.id);
+            setModalBitacora(true);
+          }}
+          >
+
+          </FaEye>
         </div>
       ),
     },
@@ -6117,6 +6136,71 @@ function Basic() {
           </Box>
         </Modal>
       </Draggable>
+
+      {/* Modal para mostrar la bitácora de citas */}
+      <Modal open={modalBitacora} onClose={() => setModalBitacora(false)} disableAutoFocus disableEnforceFocus>
+        <Box sx={style}>
+          <div style={{ height: "2%", display: "table", tableLayout: "fixed", width: "100%" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+              <Typography variant="h4">Bitácora de Cita</Typography>
+              <AiOutlineClose onClick={() => setModalBitacora(false)} style={{ cursor: "pointer" }} />
+            </div>
+            
+            <ThemeProvider theme={theme}>
+              <DataGrid
+                rows={bitacoraCitas.length > 0 ? bitacoraCitas : []}
+                getRowId={(row) => row.id}
+                columns={[
+                  { field: 'fechaLog', headerName: 'Fecha', width: 180, valueFormatter: (params) => new Date(params.value).toLocaleString() },
+                  { field: 'nombre', headerName: 'Cliente', width: 200 },
+                  { field: 'descripcion', headerName: 'Servicio', width: 200 },
+                  { 
+                    field: 'estatusCita', 
+                    headerName: 'Estatus', 
+                    width: 120,
+                    renderCell: (params) => {
+                      let color = '';
+                      if (params.value === 'Requerido') color = '#FFA500';
+                      else if (params.value === 'Confirmado') color = '#4CAF50';
+                      else if (params.value === 'Cancelado') color = '#F44336';
+                      else color = '#2196F3';
+                      
+                      return (
+                        <div style={{ 
+                          backgroundColor: color, 
+                          padding: '4px 8px', 
+                          borderRadius: '4px', 
+                          color: 'white',
+                          fontSize: '0.8rem',
+                          fontWeight: 'bold'
+                        }}>
+                          {params.value}
+                        </div>
+                      );
+                    }
+                  },
+                  { field: 'tipoCambio', headerName: 'Tipo de Cambio', width: 150 },
+                  { field: 'fechaCita', headerName: 'Fecha Cita', width: 180, valueFormatter: (params) => new Date(params.value).toLocaleString() }
+                ]}
+                rowHeight={35}
+                columnHeaderHeight={40}
+                autoHeight
+                pageSize={10}
+                sx={{
+                  '& .MuiDataGrid-cell': {
+                    fontSize: '1rem'
+                  },
+                  '& .MuiDataGrid-columnHeader': {
+                    backgroundColor: '#f5f5f5',
+                    fontWeight: 'bold',
+                    fontSize: '1rem'
+                  }
+                }}
+              />
+            </ThemeProvider>
+          </div>
+        </Box>
+      </Modal>
     </>
   );
 }
