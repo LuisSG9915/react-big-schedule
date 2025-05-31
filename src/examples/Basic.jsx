@@ -125,7 +125,7 @@ function Basic() {
   const fecha = new Date();
   // ?
   const idUser = new URLSearchParams(window.location.search).get("idRec");
-  const password_chk = new URLSearchParams(window.location.search).get("password_chk"); 
+  const password_chk = new URLSearchParams(window.location.search).get("password_chk");
   useEffect(() => {
     if (!idSuc) {
       alert("Favor de ingresar en la página principal");
@@ -287,7 +287,7 @@ function Basic() {
     setbitacoraCitas(response.data);
     setModalBitacora(true);
   }
-  
+
   const toggleBitacoraModal = () => {
     setModalBitacora(!modalBitacora);
   }
@@ -315,17 +315,17 @@ function Basic() {
       document.head.removeChild(styleElement);
     };
   }, []);
-  
+
   // Refresh lista de espera data every 30 seconds
   useEffect(() => {
     // Initial fetch
     fetchListaEspera();
-    
+
     // Set up interval for periodic refresh
     const intervalId = setInterval(() => {
       fetchListaEspera();
     }, 30000); // 30 seconds
-    
+
     // Clean up interval on component unmount
     return () => {
       clearInterval(intervalId);
@@ -357,18 +357,18 @@ function Basic() {
               item.estadoCita == 6
                 ? "#bababa"
                 : item.estadoCita == 1
-                ? "#F8C471" // Sandy Orange
-                : item.esDomicilio == true
-                ? "#DDA0DD" // Plum
-                : item.estadoCita == 2
-                ? "#AFEEEE" // Pale Turquoise
-                : item.estadoCita == 3
-                ? "#FFF26C" // Lemon Chiffon
-                : item.estadoCita == 4
-                ? "#90EE90" // Light Green
-                : item.estadoCita == 5
-                ? "#DDA0DD" // Plum
-                : "#bababa", // Light Gray
+                  ? "#F8C471" // Sandy Orange
+                  : item.esDomicilio == true
+                    ? "#DDA0DD" // Plum
+                    : item.estadoCita == 2
+                      ? "#AFEEEE" // Pale Turquoise
+                      : item.estadoCita == 3
+                        ? "#FFF26C" // Lemon Chiffon
+                        : item.estadoCita == 4
+                          ? "#90EE90" // Light Green
+                          : item.estadoCita == 5
+                            ? "#DDA0DD" // Plum
+                            : "#bababa", // Light Gray
           };
         })
       );
@@ -391,16 +391,16 @@ function Basic() {
             item.estadoCita == 6
               ? "#bababa"
               : item.estadoCita == 1
-              ? "#F8C471" // Sandy Orange
-              : item.esDomicilio == true
-              ? "#DDA0DD" // Plum
-              : item.estadoCita == 2
-              ? "#AFEEEE" // Pale Turquoise
-              : item.estadoCita == 3
-              ? "#FFF26C" // Lemon Chiffon
-              : item.estadoCita == 4
-              ? "#90EE90" // Light Green
-              : "#bababa", // Light Gray
+                ? "#F8C471" // Sandy Orange
+                : item.esDomicilio == true
+                  ? "#DDA0DD" // Plum
+                  : item.estadoCita == 2
+                    ? "#AFEEEE" // Pale Turquoise
+                    : item.estadoCita == 3
+                      ? "#FFF26C" // Lemon Chiffon
+                      : item.estadoCita == 4
+                        ? "#90EE90" // Light Green
+                        : "#bababa", // Light Gray
         };
       });
     } catch (err) {
@@ -419,7 +419,7 @@ function Basic() {
 
     // Usar la fecha de tempFecha si existe, o la fecha actual
     const fechaFormateada = tempFecha ? formatearFecha(tempFecha) : formatearFecha(new Date());
-    
+
     // Verificar la fecha que se está usando (para depuración)
     console.log('Fecha utilizada en fetchData:', fechaFormateada);
 
@@ -430,7 +430,7 @@ function Basic() {
           response.data.map((item) => {
             const newItem = {
               ...item,
-              name: item.clave+" - "+item.estilista,
+              name: item.clave + " - " + item.estilista,
               id: item.clave,
             };
             delete newItem.toggleExpandStatus;
@@ -459,15 +459,14 @@ function Basic() {
       // Default fallback
       return format(new Date(), "yyyyMMdd");
     };
-    
+
     const fecha1Formatted = formatDateString(datosParametros.fecha1);
     const fecha2Formatted = formatDateString(datosParametros.fecha2);
     const fechaActualFormatted = format(datosParametros.fecha, "yyyyMMdd");
-    
+
     peinadosApi
       .get(
-        `/ClientesCitasDia12?suc=${idSuc}&cliente=0&fecha=${fechaActualFormatted}&tipoCita=${
-          tipoCita ? tipoCita : "%"
+        `/ClientesCitasDia12?suc=${idSuc}&cliente=0&fecha=${fechaActualFormatted}&tipoCita=${tipoCita ? tipoCita : "%"
         }&nombreEstilista=${elimina ? "" : datosParametros.nombreEstilista}&nombreCliente=${elimina ? "" : datosParametros.nombreCliente}&fecha1=${fecha1Formatted || fechaActualFormatted}&fecha2=${fecha2Formatted || fechaActualFormatted}`
       )
       .then((response) => {
@@ -523,7 +522,7 @@ function Basic() {
 
   const actualizarFechayCitas = (schedulerData, dias, fecha) => {
     setDatosParametros((datosParametrosPrevios) => {
-    
+
       // Manejar el caso cuando es un objeto o una fecha string
       let fechaBase;
       if (fecha) {
@@ -815,12 +814,12 @@ function Basic() {
                 }
                 return dateValue;
               };
-              
+
               const fecha1 = formatDateForComparison(datosParametros.fecha);
               const fecha2 = formatDateForComparison(params.row.fecha);
-              
+
               console.log('Comparing dates:', fecha1, fecha2);
-              
+
               if (fecha1 !== fecha2) {
                 Swal.fire({
                   icon: "error",
@@ -921,11 +920,11 @@ function Basic() {
             Cancelar
           </FaTrash>
           <FaEye
-          size={23}
-          onClick={async () => {
-            await getBitacoraCitas(params.row.id);
-            setModalBitacora(true);
-          }}
+            size={23}
+            onClick={async () => {
+              await getBitacoraCitas(params.row.id);
+              setModalBitacora(true);
+            }}
           >
 
           </FaEye>
@@ -948,22 +947,22 @@ function Basic() {
           {params.row.stao_estilista == 4 && params.row.estatusCita == 2
             ? "RD"
             : params.row.stao_estilista == 4 && params.row.estatusCita == 3
-            ? "AD"
-            : params.row.stao_estilista == 5 && params.row.estatusCita == 2
-            ? "RD"
-            : params.row.stao_estilista == 5 && params.row.estatusCita == 3
-            ? "AD"
-            : params.row.estatusCita == 2
-            ? "R"
-            : params.row.estatusCita == 3
-            ? "A"
-            : params.row.estatusCita == 4
-            ? "S"
-            : params.row.estatusCita == 5
-            ? "D"
-            : params.row.estatusCita == 1
-            ? "N/A"
-            : ""}
+              ? "AD"
+              : params.row.stao_estilista == 5 && params.row.estatusCita == 2
+                ? "RD"
+                : params.row.stao_estilista == 5 && params.row.estatusCita == 3
+                  ? "AD"
+                  : params.row.estatusCita == 2
+                    ? "R"
+                    : params.row.estatusCita == 3
+                      ? "A"
+                      : params.row.estatusCita == 4
+                        ? "S"
+                        : params.row.estatusCita == 5
+                          ? "D"
+                          : params.row.estatusCita == 1
+                            ? "N/A"
+                            : ""}
         </p>
       ),
     },
@@ -1116,16 +1115,16 @@ function Basic() {
           {params.row.estatusCita == 4
             ? params.row.stao_estilista
             : params.row.estatusCita == 2
-            ? "R"
-            : params.row.estatusCita == 3
-            ? "A"
-            : params.row.estatusCita == 4
-            ? "S"
-            : params.row.estatusCita == 5
-            ? "D"
-            : params.row.estatusCita == 1
-            ? "N/A"
-            : ""}
+              ? "R"
+              : params.row.estatusCita == 3
+                ? "A"
+                : params.row.estatusCita == 4
+                  ? "S"
+                  : params.row.estatusCita == 5
+                    ? "D"
+                    : params.row.estatusCita == 1
+                      ? "N/A"
+                      : ""}
         </p>
       ),
     },
@@ -1180,8 +1179,8 @@ function Basic() {
     // },
   ];
 
-  const ligaPruebas = "http://localhost:5173/";
-  // const ligaPruebas = "https://cbinfo.no-ip.info:9019/";
+  //const ligaPruebas = "http://localhost:5173/";
+  const ligaPruebas = "https://cbinfo.no-ip.info:9019/";
   const handleOpenNewWindow = ({ idCita, idUser, idCliente, fecha, flag }) => {
     const url = `${ligaPruebas}miliga/crearcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idSuc=${1}&idRec=${1}&flag=${flag}`; // Reemplaza esto con la URL que desees abrir
     const width = 390;
@@ -1245,7 +1244,7 @@ function Basic() {
           id: 0, // idCitaServicio
         },
       })
-      .then((response) => {});
+      .then((response) => { });
   };
   const felicitarCliente = async (id, sucursal) => {
     await peinadosApi.put("/sp_clientesFelicitarUpd", null, {
@@ -1679,7 +1678,7 @@ function Basic() {
   const getEstilistas = async () => {
     // Obtener la fecha actual en México
     const fechaActual = new Date();
-    
+
     // Formatear la fecha en formato YYYY-MM-DD usando la fecha local
     const formatearFecha = (fecha) => {
       const año = fecha.getFullYear();
@@ -1690,7 +1689,7 @@ function Basic() {
 
     // Usar la fecha de datosParametros si existe, o la fecha actual
     const fechaFormateada = datosParametros.fecha ? formatearFecha(datosParametros.fecha) : formatearFecha(fechaActual);
-    
+
     // Verificar la fecha que se está usando (para depuración)
     console.log('Fecha utilizada:', fechaFormateada);
 
@@ -2239,9 +2238,8 @@ function Basic() {
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: `Faltan por ingresar datos favor de verificar ${
-          formCita.estatusAsignado + "" + formCita.estatusRequerido + "" + formCita.esServicioDomicilio
-        } `,
+        text: `Faltan por ingresar datos favor de verificar ${formCita.estatusAsignado + "" + formCita.estatusRequerido + "" + formCita.esServicioDomicilio
+          } `,
         confirmButtonColor: "#3085d6", // Cambiar el color del botón OK
       });
     } else {
@@ -5960,7 +5958,7 @@ function Basic() {
                 </Col>
                 <Col xs="6">
                   <FormGroup style={{ display: "flex", alignItems: "center", marginBottom: "0px" }}>
-                    <Label onClick={()=> console.log(datosParametros.fecha)} for="cliente" style={{ width: 55, fontSize: "1.1rem" }}>
+                    <Label onClick={() => console.log(datosParametros.fecha)} for="cliente" style={{ width: 55, fontSize: "1.1rem" }}>
                       Hora:
                     </Label>
                     <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -6075,14 +6073,14 @@ function Basic() {
                   <Col xs={12} sm={6} md={4} lg={4} className="mb-3">
                     <div style={{ border: "1px solid black", padding: "15px", borderRadius: "5px", height: "100%", textAlign: "center", fontWeight: "bold" }}>
                       <Label className="mb-2">Clave de reservación</Label>
-                      <Input 
+                      <Input
                         value={formCitaServicio.idCita ? formCitaServicio.idCita + "-" + 1 + "-" + format(new Date(formCita.fecha), "ddM") : ""}
                         className="text-center"
                         style={{ fontSize: "1.1rem", fontWeight: "bold" }}
                       />
                     </div>
                   </Col>
-                  
+
                   <Col xs={12} sm={6} md={4} lg={3} className="mb-3">
                     <div style={{ height: "100%" }}>
                       <FormGroup className="mb-2">
@@ -6094,14 +6092,14 @@ function Basic() {
                         <Label for="otros">Otros</Label>
                         <Input type="text" name="otros" id="otros" disabled placeholder={formVentaTemporal.otros} />
                       </FormGroup>
-                      
+
                       <FormGroup>
                         <Label for="total">Total</Label>
                         <Input type="text" name="total" id="total" placeholder={"$" + formVentaTemporal.precioTotalyOtros.toFixed(2)} disabled />
                       </FormGroup>
                     </div>
                   </Col>
-                  
+
                   <Col xs={12} sm={6} md={4} lg={3} className="mb-3">
                     <div style={{ height: "100%" }}>
                       <FormGroup className="mb-2">
@@ -6120,7 +6118,7 @@ function Basic() {
                           onClick={() => {
                             putCitasServiciosTerminado();
                           }}
-                          // disabled={!agregarServicios}
+                        // disabled={!agregarServicios}
                         >
                           Guardar
                         </Button>
@@ -6145,7 +6143,7 @@ function Basic() {
               <Typography variant="h4">Bitácora de Cita</Typography>
               <AiOutlineClose onClick={() => setModalBitacora(false)} style={{ cursor: "pointer" }} />
             </div>
-            
+
             <ThemeProvider theme={theme}>
               <DataGrid
                 rows={bitacoraCitas.length > 0 ? bitacoraCitas : []}
@@ -6154,9 +6152,9 @@ function Basic() {
                   { field: 'fechaLog', headerName: 'Fecha', width: 180, valueFormatter: (params) => new Date(params.value).toLocaleString() },
                   { field: 'nombre', headerName: 'Cliente', width: 200 },
                   { field: 'descripcion', headerName: 'Servicio', width: 200 },
-                  { 
-                    field: 'estatusCita', 
-                    headerName: 'Estatus', 
+                  {
+                    field: 'estatusCita',
+                    headerName: 'Modo cita',
                     width: 120,
                     renderCell: (params) => {
                       let color = '';
@@ -6164,12 +6162,12 @@ function Basic() {
                       else if (params.value === 'Confirmado') color = '#4CAF50';
                       else if (params.value === 'Cancelado') color = '#F44336';
                       else color = '#2196F3';
-                      
+
                       return (
-                        <div style={{ 
-                          backgroundColor: color, 
-                          padding: '4px 8px', 
-                          borderRadius: '4px', 
+                        <div style={{
+                          backgroundColor: color,
+                          padding: '4px 8px',
+                          borderRadius: '4px',
                           color: 'white',
                           fontSize: '0.8rem',
                           fontWeight: 'bold'
@@ -6179,6 +6177,7 @@ function Basic() {
                       );
                     }
                   },
+                  { field: 'esServicio', headerName: 'Serv', width: 150, renderCell: (params) => params.value ? 'Si' : 'No' },
                   { field: 'tipoCambio', headerName: 'Tipo de Cambio', width: 150 },
                   { field: 'fechaCita', headerName: 'Fecha Cita', width: 180, valueFormatter: (params) => new Date(params.value).toLocaleString() }
                 ]}
