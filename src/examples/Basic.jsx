@@ -283,7 +283,7 @@ function Basic() {
   const [bitacoraCitas, setbitacoraCitas] = useState([])
   const [modalBitacora, setModalBitacora] = useState(false)
   const getBitacoraCitas = async (idCita) => {
-    const response = await peinadosApi.get(`/spBitacoraDetalleCitas?idCita=${idCita}`)
+    const response = await peinadosApi.get(`/spBitacoraDetalleCitas2?idCita=${idCita}`)
     setbitacoraCitas(response.data);
     setModalBitacora(true);
   }
