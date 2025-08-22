@@ -283,7 +283,7 @@ function Basic() {
   const [bitacoraCitas, setbitacoraCitas] = useState([])
   const [modalBitacora, setModalBitacora] = useState(false)
   const getBitacoraCitas = async (idCita) => {
-    const response = await peinadosApi.get(`/spBitacoraDetalleCitas2?idCita=${idCita}`)
+    const response = await peinadosApi.get(`/spBitacoraDetalleCitas3?idCita=${idCita}`)
     setbitacoraCitas(response.data);
     setModalBitacora(true);
   }
@@ -6149,12 +6149,12 @@ function Basic() {
                 rows={bitacoraCitas.length > 0 ? bitacoraCitas : []}
                 getRowId={(row) => row.id}
                 columns={[
-                  { field: 'fechaLog', headerName: 'Fecha', width: 180, valueFormatter: (params) => new Date(params.value).toLocaleString() },
-                  { field: 'nombre', headerName: 'Cliente', width: 200 },
-                  { field: 'descripcion', headerName: 'Servicio', width: 200 },
+                  { field: 'nombre', headerName: 'Usuario', width: 200 },
+                  { field: 'fechaLog', headerName: 'Fecha cambio', width: 180, valueFormatter: (params) => new Date(params.value).toLocaleString() },
+                  { field: 'descripcion', headerName: 'Servicio', width: 250 },
                   {
                     field: 'estatusCita',
-                    headerName: 'Modo cita',
+                    headerName: 'Modo',
                     width: 120,
                     renderCell: (params) => {
                       let color = '';
@@ -6177,9 +6177,9 @@ function Basic() {
                       );
                     }
                   },
-                  { field: 'esServicio', headerName: 'Serv', width: 150, renderCell: (params) => params.value ? 'Si' : 'No' },
-                  { field: 'tipoCambio', headerName: 'Tipo de Cambio', width: 150 },
-                  { field: 'fechaCita', headerName: 'Fecha Cita', width: 180, valueFormatter: (params) => new Date(params.value).toLocaleString() }
+                  { field: 'nombreEstilista', headerName: 'Estilista', width: 150 },
+                  { field: 'fechaCita', headerName: 'Fecha', width: 120, valueFormatter: (params) => new Date(params.value).toLocaleDateString() },
+                  { field: 'fechaCita1', headerName: 'Hora', width: 100, valueGetter: (params) => params.row.fechaCita, valueFormatter: (params) => new Date(params.value).toLocaleTimeString() },
                 ]}
                 rowHeight={35}
                 columnHeaderHeight={40}
