@@ -8,7 +8,7 @@ import { DATE_FORMAT } from "../config/default";
 const RadioButton = Radio.Button;
 const RadioGroup = Radio.Group;
 
-function SchedulerHeader({ onViewChange, goNext, goBack, onSelectDate, schedulerData, leftCustomHeader, rightCustomHeader }) {
+function SchedulerHeader({ onViewChange, goNext, goBack, onSelectDate, schedulerData, leftCustomHeader, rightCustomHeader, isLoading }) {
   const [viewSpinning, setViewSpinning] = useState(false);
   const [dateSpinning, setDateSpinning] = useState(false);
   const [visible, setVisible] = useState(false);
@@ -75,47 +75,41 @@ function SchedulerHeader({ onViewChange, goNext, goBack, onSelectDate, scheduler
         </div>
       </Col>
       <Col>
-        <Space>
-          <Spin spinning={viewSpinning} />
-          {/* Quiero que se quede estatic el div, en la parte de arriba */}
-          <div className="header2-text" style={{ alignItems: "center", sticky: "top", top: "0px", zIndex: "1", position: "fixed" }}>
-            <Space>
-              <div>
-                <LeftOutlined
-                  size={50}
-                  type="left"
-                  style={{ marginRight: "8px", fontSize: "28px", color: "black" }}
-                  className="icon-nav"
-                  onClick={() => handleEvents(goBack, false)}
-                />
-                {config.calendarPopoverEnabled ? (
-                  <Popover
-                    content={popover}
-                    placement="bottomLeft"
-                    trigger="click"
-                    open={visible}
-                    onOpenChange={setVisible}
-                    overlayClassName="scheduler-header-popover"
-                  >
-                    <span className="header2-text-label" style={{ cursor: "pointer", fontSize: "26px" }}>
-                      {dateLabel}
-                    </span>
-                  </Popover>
-                ) : (
-                  <span className="header2-text-label">{dateLabel}</span>
-                )}
-                <RightOutlined
-                  size={50}
-                  type="right"
-                  style={{ marginLeft: "8px", fontSize: "28px", color: "black" }}
-                  className="icon-nav"
-                  onClick={() => handleEvents(goNext, false)}
-                />
+        <div className="header2-text" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+          <LeftOutlined
+            size={50}
+            type="left"
+            style={{ fontSize: "28px", color: isLoading ? "#d9d9d9" : "black", cursor: isLoading ? 'not-allowed' : 'pointer' }}
+            className="icon-nav"
+            onClick={() => !isLoading && handleEvents(goBack, false)}
+          />
+          {config.calendarPopoverEnabled ? (
+            <Popover
+              content={popover}
+              placement="bottomLeft"
+              trigger="click"
+              open={visible}
+              onOpenChange={setVisible}
+              overlayClassName="scheduler-header-popover"
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="header2-text-label" style={{ cursor: "pointer", fontSize: "26px" }}>
+                  {dateLabel}
+                </span>
+                {isLoading && <Spin size="large" />}
               </div>
-              <Spin spinning={dateSpinning} />
-            </Space>
-          </div>
-        </Space>
+            </Popover>
+          ) : (
+            <span className="header2-text-label">{dateLabel}</span>
+          )}
+          <RightOutlined
+            size={50}
+            type="right"
+            style={{ fontSize: "28px", color: isLoading ? "#d9d9d9" : "black", cursor: isLoading ? 'not-allowed' : 'pointer' }}
+            className="icon-nav"
+            onClick={() => !isLoading && handleEvents(goNext, false)}
+          />
+        </div>
       </Col>
       <Col>
         <Space>
@@ -135,11 +129,13 @@ SchedulerHeader.propTypes = {
   schedulerData: PropTypes.object.isRequired,
   leftCustomHeader: PropTypes.object,
   rightCustomHeader: PropTypes.object,
+  isLoading: PropTypes.bool,
 };
 
 SchedulerHeader.defaultProps = {
   leftCustomHeader: null,
   rightCustomHeader: null,
+  isLoading: false,
 };
 
 export default SchedulerHeader;

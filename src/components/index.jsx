@@ -78,6 +78,7 @@ class Scheduler extends Component {
     nextClick: PropTypes.func.isRequired,
     onViewChange: PropTypes.func.isRequired,
     onSelectDate: PropTypes.func.isRequired,
+    isLoading: PropTypes.bool,
     onSetAddMoreState: PropTypes.func,
     updateEventStart: PropTypes.func,
     updateEventEnd: PropTypes.func,
@@ -155,9 +156,21 @@ class Scheduler extends Component {
   }
 
   render() {
-    const { schedulerData, leftCustomHeader, rightCustomHeader } = this.props;
+    const { schedulerData, leftCustomHeader, rightCustomHeader, isLoading } = this.props;
     const { viewType, renderData, showAgenda, config } = schedulerData;
     const width = schedulerData.getSchedulerWidth();
+
+    const overlayStyle = {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(240, 240, 240, 0.4)',
+      zIndex: 1000,
+      display: isLoading ? 'block' : 'none',
+      cursor: 'not-allowed'
+    };
 
     let tbodyContent = <tr />;
     if (showAgenda) {
@@ -312,19 +325,23 @@ class Scheduler extends Component {
           goBack={this.goBack}
           rightCustomHeader={rightCustomHeader}
           leftCustomHeader={leftCustomHeader}
+          isLoading={this.props.isLoading}
         />
       );
     }
 
     return (
-      <table id="RBS-Scheduler-root" className="scheduler" style={{ width: `${width}px` }}>
-        <thead>
-          <tr>
-            <td colSpan="2">{schedulerHeader}</td>
-          </tr>
-        </thead>
-        <tbody>{tbodyContent}</tbody>
-      </table>
+      <div style={{ position: 'relative' }}>
+        <div style={overlayStyle} />
+        <table id="RBS-Scheduler-root" className="scheduler" style={{ width: `${width}px` }}>
+          <thead>
+            <tr>
+              <td colSpan="2">{schedulerHeader}</td>
+            </tr>
+          </thead>
+          <tbody>{tbodyContent}</tbody>
+        </table>
+      </div>
     );
   }
 

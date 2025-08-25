@@ -60,6 +60,7 @@ import { IoIosAddCircle } from "react-icons/io";
 import { IoListCircle } from "react-icons/io5";
 import { FaEye } from "react-icons/fa6";
 import { IoRefreshCircle } from "react-icons/io5";
+import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { usePromocionesZonas } from "../functions/crearCita/usePromocionesZonas";
 import { usePromocionesGrupos } from "../functions/crearCita/usePromocionesGrupos";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
@@ -152,12 +153,26 @@ function Basic() {
   });
 
   useEffect(() => {
-    // Añadir la clase al body
+    // Añadir la clase al body y estilos del spinner
     document.body.classList.add("special-body");
+    
+    const styleElement = document.createElement('style');
+    styleElement.innerHTML = `
+      @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+      .loading-spinner {
+        animation: spin 1s linear infinite;
+        color: #1890ff;
+      }
+    `;
+    document.head.appendChild(styleElement);
 
-    // Quitar la clase del body cuando el componente se desmonte
+    // Cleanup cuando el componente se desmonte
     return () => {
       document.body.classList.remove("special-body");
+      document.head.removeChild(styleElement);
     };
   }, []);
 
@@ -239,7 +254,7 @@ function Basic() {
                   if (isConfirmed.isConfirmed) Swal.close();
                 });
               }
-            }, 2000);
+            }, 1000);
           });
         },
         allowOutsideClick: () => !Swal.isLoading(),
@@ -484,6 +499,7 @@ function Basic() {
 
   const [state, dispatch] = useReducer(reducer, initialState);
   const [inicializarAgenda, setinicializarAgenda] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   useEffect(() => {
     schedulerData = new SchedulerData(datosParametros.fecha, ViewType.Day, false, false, {
       besidesWidth: window.innerWidth <= 1600 ? 100 : 350,
@@ -521,6 +537,7 @@ function Basic() {
   };
 
   const actualizarFechayCitas = (schedulerData, dias, fecha) => {
+    setIsLoading(true);
     setDatosParametros((datosParametrosPrevios) => {
 
       // Manejar el caso cuando es un objeto o una fecha string
@@ -554,6 +571,9 @@ function Basic() {
             schedulerData.next();
           }
           actualizarAgenda(response, schedulerData);
+          setTimeout(() => {
+            setIsLoading(false);
+          }, 1000);
         });
       });
       return {
@@ -792,11 +812,12 @@ function Basic() {
     {
       field: "accion",
       headerName: "Accion",
-      width: 85,
+      width: 110,
       align: "center",
       sortable: false,
       renderCell: (params) => (
-        <div style={{ fontSize: "16px" }}>
+        <div style={{ fontSize: "16px", display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {isLoading && <AiOutlineLoading3Quarters className="loading-spinner" />}
           <FaMoneyBillAlt
             size={23}
             disabled
@@ -1625,7 +1646,7 @@ function Basic() {
                   if (isConfirmed.isConfirmed) Swal.close();
                 });
               }
-            }, 2000);
+            }, 1000);
           });
         },
         allowOutsideClick: () => !Swal.isLoading(),
@@ -3484,15 +3505,12 @@ function Basic() {
           const fechaFormateada1 = fechaCompleta1 ? formatFecha(fechaCompleta1) : "";
 
           return (
-            <span
-              style={{ textAlign: "center" }}
-              onDoubleClick={() => {
-                setFormPromocion({ id: cell.row.original.id });
-                setModalPromocionesFechas(true);
-              }}
-            >
-              {fechaFormateada1}
-            </span>
+            <div style={{ textAlign: "center" }}>
+              <span>{fechaFormateada1}</span>
+              <div className="spinner-border text-primary" role="status">
+                <span className="sr-only">Loading...</span>
+              </div>
+            </div>
           );
         },
       },
@@ -3770,6 +3788,7 @@ function Basic() {
             key={1}
             schedulerData={state.viewModel}
             prevClick={prevClick}
+            isLoading={isLoading}
             nextClick={nextClick}
             onSelectDate={onSelectDate}
             onViewChange={onViewChange}
@@ -6150,7 +6169,7 @@ function Basic() {
                 getRowId={(row) => row.id}
                 columns={[
                   { field: 'nombre', headerName: 'Usuario', width: 200 },
-                  { field: 'fechaLog', headerName: 'Fecha cambio', width: 180, valueFormatter: (params) => new Date(params.value).toLocaleString() },
+                  { field: 'fechaLog', headerName: 'Fecha cambio', width: 220, valueFormatter: (params) => new Date(params.value).toLocaleString() },
                   { field: 'descripcion', headerName: 'Servicio', width: 250 },
                   {
                     field: 'estatusCita',
@@ -6179,7 +6198,7 @@ function Basic() {
                   },
                   { field: 'nombreEstilista', headerName: 'Estilista', width: 150 },
                   { field: 'fechaCita', headerName: 'Fecha', width: 120, valueFormatter: (params) => new Date(params.value).toLocaleDateString() },
-                  { field: 'fechaCita1', headerName: 'Hora', width: 100, valueGetter: (params) => params.row.fechaCita, valueFormatter: (params) => new Date(params.value).toLocaleTimeString() },
+                  { field: 'fechaCita1', headerName: 'Hora', width: 200, valueGetter: (params) => params.row.fechaCita, valueFormatter: (params) => new Date(params.value).toLocaleTimeString() },
                 ]}
                 rowHeight={35}
                 columnHeaderHeight={40}
