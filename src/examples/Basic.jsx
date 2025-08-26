@@ -294,7 +294,7 @@ function Basic() {
   const toggleModal = () => {
     setIsModalOpen(!isModalOpen);
   };
-  const { dataListaEspera, fetchListaEspera } = useListaEspera({ id: 0, sucursal: idSuc, refreshInterval: 30000 }); // Refresh every 30 seconds (60,000 ms)
+  const { dataListaEspera, fetchListaEspera } = useListaEspera({ id: 0, sucursal: idSuc, refreshInterval: 60000 }); // Refresh every 30 seconds (60,000 ms)
   const [bitacoraCitas, setbitacoraCitas] = useState([])
   const [modalBitacora, setModalBitacora] = useState(false)
   const getBitacoraCitas = async (idCita) => {
@@ -1200,8 +1200,8 @@ function Basic() {
     // },
   ];
 
-  //const ligaPruebas = "http://localhost:5173/";
-  const ligaPruebas = "https://cbinfo.no-ip.info:9019/";
+  const ligaPruebas = "http://localhost:5173/";
+  //const ligaPruebas = "https://cbinfo.no-ip.info:9019/";
   const handleOpenNewWindow = ({ idCita, idUser, idCliente, fecha, flag }) => {
     const url = `${ligaPruebas}miliga/crearcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idSuc=${1}&idRec=${1}&flag=${flag}`; // Reemplaza esto con la URL que desees abrir
     const width = 390;
@@ -4317,10 +4317,50 @@ function Basic() {
         </Box>
       </Modal>
 
-      <Modal open={ModalClientesPuntos} onClose={() => setModalClientesPuntos(false)}>
+      <Modal open={ModalClientesPuntos} onClose={() => {
+        setFormCitaServicio({
+          ...formCitaServicio,
+          idCita: null,
+          estatusAsignado: false,
+          estatusRequerido: false,
+        });
+        setFormCita({
+          ...formCita,
+          cia: null,
+          sucursal: idSuc,
+          no_estilista: 0,
+        });
+
+        setFormCitaDescripciones({
+          ...formCitaDescripciones,
+          descripcion_no_cancelacion: "",
+          descripcion_no_estilista: "",
+        });
+        setdataCitasServicios([]);
+        setModalClientesPuntos(false)}}>
         <Box sx={style}>
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <AiOutlineClose onClick={() => setModalClientesPuntos(false)} />
+            <AiOutlineClose onClick={() => {
+              setFormCitaServicio({
+                ...formCitaServicio,
+                idCita: null,
+                estatusAsignado: false,
+                estatusRequerido: false,
+              });
+              setFormCita({
+                ...formCita,
+                cia: null,
+                sucursal: idSuc,
+                no_estilista: 0,
+              });
+
+              setFormCitaDescripciones({
+                ...formCitaDescripciones,
+                descripcion_no_cancelacion: "",
+                descripcion_no_estilista: "",
+              });
+              setdataCitasServicios([]);
+              setModalClientesPuntos(false)}} />
           </div>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
             <Typography variant="h4">Historial de puntos</Typography>
@@ -4854,7 +4894,27 @@ function Basic() {
       </Modal>
       <Modal
         open={modalEdicionServicios2}
-        onClose={() => setModalEdicionServicios2(false)}
+        onClose={() => {
+          setFormCitaServicio({
+            ...formCitaServicio,
+            idCita: null,
+            estatusAsignado: false,
+            estatusRequerido: false,
+          });
+          setFormCita({
+            ...formCita,
+            cia: null,
+            sucursal: idSuc,
+            no_estilista: 0,
+          });
+
+          setFormCitaDescripciones({
+            ...formCitaDescripciones,
+            descripcion_no_cancelacion: "",
+            descripcion_no_estilista: "",
+          });
+          setdataCitasServicios([]);
+          setModalEdicionServicios2(false)}}
         disableAutoFocus
         disableEnforceFocus
         disableEscapeKeyDown
