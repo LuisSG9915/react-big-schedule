@@ -943,6 +943,15 @@ function Basic() {
           <FaEye
             size={23}
             onClick={async () => {
+              console.log(params.row)
+              if(params.row.idCita == 0){
+                Swal.fire({
+                  icon: "info",
+                  title: "Información",
+                  text: "Cita ya en venta",
+                })
+                return;
+              }
               await getBitacoraCitas(params.row.id);
               setModalBitacora(true);
             }}
@@ -1200,8 +1209,8 @@ function Basic() {
     // },
   ];
 
-  const ligaPruebas = "http://localhost:5173/";
-  //const ligaPruebas = "https://cbinfo.no-ip.info:9019/";
+  //const ligaPruebas = "http://localhost:5173/";
+  const ligaPruebas = "https://cbinfo.no-ip.info:9019/";
   const handleOpenNewWindow = ({ idCita, idUser, idCliente, fecha, flag }) => {
     const url = `${ligaPruebas}miliga/crearcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idSuc=${1}&idRec=${1}&flag=${flag}`; // Reemplaza esto con la URL que desees abrir
     const width = 390;
@@ -3831,6 +3840,8 @@ function Basic() {
             <h2>Seleccione la accion</h2>
             <Button
               color="danger"
+              disabled={event.idCita == 0}
+
               style={{ marginBottom: "10px" }}
               onClick={() => {
                 if (event.hora1 < new Date()) {
@@ -3846,12 +3857,15 @@ function Basic() {
             >
               Cancelar cita
             </Button>
-            <Button onClick={() => setIsModalOpen(false)} style={{ marginBottom: "10px" }}>
+            <Button               disabled={event.idCita == 0}
+ onClick={() => setIsModalOpen(false)} style={{ marginBottom: "10px" }}>
               Liberar servicio
             </Button>
             <Button
               color="success"
+              disabled={event.idCita == 0}
               onClick={() => {
+             
                 setFormCitaServicio({
                   ...formCitaServicio,
                   idCita: event.idCita,
@@ -3874,6 +3888,8 @@ function Basic() {
             </Button>
             <Button
               color="primary"
+              disabled={event.idCita == 0}
+
               onClick={() => {
                 setIsModalOpen(false);
                 handleOpenNewWindowEdit({
@@ -6237,8 +6253,8 @@ function Basic() {
                     width: 120,
                     renderCell: (params) => {
                       let color = '';
-                      if (params.value === 'Requerido') color = '#FFA500';
-                      else if (params.value === 'Confirmado') color = '#4CAF50';
+                      if (params.value === 'Requerido') color = '#4CAF50';
+                      else if (params.value === 'Confirmado') color = '#FFA500';
                       else if (params.value === 'Cancelado') color = '#F44336';
                       else color = '#2196F3';
 

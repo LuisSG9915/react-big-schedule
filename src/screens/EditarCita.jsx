@@ -275,7 +275,8 @@ function EditarCita() {
     }
     console.log(formCita)
     
-    
+    console.log(formCita.cambioCitaModo)
+    console.log(formCita.estatusAsignado)
     peinadosApi
       .put("/DetalleCitasReducido2", null, {
         params: {
@@ -293,12 +294,17 @@ function EditarCita() {
           observacion: "",
           user_uc: 0,
           estatus:
-            formCita.cambioCitaModo && formCita.estatusAsignado
+             formCita.cambioCitaModo == "1" && formCita.estatusAsignado
+             
               ? 2
-              : formCita.cambioCitaModo && formCita.estatusRequerido
+               : formCita.cambioCitaModo == "1" && formCita.estatusRequerido
               ? 3
               : estadoCita == 6
               ? 6
+              : formCita.cambioCitaModo == "0" && formCita.estatusRequerido  ?
+              2
+              : formCita.cambioCitaModo == "0" && formCita.estatusAsignado  ?
+              3
               : 4,
           tiempo: formCita.tiempo,
           // estatus: formCita.estatusAsignado ? 3 : formCita.estatusRequerido ? 2 : 4,
@@ -1102,6 +1108,8 @@ function EditarCita() {
                       estatusRequerido: formCita.estatusRequerido ? false : true,
                       estatusAsignado: formCita.estatusAsignado ? false : true,
                     })
+                    
+                    // formCita.cambioCitaModo
                   }
                 >
                   <FaExchangeAlt />
