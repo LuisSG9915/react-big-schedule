@@ -91,6 +91,8 @@ function reducer(state, action) {
 }
 
 function Basic() {
+  const { dataSucursales } = useSucursales();
+
   const [dataEvent, setDataEvent] = useState({
     id: 0,
     event_id: "",
@@ -501,6 +503,38 @@ function Basic() {
   const [inicializarAgenda, setinicializarAgenda] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   useEffect(() => {
+    // Obtener las horas de entrada y salida de la sucursal actual
+    const horaEntradaDefault = 10; // Valor por defecto: 10:00 AM
+    const horaSalidaDefault = 23; // Valor por defecto: 11:00 PM (23:00)
+    if (!dataSucursales || dataSucursales.length === 0) return;
+    // Buscar la sucursal actual por su ID
+    const sucursalActual = dataSucursales.find(suc => suc.sucursal === Number(idSuc));
+    
+    let horaEntrada = horaEntradaDefault;
+    let horaSalida = horaSalidaDefault;
+    
+    if (sucursalActual && sucursalActual.hora_entrada && sucursalActual.hora_salida) {
+      // Extraer solo la hora de los campos hora_entrada y hora_salida
+      const fechaEntrada = new Date(sucursalActual.hora_entrada);
+      const fechaSalida = new Date(sucursalActual.hora_salida);
+      
+      // Obtener la hora (0-23)
+      horaEntrada = fechaEntrada.getHours();
+      horaSalida = fechaSalida.getHours();
+      
+      // Ajustar la hora de salida si tiene minutos adicionales
+      // Si los minutos son mayores a 0, redondeamos hacia arriba para asegurar que se muestre la última hora completa
+      const minutosSalida = fechaSalida.getMinutes();
+      if (minutosSalida > 0) {
+        horaSalida += 1; // Añadir una hora más para incluir la hora parcial
+      }
+      
+      console.log(`Horario de sucursal ${sucursalActual.descripcion}: ${horaEntrada}:${fechaEntrada.getMinutes().toString().padStart(2, '0')} - ${fechaSalida.getHours()}:${minutosSalida.toString().padStart(2, '0')}`);
+      console.log(`Configurando agenda con horario: ${horaEntrada}:00 - ${horaSalida}:00`);
+    } else {
+      console.log('No se encontró la sucursal o no tiene horarios configurados. Usando valores por defecto.');
+    }
+    
     schedulerData = new SchedulerData(datosParametros.fecha, ViewType.Day, false, false, {
       besidesWidth: window.innerWidth <= 1600 ? 100 : 350,
       dayMaxEvents: 99,
@@ -511,6 +545,8 @@ function Basic() {
       customMaxEvents: 9965,
       eventItemPopoverTrigger: "click",
       schedulerContentHeight: "100%",
+      dayStartFrom: horaEntrada, // Hora de entrada dinámica
+      dayStopTo: horaSalida, // Hora de salida dinámica
     });
     schedulerData.setSchedulerLocale(dayjsLocale);
     schedulerData.setCalendarPopoverLocale(antdLocale);
@@ -530,7 +566,7 @@ function Basic() {
       }
     }, 1500);
     // }
-  }, [arregloCita, arreglo]);
+  }, [arregloCita, arreglo, dataSucursales]);
   const actualizarAgenda = (response, schedulerData) => {
     schedulerData.setEvents(response);
     // dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
@@ -610,6 +646,7 @@ function Basic() {
   };
 
   const ops1 = (schedulerData, event) => {
+    console.log(event)
     handleOpenNewWindowEdit({
       idCita: event.idCita,
       idUser: event.no_estilista,
@@ -1209,8 +1246,8 @@ function Basic() {
     // },
   ];
 
-  //const ligaPruebas = "http://localhost:5173/";
-  const ligaPruebas = "https://cbinfo.no-ip.info:9019/";
+  const ligaPruebas = "http://localhost:5173/";
+  //const ligaPruebas = "https://cbinfo.no-ip.info:9019/";
   const handleOpenNewWindow = ({ idCita, idUser, idCliente, fecha, flag }) => {
     const url = `${ligaPruebas}miliga/crearcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idSuc=${1}&idRec=${1}&flag=${flag}`; // Reemplaza esto con la URL que desees abrir
     const width = 390;
@@ -1787,7 +1824,9 @@ function Basic() {
     idCliente: formCita.no_cliente,
   });
   const { dataClasificacion } = usesp_ClasificacionSel({ idCliente: formCita.no_cliente });
-  const { dataSucursales } = useSucursales();
+  useEffect(() => {
+    console.log('Estructura de dataSucursales:', dataSucursales);
+  }, [dataSucursales]);
   const { dataVentasHistoriales, fetchVentasHistoriales } = useVentasHistoriales({
     claveProd: formVentaHistoriales.claveProd,
     fechaFin: formVentaHistoriales.fechaFin,
@@ -4930,7 +4969,8 @@ function Basic() {
             descripcion_no_estilista: "",
           });
           setdataCitasServicios([]);
-          setModalEdicionServicios2(false)}}
+          setModalEdicionServicios2(false)
+        }}
         disableAutoFocus
         disableEnforceFocus
         disableEscapeKeyDown
@@ -5839,12 +5879,58 @@ function Basic() {
           keepMounted
           open={ModalCrear}
           style={{ maxWidth: "48%", maxHeight: "95%", overflow: "auto" }}
-          onClose={() => setModalCrear(false)}
+          onClose={() => {
+            setModalCrear(false)
+         setFormCitaServicio({
+            ...formCitaServicio,
+            idCita: null,
+            estatusAsignado: false,
+            estatusRequerido: false,
+          });
+          setFormCita({
+            ...formCita,
+            cia: null,
+            sucursal: idSuc,
+            no_estilista: 0,
+          });
+
+          setFormCitaDescripciones({
+            ...formCitaDescripciones,
+            descripcion_no_cancelacion: "",
+            descripcion_no_estilista: "",
+          });
+          setdataCitasServicios([]);
+          setModalEdicionServicios2(false)
+
+          }}
           disableEnforceFocus
         >
           <Box sx={styleCrearCita}>
             <div
-              onClick={() => setModalCrear(false)}
+              onClick={() => {
+                setModalCrear(false)
+         setFormCitaServicio({
+            ...formCitaServicio,
+            idCita: null,
+            estatusAsignado: false,
+            estatusRequerido: false,
+          });
+          setFormCita({
+            ...formCita,
+            cia: null,
+            sucursal: idSuc,
+            no_estilista: 0,
+          });
+
+          setFormCitaDescripciones({
+            ...formCitaDescripciones,
+            descripcion_no_cancelacion: "",
+            descripcion_no_estilista: "",
+          });
+          setdataCitasServicios([]);
+          setModalEdicionServicios2(false)
+
+              }}
               style={{
                 cursor: "pointer",
                 marginRight: "2px",

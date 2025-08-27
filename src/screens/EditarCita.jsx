@@ -273,10 +273,8 @@ function EditarCita() {
         text: "La fecha debe ser mayor o igual a la fecha actual",
       });
     }
-    console.log(formCita)
+   
     
-    console.log(formCita.cambioCitaModo)
-    console.log(formCita.estatusAsignado)
     peinadosApi
       .put("/DetalleCitasReducido2", null, {
         params: {
