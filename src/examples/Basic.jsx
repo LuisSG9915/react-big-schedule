@@ -214,11 +214,8 @@ function Basic() {
   const [datosParametrosCitaTemp, setDatosParametrosCitaTemp] = useState({});
   const [datosParametrosFechaCitaTemp, setDatosParametrosFechaCitaTemp] = useState({});
   const handleChangeObservaciones = (e) => {
-    const debouncedOnChange = debounce(() => {
       setFormCitasObservaciones2(e.target.value);
-    }, 300); // 300 milisegundos de retraso
 
-    debouncedOnChange();
   };
 
   function validarContraseña() {
@@ -447,7 +444,8 @@ function Basic() {
           response.data.map((item) => {
             const newItem = {
               ...item,
-              name: item.clave + " - " + item.estilista,
+              // name: item.clave + " - " + item.estilista,
+              name: item.estilista,
               id: item.clave,
             };
             delete newItem.toggleExpandStatus;
@@ -1246,8 +1244,8 @@ function Basic() {
     // },
   ];
 
-  const ligaPruebas = "http://localhost:5173/";
-  //const ligaPruebas = "https://cbinfo.no-ip.info:9019/";
+  //const ligaPruebas = "http://localhost:5173/";
+  const ligaPruebas = "https://cbinfo.no-ip.info:9019/";
   const handleOpenNewWindow = ({ idCita, idUser, idCliente, fecha, flag }) => {
     const url = `${ligaPruebas}miliga/crearcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idSuc=${1}&idRec=${1}&flag=${flag}`; // Reemplaza esto con la URL que desees abrir
     const width = 390;
@@ -2325,33 +2323,77 @@ function Basic() {
             validarContraseña().then(async (contraseñaValidada) => {
               if (contraseñaValidada) {
                 try {
-                  const response = await peinadosApi.post("/DetalleCitas", null, {
-                    params: {
-                      cia: 1,
-                      sucursal: idSuc,
-                      no_estilista: formCita.no_estilista,
-                      no_cliente: formCita.no_cliente,
-                      dia_cita: citaDateTime,
-                      hora_cita: citaDateTime,
-                      // dia_cita: new Date(formCita.fecha),
-                      // hora_cita: new Date(formCita.fecha),
-                      fecha: fechaSinHora,
-                      tiempo: 0,
-                      user: idUser,
-                      importe: 0,
-                      cancelada: false,
-                      stao_estilista: 1,
-                      nota_canc: 0,
-                      registrada: true,
-                      observacion: formCitasObservaciones2,
-                      user_uc: 0,
-                      estatus: formCita.estatusAsignado ? 3 : formCita.estatusRequerido ? 2 : 1,
-                      servDomicilio: formCita.esServicioDomicilio == false ? 0 : 1,
-                    },
-                  });
-                  setProductosModal(true);
-                  setFormCitaServicio({ ...formCitaServicio, idCita: response.data.mensaje2 });
-                  return response.data.mensaje2;
+                  let citaId;
+                  
+                  // Verificar si ya existe formCitaServicio.idCita
+                  if (formCitaServicio.idCita && formCitaServicio.idCita > 0) {
+                    // Si ya existe, usar ese ID
+                    citaId = formCitaServicio.idCita;
+                    
+                    // Ejecutar directamente putDetalleCitasServiciosUpd7
+                    await putDetalleCitasServiciosUpd7(
+                      0, // id
+                      idSuc, // sucursal
+                      citaId, // idCita
+                      0, // tiempo
+                      formCita.no_estilista, // idEstilista
+                      -1, // mostrar
+                      formCitaServicio.idServicio || 0, // idServicio
+                      idUser, // usuario
+                      formCitaServicio.cantidad || 1, // cantidad
+                      formCitaServicio.precio || 0, // precio
+                      citaDateTime, // fechaCita
+                      formCita.estatusAsignado ? 3 : formCita.estatusRequerido ? 2 : 1 // estatusCita
+                    );
+                  } else {
+                    // Si no existe, crear nueva cita
+                    const response = await peinadosApi.post("/DetalleCitas", null, {
+                      params: {
+                        cia: 1,
+                        sucursal: idSuc,
+                        no_estilista: formCita.no_estilista,
+                        no_cliente: formCita.no_cliente,
+                        dia_cita: citaDateTime,
+                        hora_cita: citaDateTime,
+                        fecha: fechaSinHora,
+                        tiempo: 0,
+                        user: idUser,
+                        importe: 0,
+                        cancelada: false,
+                        stao_estilista: 1,
+                        nota_canc: 0,
+                        registrada: true,
+                        observacion: formCitasObservaciones2,
+                        user_uc: 0,
+                        estatus: formCita.estatusAsignado ? 3 : formCita.estatusRequerido ? 2 : 1,
+                        servDomicilio: formCita.esServicioDomicilio == false ? 0 : 1,
+                      },
+                    });
+                    
+                    citaId = response.data.mensaje2;
+                    setProductosModal(true);
+                    setFormCitaServicio({ ...formCitaServicio, idCita: citaId });
+                    
+                    // Ejecutar putDetalleCitasServiciosUpd7 si se creó correctamente la cita
+                    if (citaId > 0) {
+                      await putDetalleCitasServiciosUpd7(
+                        0, // id
+                        idSuc, // sucursal
+                        citaId, // idCita
+                        0, // tiempo
+                        formCita.no_estilista, // idEstilista
+                        -1, // mostrar
+                        formCitaServicio.idServicio || 0, // idServicio
+                        idUser, // usuario
+                        formCitaServicio.cantidad || 1, // cantidad
+                        formCitaServicio.precio || 0, // precio
+                        citaDateTime, // fechaCita
+                        formCita.estatusAsignado ? 3 : formCita.estatusRequerido ? 2 : 1 // estatusCita
+                      );
+                    }
+                  }
+                  
+                  return citaId;
                 } catch (error) {
                   alert(`Hubo un error, ${error}`);
                 }
@@ -2952,6 +2994,7 @@ function Basic() {
         // });
         setModalEdicionServicios(false);
         getCitasDia();
+        window.location.reload();
       });
   };
   const putDetalleCitasServiciosUpd7 = async (
@@ -3416,7 +3459,9 @@ function Basic() {
     }
     if (!resHorario) return false;
     if (resHorario.data[0].clave_empleado == "Cita sin restricciones" || resHorario.data[0].clave_empleado == "Prosiga") {
-      console.log("");
+      
+   
+      
     } else if (resHorario.data[0].clave_empleado == "Cita fuera del horario de salida del estilista") {
       const isConfirmed2 = await Swal.fire({
         icon: "error",
@@ -3429,9 +3474,9 @@ function Basic() {
         showCancelButton: true,
       });
       if (!isConfirmed2.isConfirmed) return false;
-      const res = await validarContraseña();
-      if (!res) return false;
-    } else {
+      const resContraseña = await validarContraseña();
+      if (!resContraseña) return false;
+    } else if(res && res.data[0] && res.data[0].id>0) {
       Swal.fire({
         icon: "error",
         title: "Error",
@@ -3468,6 +3513,32 @@ function Basic() {
     // Aquí puedes poner la acción que quieras realizar.
     console.log({ params });
   };
+  const formatFecha22 = (fechaCompleta1) => {
+    try {
+      // Handle both ISO strings and simple date strings like "2000-09-23"
+      let fecha;
+      if (typeof fechaCompleta1 === 'string') {
+        // If it's a simple date string without time (like "2000-09-23")
+        if (fechaCompleta1.length === 10 && fechaCompleta1.includes('-')) {
+          fecha = new Date(fechaCompleta1);
+        } else {
+          // Otherwise use parseISO for ISO format strings
+          fecha = parseISO(fechaCompleta1);
+        }
+      } else if (fechaCompleta1 instanceof Date) {
+        fecha = fechaCompleta1;
+      }
+      
+      if (isValid(fecha)) {
+        return format(fecha, "dd/MM");
+      }
+      return "Fecha inválida";
+    } catch (error) {
+      console.error("Error al formatear la fecha:", error);
+      return "Error";
+    }
+  };
+
   const columnsCumple = useMemo(
     () => [
       {
@@ -3483,16 +3554,14 @@ function Basic() {
         style: { fontSize: "1.2rem" },
       },
       {
-        header: "Cumpleaños",
         accessorKey: "cumpleaños",
+        header: "Cumpleaños",
+        size: 5,
         Cell: ({ cell }) => {
           const fechaCompleta1 = cell.row.original.cumpleaños;
-          const fechaFormateada1 = fechaCompleta1 ? formatFecha(fechaCompleta1) : "";
-
+          const fechaFormateada1 = fechaCompleta1 ? formatFecha22(fechaCompleta1) : "";
           return <span>{fechaFormateada1}</span>;
         },
-
-        style: { fontSize: "1.2rem" },
       },
       {
         header: "Felicitado",
@@ -3897,7 +3966,7 @@ function Basic() {
               Cancelar cita
             </Button>
             <Button               disabled={event.idCita == 0}
- onClick={() => setIsModalOpen(false)} style={{ marginBottom: "10px" }}>
+                onClick={() => setIsModalOpen(false)} style={{ marginBottom: "10px" }}>
               Liberar servicio
             </Button>
             <Button
@@ -4238,7 +4307,7 @@ function Basic() {
           </Container>
           <br />
           <Button color="primary" onClick={() => setProductosModal(true)}>
-            Ingresar servicios
+             Ingresar servicios
           </Button>
           <ThemeProvider theme={theme}>
             <DataGrid autoHeight rows={dataCitasServicios} columns={columnsCitasServiciosAltaServicio}></DataGrid>
@@ -4391,6 +4460,7 @@ function Basic() {
           descripcion_no_cancelacion: "",
           descripcion_no_estilista: "",
         });
+        setDataPuntosporCliente([]);
         setdataCitasServicios([]);
         setModalClientesPuntos(false)}}>
         <Box sx={style}>
@@ -4414,6 +4484,7 @@ function Basic() {
                 descripcion_no_cancelacion: "",
                 descripcion_no_estilista: "",
               });
+              setDataPuntosporCliente([]);
               setdataCitasServicios([]);
               setModalClientesPuntos(false)}} />
           </div>
@@ -5697,7 +5768,7 @@ function Basic() {
           </div>
           <MaterialReactTable
             columns={columnsPromo}
-            data={dataPromocionesZonas.filter((promocion) => new Date(promocion.f2) >= new Date())}
+            data={dataPromocionesZonas.filter((promocion) => new Date(promocion.cumpleaños) >= new Date())}
             initialState={{ density: "compact" }}
             muiTableBodyProps={{ sx: { fontSize: "16px" } }}
             muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
@@ -5842,7 +5913,8 @@ function Basic() {
           <h3>Cumpleaños del mes</h3>
           <MaterialReactTable
             columns={columnsCumple}
-            data={dataCumpleañosProximos}
+            data={dataCumpleañosProximos.filter((cliente) => formatFecha(cliente.cumpleaños) !== "Fecha inválida")}
+
             enableRowSelection={false}
             enableRowExport={false}
             muiTableBodyProps={{ sx: { fontSize: "16px" } }}
@@ -5881,25 +5953,27 @@ function Basic() {
           style={{ maxWidth: "48%", maxHeight: "95%", overflow: "auto" }}
           onClose={() => {
             setModalCrear(false)
-         setFormCitaServicio({
-            ...formCitaServicio,
-            idCita: null,
-            estatusAsignado: false,
-            estatusRequerido: false,
-          });
-          setFormCita({
-            ...formCita,
-            cia: null,
-            sucursal: idSuc,
-            no_estilista: 0,
-          });
+            setFormCitaServicio({
+              ...formCitaServicio,
+              idCita: null,
+              estatusAsignado: false,
+              estatusRequerido: false,
+            });
+            setFormCita({
+              ...formCita,
+              cia: null,
+              sucursal: idSuc,
+              no_estilista: 0,
+            });
 
-          setFormCitaDescripciones({
-            ...formCitaDescripciones,
-            descripcion_no_cancelacion: "",
-            descripcion_no_estilista: "",
-          });
-          setdataCitasServicios([]);
+            setFormCitaDescripciones({
+              ...formCitaDescripciones,
+              descripcion_no_cancelacion: "",
+              descripcion_no_estilista: "",
+              descripcion_no_cliente: "",
+            });
+            setFormCitasObservaciones2("");
+            setdataCitasServicios([]);
           setModalEdicionServicios2(false)
 
           }}
@@ -5909,25 +5983,27 @@ function Basic() {
             <div
               onClick={() => {
                 setModalCrear(false)
-         setFormCitaServicio({
-            ...formCitaServicio,
-            idCita: null,
-            estatusAsignado: false,
-            estatusRequerido: false,
-          });
-          setFormCita({
-            ...formCita,
-            cia: null,
-            sucursal: idSuc,
-            no_estilista: 0,
-          });
+                setFormCitaServicio({
+                  ...formCitaServicio,
+                  idCita: null,
+                  estatusAsignado: false,
+                  estatusRequerido: false,
+                });
+                setFormCita({
+                  ...formCita,
+                  cia: null,
+                  sucursal: idSuc,
+                  no_estilista: 0,
+                });
 
-          setFormCitaDescripciones({
-            ...formCitaDescripciones,
-            descripcion_no_cancelacion: "",
-            descripcion_no_estilista: "",
-          });
-          setdataCitasServicios([]);
+                setFormCitaDescripciones({
+                  ...formCitaDescripciones,
+                  descripcion_no_cancelacion: "",
+                  descripcion_no_estilista: "",
+                  descripcion_no_cliente: "",
+                });
+                setFormCitasObservaciones2("");
+                setdataCitasServicios([]);
           setModalEdicionServicios2(false)
 
               }}
@@ -6018,8 +6094,8 @@ function Basic() {
                       // }}
                       onChange={handleChangeObservaciones}
                       type="text"
-                      name="observacion"
-                      id="observacion"
+
+                      value={formCitasObservaciones2}
                       style={{ fontSize: "1.1rem" }}
                     />
                   </InputGroup>
@@ -6080,7 +6156,7 @@ function Basic() {
                     </Label>
                     <LocalizationProvider dateAdapter={AdapterDateFns}>
                       <DatePicker
-                        disabled={formCitaServicio.idCita}
+                        // disabled={formCitaServicio.idCita}
                         openPickerIcon={<Box />} // Aquí se elimina el ícono
                         slotProps={{ textField: { size: "small" } }}
                         style={{ height: 20 }}
@@ -6144,7 +6220,7 @@ function Basic() {
                     </Label>
                     <LocalizationProvider dateAdapter={AdapterDateFns}>
                       <TimePicker
-                        disabled={formCitaServicio.idCita}
+                        // disabled={formCitaServicio.idCita}
                         timeSteps={{ minutes: 15 }}
                         slotProps={{ textField: { size: "small" } }}
                         value={datosParametros.fecha ? new Date(datosParametros.fecha) : null}
@@ -6182,7 +6258,7 @@ function Basic() {
                       Atiende:
                     </Label>
                     <Input
-                      disabled={formCitaServicio.idCita}
+                      // disabled={formCitaServicio.idCita}
                       bsSize="sm"
                       type="select"
                       name="atiende"
@@ -6237,13 +6313,13 @@ function Basic() {
                 }}
                 variant="contained"
               >
-                Ingresar servicios...
+                {formCitaServicio.idCita > 0 ? "Modificar cita" : "Ingresar servicios..."}
+                
               </Button>
+              <hr />
               <ThemeProvider theme={theme}>
                 <DataGrid
-                  autoHeight
-                  slots={{ noRowsOverlay: CustomNoRowsOverlay }}
-                  sx={{ "--DataGrid-overlayHeight": "250px" }}
+          
                   rows={dataCitasServicios}
                   columns={columnsCitasServicios}
                 />
@@ -6303,7 +6379,32 @@ function Basic() {
                         >
                           Guardar
                         </Button>
-                        <Button color="danger" onClick={() => window.close()}>
+                        <Button color="danger" onClick={() => {
+                           setModalCrear(false)
+                           setFormCitaServicio({
+                             ...formCitaServicio,
+                             idCita: null,
+                             estatusAsignado: false,
+                             estatusRequerido: false,
+                           });
+                           setFormCita({
+                             ...formCita,
+                             cia: null,
+                             sucursal: idSuc,
+                             no_estilista: 0,
+                           });
+           
+                           setFormCitaDescripciones({
+                             ...formCitaDescripciones,
+                             descripcion_no_cancelacion: "",
+                             descripcion_no_estilista: "",
+                             descripcion_no_cliente: "",
+                           });
+                           setFormCitasObservaciones2("");
+                           setdataCitasServicios([]);
+                     setModalEdicionServicios2(false)
+           
+                        }}>
                           Salir
                         </Button>
                       </div>

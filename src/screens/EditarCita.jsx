@@ -182,8 +182,8 @@ function EditarCita() {
   }, []);
 
   useEffect(() => {
-    getClientes();
     getEstilistas();
+    getClientes();
     getProductos();
   }, [idSuc]);
 
@@ -200,10 +200,23 @@ function EditarCita() {
         setDataCitasServicios(response.data);
       });
   };
-  const getEstilistas = () => {
-    peinadosApi.get(`/estilistas4?id=0&sucursal=${idSuc}`).then((response) => {
-      setDataEstilistas(response.data);
-    });
+  const getEstilistas = async () => {
+    const fechaActual = new Date();
+
+    const formatearFecha = (fecha) => {
+      const año = fecha.getFullYear();
+      const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+      const dia = String(fecha.getDate()).padStart(2, '0');
+      return `${año}-${mes}-${dia}`;
+    };
+
+        const fechaFormateada = fecha ? formatearFecha(fecha) : formatearFecha(fechaActual);
+
+   await peinadosApi
+        .get(`/estilistas5?id=0&sucursal=${idSuc}&fecha=${fechaFormateada}`)
+        .then((response) => {
+          setDataEstilistas(response.data);
+        });
   };
   const getClientes = () => {
     peinadosApi.get(`/clientesZonas?id=0&idSuc=${idSuc ? idSuc : 0}`).then((response) => {
@@ -887,9 +900,10 @@ function EditarCita() {
         showCancelButton: true,
       });
       if (!isConfirmed2.isConfirmed) return false;
-      const res = await validarContraseña();
-      if (!res) return false;
-    } else {
+      const resContraseña = await validarContraseña();
+      if (!resContraseña) return false;
+      console.log(res)
+    } else if(res && res.data[0] && res.data[0].id>0) {
       Swal.fire({
         icon: "error",
         title: "Error",
