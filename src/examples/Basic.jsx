@@ -93,6 +93,9 @@ function reducer(state, action) {
 function Basic() {
   const { dataSucursales } = useSucursales();
 
+  // Estado para almacenar los horarios de la agenda
+  const [horariosAgenda, setHorariosAgenda] = useState(null);
+
   const [dataEvent, setDataEvent] = useState({
     id: 0,
     event_id: "",
@@ -488,49 +491,130 @@ function Basic() {
         setArregloCitaDia(response.data);
       });
   };
+  // Función para obtener los horarios de la agenda desde el endpoint
+  const fetchHorariosAgenda = async (fecha) => {
+    try {
+      // Formatear la fecha en formato YYYY-MM-DD
+      const formatearFecha = (fecha) => {
+        if (!fecha) return format(new Date(), "yyyy-MM-dd");
+        if (fecha instanceof Date) {
+          return format(fecha, "yyyy-MM-dd");
+        }
+        return fecha;
+      };
+      
+      const fechaFormateada = formatearFecha(fecha);
+      console.log(`Obteniendo horarios para sucursal ${idSuc} y fecha ${fechaFormateada}`);
+      
+      const response = await peinadosApi.get(`/sp_catHorariosGetAgenda2?sucursal=${idSuc}&fecha=${fechaFormateada}`);
+      console.log('Horarios obtenidos:', response.data);
+      
+      if (response.data && response.data.length > 0) {
+        setHorariosAgenda(response.data[0]);
+        return response.data[0];
+      } else {
+        console.log('No se encontraron horarios para esta fecha y sucursal');
+        setHorariosAgenda(null);
+        return null;
+      }
+    } catch (error) {
+      console.error('Error al obtener horarios de agenda:', error);
+      setHorariosAgenda(null);
+      return null;
+    }
+  };
+
   useEffect(() => {
     fetchData();
     getCitasDia();
+    fetchHorariosAgenda(datosParametros.fecha);
   }, []);
   useEffect(() => {
     getEstilistas();
     getCitasDia();
   }, [tipoCita, datosParametros.fecha]);
+  
+  // Actualizar la agenda cuando cambian los horarios
+  useEffect(() => {
+    if (horariosAgenda && inicializarAgenda && state.viewModel && state.viewModel.config) {
+      console.log('Actualizando configuración de horarios en la agenda:', horariosAgenda);
+      
+      // Extraer las horas de los horarios de la agenda
+      const [horasInicio, minutosInicio] = horariosAgenda.hora_inicio ? horariosAgenda.hora_inicio.split(':').map(Number) : [10, 0];
+      const [horasFinal, minutosFinal] = horariosAgenda.hora_final ? horariosAgenda.hora_final.split(':').map(Number) : [23, 0];
+      
+      let horaEntrada = horasInicio;
+      let horaSalida = horasFinal;
+      
+      // Ajustar la hora de salida si tiene minutos adicionales
+      if (minutosFinal > 0) {
+        horaSalida += 1; // Añadir una hora más para incluir la hora parcial
+      }
+      
+      // Actualizar la configuración del scheduler
+      const updatedSchedulerData = state.viewModel;
+      updatedSchedulerData.config.dayStartFrom = horaEntrada;
+      updatedSchedulerData.config.dayStopTo = horaSalida;
+      
+      // Actualizar el estado del scheduler
+      dispatch({ type: "UPDATE_SCHEDULER", payload: updatedSchedulerData });
+    }
+  }, [horariosAgenda]);
 
   const [state, dispatch] = useReducer(reducer, initialState);
   const [inicializarAgenda, setinicializarAgenda] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   useEffect(() => {
-    // Obtener las horas de entrada y salida de la sucursal actual
+    // Obtener las horas de entrada y salida de la agenda para la fecha actual
     const horaEntradaDefault = 10; // Valor por defecto: 10:00 AM
     const horaSalidaDefault = 23; // Valor por defecto: 11:00 PM (23:00)
-    if (!dataSucursales || dataSucursales.length === 0) return;
-    // Buscar la sucursal actual por su ID
-    const sucursalActual = dataSucursales.find(suc => suc.sucursal === Number(idSuc));
     
     let horaEntrada = horaEntradaDefault;
     let horaSalida = horaSalidaDefault;
     
-    if (sucursalActual && sucursalActual.hora_entrada && sucursalActual.hora_salida) {
-      // Extraer solo la hora de los campos hora_entrada y hora_salida
-      const fechaEntrada = new Date(sucursalActual.hora_entrada);
-      const fechaSalida = new Date(sucursalActual.hora_salida);
+    // Primero intentamos usar los horarios de la agenda para el día específico
+    if (horariosAgenda && horariosAgenda.hora_inicio && horariosAgenda.hora_final) {
+      // Extraer la hora de los campos hora_inicio y hora_final
+      const [horasInicio, minutosInicio] = horariosAgenda.hora_inicio.split(':').map(Number);
+      const [horasFinal, minutosFinal] = horariosAgenda.hora_final.split(':').map(Number);
       
-      // Obtener la hora (0-23)
-      horaEntrada = fechaEntrada.getHours();
-      horaSalida = fechaSalida.getHours();
+      horaEntrada = horasInicio;
+      horaSalida = horasFinal;
       
       // Ajustar la hora de salida si tiene minutos adicionales
-      // Si los minutos son mayores a 0, redondeamos hacia arriba para asegurar que se muestre la última hora completa
-      const minutosSalida = fechaSalida.getMinutes();
-      if (minutosSalida > 0) {
+      if (minutosFinal > 0) {
         horaSalida += 1; // Añadir una hora más para incluir la hora parcial
       }
       
-      console.log(`Horario de sucursal ${sucursalActual.descripcion}: ${horaEntrada}:${fechaEntrada.getMinutes().toString().padStart(2, '0')} - ${fechaSalida.getHours()}:${minutosSalida.toString().padStart(2, '0')}`);
+      console.log(`Horario de agenda para ${horariosAgenda.dia}: ${horaEntrada}:${minutosInicio.toString().padStart(2, '0')} - ${horasFinal}:${minutosFinal.toString().padStart(2, '0')}`);
       console.log(`Configurando agenda con horario: ${horaEntrada}:00 - ${horaSalida}:00`);
+    }
+    // Si no hay horarios específicos para el día, intentamos usar los horarios de la sucursal
+    else if (dataSucursales && dataSucursales.length > 0) {
+      const sucursalActual = dataSucursales.find(suc => suc.sucursal === Number(idSuc));
+      
+      if (sucursalActual && sucursalActual.hora_entrada && sucursalActual.hora_salida) {
+        // Extraer solo la hora de los campos hora_entrada y hora_salida
+        const fechaEntrada = new Date(sucursalActual.hora_entrada);
+        const fechaSalida = new Date(sucursalActual.hora_salida);
+        
+        // Obtener la hora (0-23)
+        horaEntrada = fechaEntrada.getHours();
+        horaSalida = fechaSalida.getHours();
+        
+        // Ajustar la hora de salida si tiene minutos adicionales
+        const minutosSalida = fechaSalida.getMinutes();
+        if (minutosSalida > 0) {
+          horaSalida += 1; // Añadir una hora más para incluir la hora parcial
+        }
+        
+        console.log(`Horario de sucursal ${sucursalActual.descripcion}: ${horaEntrada}:${fechaEntrada.getMinutes().toString().padStart(2, '0')} - ${fechaSalida.getHours()}:${minutosSalida.toString().padStart(2, '0')}`);
+        console.log(`Configurando agenda con horario: ${horaEntrada}:00 - ${horaSalida}:00`);
+      } else {
+        console.log('No se encontró la sucursal o no tiene horarios configurados. Usando valores por defecto.');
+      }
     } else {
-      console.log('No se encontró la sucursal o no tiene horarios configurados. Usando valores por defecto.');
+      console.log('No hay datos de horarios ni de sucursales. Usando valores por defecto.');
     }
     
     schedulerData = new SchedulerData(datosParametros.fecha, ViewType.Day, false, false, {
@@ -570,7 +654,7 @@ function Basic() {
     // dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
   };
 
-  const actualizarFechayCitas = (schedulerData, dias, fecha) => {
+  const actualizarFechayCitas = async (schedulerData, dias, fecha) => {
     setIsLoading(true);
     setDatosParametros((datosParametrosPrevios) => {
 
@@ -591,25 +675,30 @@ function Basic() {
 
       // Ahora podemos sumar los días de manera segura
       tempFecha.setDate(tempFecha.getDate() + dias);
-      // ... resto del código
-
+      
       if (dias == 0) tempFecha.setDate(tempFecha.getDate() + 0);
-      fetchData(tempFecha).then((response) => {
-        getCitas(tempFecha).then((response) => {
-          if (dias < 0) {
-            schedulerData.prev();
-          } else if (dias === 0) {
-            // schedulerData.setDate(format(tempFecha, "yyyy-MM-dd"));
-            schedulerData.setDate(tempFecha.toISOString().split("T")[0]);
-          } else {
-            schedulerData.next();
-          }
-          actualizarAgenda(response, schedulerData);
-          setTimeout(() => {
-            setIsLoading(false);
-          }, 1000);
+      
+      // Primero obtenemos los horarios de la agenda para la nueva fecha
+      fetchHorariosAgenda(tempFecha).then((horariosResult) => {
+        // Luego obtenemos los datos de estilistas
+        fetchData(tempFecha).then(() => {
+          // Finalmente obtenemos las citas
+          getCitas(tempFecha).then((response) => {
+            if (dias < 0) {
+              schedulerData.prev();
+            } else if (dias === 0) {
+              schedulerData.setDate(tempFecha.toISOString().split("T")[0]);
+            } else {
+              schedulerData.next();
+            }
+            actualizarAgenda(response, schedulerData);
+            setTimeout(() => {
+              setIsLoading(false);
+            }, 1000);
+          });
         });
       });
+      
       return {
         ...datosParametrosPrevios,
         fecha: tempFecha,
