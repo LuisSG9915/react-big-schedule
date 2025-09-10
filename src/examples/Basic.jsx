@@ -299,6 +299,7 @@ function Basic() {
   const { dataListaEspera, fetchListaEspera } = useListaEspera({ id: 0, sucursal: idSuc, refreshInterval: 60000 }); // Refresh every 30 seconds (60,000 ms)
   const [bitacoraCitas, setbitacoraCitas] = useState([])
   const [modalBitacora, setModalBitacora] = useState(false)
+  const [isUpdatingService, setIsUpdatingService] = useState(false)
   const getBitacoraCitas = async (idCita) => {
     const response = await peinadosApi.get(`/spBitacoraDetalleCitas3?idCita=${idCita}`)
     setbitacoraCitas(response.data);
@@ -1333,8 +1334,8 @@ function Basic() {
     // },
   ];
 
-  //const ligaPruebas = "http://localhost:5173/";
-  const ligaPruebas = "https://cbinfo.no-ip.info:9019/";
+  const ligaPruebas = "http://localhost:5173/";
+  // const ligaPruebas = "https://cbinfo.no-ip.info:9019/";
   const handleOpenNewWindow = ({ idCita, idUser, idCliente, fecha, flag }) => {
     const url = `${ligaPruebas}miliga/crearcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idSuc=${1}&idRec=${1}&flag=${flag}`; // Reemplaza esto con la URL que desees abrir
     const width = 390;
@@ -2070,7 +2071,10 @@ function Basic() {
             size={33}
             onClick={() => {
               setDataVentaTemporal({ ...dataVentaTemporal, id: cell.row.id });
-
+              
+              // Usar el parámetro skipValidation en lugar del flag
+              console.log('Eliminando servicio con skipValidation=true');
+              
               putDetalleCitasServiciosUpd4(
                 cell.row.id,
                 idSuc, //sucursal: 2 sucursal: 1
@@ -2081,7 +2085,9 @@ function Basic() {
                 cell.row.id_servicio,
                 idUser,
                 0,
-                cell.row.precio
+                cell.row.precio,
+                null,  // fechaCita
+                true   // skipValidation
               );
             }}
           >
@@ -2152,7 +2158,10 @@ function Basic() {
             size={35}
             onClick={() => {
               setDataVentaTemporal({ ...dataVentaTemporal, id: cell.row.id });
-
+              
+              // Usar el parámetro skipValidation
+              console.log('Actualizando servicio con skipValidation=true');
+              
               putDetalleCitasServiciosUpd4(
                 cell.row.id,
                 idSuc, //sucursal: 2 sucursal: 1
@@ -2163,7 +2172,9 @@ function Basic() {
                 cell.row.id_servicio,
                 idUser,
                 0,
-                cell.row.precio
+                cell.row.precio,
+                null,  // fechaCita
+                true   // skipValidation
               );
             }}
           >
@@ -2391,11 +2402,25 @@ function Basic() {
       formCita.no_cliente == 0 ||
       (formCita.estatusAsignado == false && formCita.estatusRequerido == false)
     ) {
+      // Construir un mensaje descriptivo que indique exactamente qué falta
+      let mensajeError = "Faltan por ingresar los siguientes datos: ";
+      
+      if (formCita.no_estilista == 0 || !formCita.no_estilista) {
+        mensajeError += "\n- Estilista";
+      }
+      
+      if (formCita.no_cliente == 0) {
+        mensajeError += "\n- Cliente";
+      }
+      
+      if (formCita.estatusAsignado == false && formCita.estatusRequerido == false) {
+        mensajeError += "\n- Estatus de la cita (Asignado o Requerido)";
+      }
+      
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: `Faltan por ingresar datos favor de verificar ${formCita.estatusAsignado + "" + formCita.estatusRequerido + "" + formCita.esServicioDomicilio
-          } `,
+        text: mensajeError,
         confirmButtonColor: "#3085d6", // Cambiar el color del botón OK
       });
     } else {
@@ -3045,13 +3070,23 @@ function Basic() {
     usuario,
     cantidad,
     precio,
-    fechaCita
+    fechaCita,
+    skipValidation = false // Nuevo parámetro para omitir validación
   ) => {
-    const contraseñaValidada = await validarContraseña();
-    if (!contraseñaValidada) return;
+    // Guardar el estado actual del flag para usarlo después
+    const shouldReload = skipValidation || isUpdatingService;
 
-    peinadosApi
-      .put(`/sp_DetalleCitasServiciosUpd6`, null, {
+    
+    // Si no se debe omitir la validación, validar contraseña
+    const contraseñaValidada = await validarContraseña();
+  
+    if (!contraseñaValidada) {
+      Swal.fire({ icon: "error", title: "Error", text: "Contraseña incorrecta" }); 
+      return
+    }
+
+    try {
+      const response = await peinadosApi.put(`/sp_DetalleCitasServiciosUpd6`, null, {
         params: {
           id: id,
           sucursal: sucursal,
@@ -3065,26 +3100,23 @@ function Basic() {
           precio: precio,
           fechaCita: fechaCita ? fechaCita : formCita.fecha,
         },
-      })
-      .then((response) => {
-        fetchDetalleCitasServicios();
-        // alert(formCita.estatus)
-        // Swal.fire({
-        //   icon: "success",
-        //   text: "Registro Realizado ",
-        //   confirmButtonColor: "#3085d6",
-        //   confirmButtonText: "Recargar pagina",
-        //   cancelButtonText: "No",
-        //   showCancelButton: true,
-        // }).then((result) => {
-        //   if (result.isConfirmed) {
-        //     window.location.reload();
-        //   }
-        // });
-        setModalEdicionServicios(false);
-        getCitasDia();
-        window.location.reload();
       });
+      
+      fetchDetalleCitasServicios();
+      setModalEdicionServicios(false);
+      getCitasDia();
+      
+      // Recargar la página si el flag estaba activo al inicio de la función
+      if (shouldReload) {
+        console.log("Recargando página después de actualizar servicio");
+        window.location.reload();
+      }
+      
+      return response;
+    } catch (error) {
+      console.error("Error al actualizar el servicio:", error);
+      throw error;
+    }
   };
   const putDetalleCitasServiciosUpd7 = async (
     id,
@@ -4040,16 +4072,25 @@ function Basic() {
               disabled={event.idCita == 0}
 
               style={{ marginBottom: "10px" }}
-              onClick={() => {
+              onClick={async () => {
                 if (event.hora1 < new Date()) {
                   Swal.fire({
                     icon: "error",
                     title: "Oops...",
                     text: "No se puede cancelar una cita pasada ",
                   });
+                  return;
                 }
-                putDetalleCitasServiciosUpd4(0, event.sucursal, event.idCita, 0, event.no_estilista, 0, 0, idUser, 0, 0, new Date());
-                setIsModalOpen(false);
+                
+                // Ya no necesitamos cambiar el estado, usamos el parámetro directamente
+                console.log('Cancelando cita con skipValidation=true');
+                
+                try {
+                  // Pasamos true como último parámetro para omitir la validación
+                  await putDetalleCitasServiciosUpd4(0, event.sucursal, event.idCita, 0, event.no_estilista, 0, 0, idUser, 0, 0, new Date(), true);
+                } finally {
+                  setIsModalOpen(false);
+                }
               }}
             >
               Cancelar cita
