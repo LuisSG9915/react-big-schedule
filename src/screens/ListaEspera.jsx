@@ -194,7 +194,7 @@ function ListaEspera() {
     }
   };
 
-  function validarContraseña() {
+  function validarContraseña(tipo_operacion = "AGENDAR_LISTA_DE_ESPERA", modulo = "AGENDA") {
     return new Promise((resolve, reject) => {
       Swal.fire({
         title: "Ingrese su contraseña",
@@ -204,52 +204,80 @@ function ListaEspera() {
         },
         customClass: {
           popup: "swal2-popup", // Agrega una clase personalizada al cuadro de diálogo
+          container: "swal2-container", // Agrega una clase personalizada al contenedor
         },
         showCancelButton: true,
         confirmButtonText: "Confirmar",
         showLoaderOnConfirm: true,
         preConfirm: (contraseña) => {
-          // Aquí puedes agregar tu lógica de validación de contraseña
-          // Por ejemplo, podrías comparar la contraseña ingresada con una contraseña almacenada o realizar una llamada a una API para verificar la contraseña
           return new Promise((resolve) => {
-            setTimeout(() => {
-              // Supongamos que la contraseña es "password"
-              if (contraseña === password_chk) {
-                resolve();
-              } else {
+            // Validar contraseña y permisos usando la API
+            peinadosApi.get(`/sp_permiso_password_valida_agenda6?password=${contraseña}&tipo_operacion=${tipo_operacion}&modulo=${modulo}`)
+              .then(response => {
+                // Verificar si hay datos en la respuesta y si el permiso es 1 (acceso concedido)
+                if (response.data && response.data.length > 0 && response.data[0].permiso === 1) {
+                  // Si la validación es exitosa, actualizar el usuario con el valor de usuarios
+                  const nuevoUsuario = response.data[0].usuarios;
+                  // Actualizar el idUser global con el nuevo usuario
+                  window.tempIdUser = nuevoUsuario; // Guardamos temporalmente para usarlo después
+                  console.log(`Permiso ${tipo_operacion} validado correctamente. Usuario: ${nuevoUsuario}`);
+                  resolve();
+                } else {
+                  // Si la validación falla, mostrar mensaje de error
+                  Swal.fire({
+                    icon: "error",
+                    title: "Permiso denegado",
+                    text: `No tiene permisos para ${tipo_operacion} o la contraseña es incorrecta.`,
+                    confirmButtonText: "Entendido",
+                  }).then((isConfirmed) => {
+                    if (isConfirmed.isConfirmed) Swal.close();
+                  });
+                }
+              })
+              .catch(error => {
+                console.error("Error al validar permisos:", error);
                 Swal.fire({
                   icon: "error",
-                  title: "Contraseña incorrecta",
-                  text: "Por favor, ingrese una contraseña correcta.",
+                  title: "Error",
+                  text: "Ocurrió un error al validar los permisos. Por favor, inténtelo de nuevo.",
                   confirmButtonText: "Entendido",
                 }).then((isConfirmed) => {
                   if (isConfirmed.isConfirmed) Swal.close();
                 });
-              }
-            }, 2000);
+              });
           });
         },
         allowOutsideClick: () => !Swal.isLoading(),
       })
         .then((result) => {
           if (result.isConfirmed) {
-            resolve(true); // Resuelve la promesa con valor true si la contraseña es correcta
+            // Devolver un objeto con la información de validación y el usuario
+            resolve({
+              validado: true,
+              usuario: window.tempIdUser || idUser // Usar el usuario validado o el idUser global si no hay validado
+            });
+            // Limpiar la variable temporal
+            window.tempIdUser = undefined;
           } else {
-            resolve(false); // Resuelve la promesa con valor false si el usuario cancela la entrada de contraseña
+            resolve({
+              validado: false,
+              usuario: idUser
+            });
           }
         })
         .catch((error) => {
           console.error(error);
-          resolve(false); // Resuelve la promesa con valor false si ocurre algún error durante la validación de la contraseña
+          resolve({
+            validado: false,
+            usuario: idUser
+          });
         });
     });
-  }
-  const columnsClientes = [
-    { field: "nombre", headerName: "nombre", width: 250 },
-    { field: "telefono", headerName: "telefono", width: 130 },
-    { field: "celular", headerName: "celular", width: 130 },
-    { field: "cumpleaños", headerName: "cumpleaños", width: 150, renderCell: (params) => <p>{params.row.cumpleaños}</p> },
-    { field: "edit", headerName: "edit", renderCell: renderButtonClient, width: 130 },
+  };
+  
+  // Define columns array properly
+  const columns = [
+    { field: "edit", headerName: "edit", renderCell: renderButtonClient, width: 130 }
   ];
 
   function renderButtonClient(params) {
@@ -346,9 +374,11 @@ function ListaEspera() {
     const isVerified = await verificarDisponibilidad(tiempo, fecha, estilista);
     if (!isVerified) return;
 
-    const contraseñaValidada = await validarContraseña();
+    const result = await validarContraseña("AGENDAR_LISTA_DE_ESPERA", "AGENDA");
 
-    if (contraseñaValidada) {
+    if (result.validado) {
+      // Usar el usuario validado
+      const usuarioValidado = result.usuario;
       if ((estilista = 0 || !estilista)) {
         Swal.fire({
           icon: "error",
@@ -359,26 +389,62 @@ function ListaEspera() {
         });
         return;
       }
+      
+      // Mostrar indicador de carga
+      Swal.fire({
+        title: "Procesando...",
+        text: "Agregando a la lista de espera",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+      
       peinadosApi
-        .post("/sp_listaEsperaAdd4", null, {
+        .post("/sp_listaEsperaAdd5", null, {
           params: {
             sucursal: idSuc ? idSuc : 1,
             idListaEspera: idListaEspera,
             tipo: tipo,
             fecha: fecha,
+            usuario: usuarioValidado ? usuarioValidado : 0
           },
         })
         .then((response) => {
-          Swal.fire({
-            icon: "success",
-            title: "Listo!",
-            text: "Se creo exitosamente.",
-            confirmButtonText: "Entendido",
-          });
+          // Esperar un momento para asegurar que el servidor procesó la solicitud
           setTimeout(() => {
-            fetchListaEspera();
-          }, 1000);
-          console.log(response);
+            // Intentar actualizar la tabla
+            fetchListaEspera()
+              .then(() => {
+                // Mostrar mensaje de éxito
+                Swal.fire({
+                  icon: "success",
+                  title: "Listo!",
+                  text: "Se creo exitosamente.",
+                  confirmButtonText: "Entendido",
+                });
+              })
+              .catch((error) => {
+                console.error("Error al actualizar la lista de espera:", error);
+                // Intentar una segunda vez si falla
+                setTimeout(() => fetchListaEspera(), 1000);
+                Swal.fire({
+                  icon: "success",
+                  title: "Listo!",
+                  text: "Se creo exitosamente. Actualizando datos...",
+                  confirmButtonText: "Entendido",
+                });
+              });
+          }, 500);
+        })
+        .catch((error) => {
+          console.error("Error al crear la lista de espera:", error);
+          Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "Ocurrió un error al crear la lista de espera. Por favor, inténtelo de nuevo.",
+          });
         });
     }
   };
@@ -442,8 +508,11 @@ function ListaEspera() {
           title="Eliminar lista de espera"
           size={25}
           onClick={async () => {
-            const contraseñaValidada = await validarContraseña();
-            if (!contraseñaValidada) return;
+            const result = await validarContraseña("CANCELAR_LISTA_DE_ESPERA", "AGENDA");
+            if (!result.validado) return;
+            
+            // Usar el usuario validado
+            const usuarioValidado = result.usuario;
             Swal.fire({
               title: "ADVERTENCIA",
               text: `¿Está seguro que desea eliminar esta lista de espera del cliente: ${params.row.nombreCompleto}?`,
@@ -625,7 +694,7 @@ function ListaEspera() {
       });
     }
   };
-  const postListaEspera = () => {
+  const postListaEspera = async () => {
     if (
       formClienteEspera.no_cliente == null ||
       formClienteEspera.clave_prod == null ||
@@ -637,6 +706,22 @@ function ListaEspera() {
       alert("Favor de ingresar todos los datos esperados");
       return;
     } else {
+      const result = await validarContraseña("AGENDAR_LISTA_DE_ESPERA", "AGENDA");
+      if (!result.validado) return;
+      
+      // Usar el usuario validado
+      const usuarioValidado = result.usuario;
+      // Mostrar indicador de carga
+      Swal.fire({
+        title: "Procesando...",
+        text: "Agregando a la lista de espera",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+      
       peinadosApi.post("/ListaEspera", null, {
         params: {
           sucursal: idSuc,
@@ -647,19 +732,41 @@ function ListaEspera() {
           atendido: 1,
           estilista: formClienteEspera.estilista ? formClienteEspera.estilista : "",
           tiempo_servicio: formClienteEspera.tiempo_servicio,
-          usuario_registra: idUser,
+          usuario_registra: usuarioValidado,
           usuario_cita: formClienteEspera.no_cliente,
-          usuario_servicio: idUser,
+          usuario_servicio: usuarioValidado,
           usuario_elimina: 0,
           precio: formClienteEspera.precio,
           observacion: formClienteEspera.observacion ? formClienteEspera.observacion : "",
         },
-      }).then(() => {
+      }).then((response) => {
+        // Cerrar el modal de lista de espera
+        setOpenListaEspera(false);
+        
+        // Esperar un momento para asegurar que el servidor procesó la solicitud
+        setTimeout(() => {
+          // Intentar actualizar la tabla
+          fetchListaEspera()
+            .then(() => {
+              // Mostrar mensaje de éxito
+              Swal.fire({
+                icon: "success",
+                text: "Lista de espera creado con información",
+              });
+            })
+            .catch((error) => {
+              console.error("Error al actualizar la lista de espera:", error);
+              // Intentar una segunda vez si falla
+              setTimeout(() => fetchListaEspera(), 1000);
+            });
+        }, 500);
+      }).catch((error) => {
+        console.error("Error al crear la lista de espera:", error);
         Swal.fire({
-          icon: "success",
-          text: "Lista de espera creado con información",
+          icon: "error",
+          title: "Error",
+          text: "Ocurrió un error al crear la lista de espera. Por favor, inténtelo de nuevo.",
         });
-        fetchListaEspera();
       });
     }
     

@@ -204,18 +204,41 @@ function EditarCita() {
     const fechaActual = new Date();
 
     const formatearFecha = (fecha) => {
-      const año = fecha.getFullYear();
-      const mes = String(fecha.getMonth() + 1).padStart(2, '0');
-      const dia = String(fecha.getDate()).padStart(2, '0');
-      return `${año}-${mes}-${dia}`;
+      // Asegurarse de que fecha sea un objeto Date
+      let fechaObj;
+      try {
+        // Si es un string, convertirlo a Date
+        if (typeof fecha === 'string') {
+          fechaObj = new Date(fecha);
+        } else {
+          // Si ya es un objeto Date, usarlo directamente
+          fechaObj = fecha;
+        }
+        
+        // Verificar que sea una fecha válida
+        if (isNaN(fechaObj.getTime())) {
+          console.error('Fecha inválida:', fecha);
+          return formatearFecha(new Date()); // Usar fecha actual como fallback
+        }
+        
+        const año = fechaObj.getFullYear();
+        const mes = String(fechaObj.getMonth() + 1).padStart(2, '0');
+        const dia = String(fechaObj.getDate()).padStart(2, '0');
+        return `${año}-${mes}-${dia}`;
+      } catch (error) {
+        console.error('Error al formatear fecha:', error);
+        return formatearFecha(new Date()); // Usar fecha actual como fallback
+      }
     };
 
-        const fechaFormateada = fecha ? formatearFecha(fecha) : formatearFecha(fechaActual);
+    const fechaFormateada = fecha ? formatearFecha(fecha) : formatearFecha(fechaActual);
 
    await peinadosApi
         .get(`/estilistas5?id=0&sucursal=${idSuc}&fecha=${fechaFormateada}`)
         .then((response) => {
           setDataEstilistas(response.data);
+        }).catch((error) => {
+          console.log(error);
         });
   };
   const getClientes = () => {
@@ -244,29 +267,7 @@ function EditarCita() {
     });
   };
 
-  const { dataCuentasPendientes } = useDetalleCuentaPendietes({ no_cliente: formCita.no_cliente });
-  const { dataClientesSaldosPendientes } = useDetalleSaldosPendientes({ no_cliente: formCita.no_cliente });
-  const [formCitaServioActualizacion, setFormCitaServioActualizacion] = useState();
-  const updateServicios = () => {
-    // Hazme el peinadosApi PUT sp_detalleCitasServiciosUpdv3?idServicio={idServicio}&cantidad={cantidad}&tiempo={tiempo}&precio={precio}&usuarioCambio={usuarioCambio}&idEstilista={idEstilista}&fechaCita={fechaCita}&estatusCita={estatusCita}&id={id}
-
-    peinadosApi
-      .put("/sp_detalleCitasServiciosUpdv3", null, {
-        params: {
-          idServicio: 0,
-          cantidad: 0,
-          tiempo: 0,
-          precio: 0,
-          usuarioCambio: 0,
-          idEstilista: 0,
-          fechaCita: 0,
-          estatusCita: 0,
-          id: 0, // idCitaServicio
-        },
-      })
-      .then((response) => {});
-  };
-
+  
   const updateCita = async () => {
     const isVerified = await verificarDisponibilidad(formCita.tiempo, formCita.fecha, formCita.no_estilista, formCita.id);
     if (!isVerified) return;

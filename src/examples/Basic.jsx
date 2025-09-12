@@ -221,7 +221,7 @@ function Basic() {
 
   };
 
-  function validarContraseña() {
+  function validarContraseña(tipo_operacion = "AGENDAR_CITA", modulo = "AGENDA") {
     return new Promise((resolve, reject) => {
       Swal.fire({
         title: "Ingrese su contraseña",
@@ -239,38 +239,63 @@ function Basic() {
         confirmButtonText: "Confirmar",
         showLoaderOnConfirm: true,
         preConfirm: (contraseña) => {
-          // Aquí puedes agregar tu lógica de validación de contraseña
-          // Por ejemplo, podrías comparar la contraseña ingresada con una contraseña almacenada o realizar una llamada a una API para verificar la contraseña
           return new Promise((resolve) => {
-            setTimeout(() => {
-              // Supongamos que la contraseña es "password"
-              if (contraseña === password_chk) {
-                resolve();
-              } else {
+            // Validar contraseña y permisos usando la API
+            peinadosApi.get(`/sp_permiso_password_valida_agenda6?password=${contraseña}&tipo_operacion=${tipo_operacion}&modulo=${modulo}`)
+              .then(response => {
+                // Verificar si hay datos en la respuesta y si el permiso es 1 (acceso concedido)
+                if (response.data && response.data.length > 0 && response.data[0].permiso === 1) {
+                  // Si la validación es exitosa, actualizar el usuario con el valor de usuarios
+                  const nuevoUsuario = response.data[0].usuarios;
+                  // Actualizar el idUser global con el nuevo usuario
+                  window.tempIdUser = nuevoUsuario; // Guardamos temporalmente para usarlo después
+                  console.log(`Permiso ${tipo_operacion} validado correctamente. Usuario: ${nuevoUsuario}`);
+                  resolve();
+                } else {
+                  // Si la validación falla, mostrar mensaje de error
+                  Swal.fire({
+                    icon: "error",
+                    title: "Permiso denegado",
+                    text: `No tiene permisos para ${tipo_operacion} o la contraseña es incorrecta.`,
+                    confirmButtonText: "Entendido",
+                  }).then((isConfirmed) => {
+                    if (isConfirmed.isConfirmed) Swal.close();
+                  });
+                }
+              })
+              .catch(error => {
+                console.error("Error al validar permisos:", error);
                 Swal.fire({
                   icon: "error",
-                  title: "Contraseña incorrecta",
-                  text: "Por favor, ingrese una contraseña correcta.",
+                  title: "Error de validación",
+                  text: "Ocurrió un error al validar los permisos. Por favor, intente nuevamente.",
                   confirmButtonText: "Entendido",
                 }).then((isConfirmed) => {
                   if (isConfirmed.isConfirmed) Swal.close();
                 });
-              }
-            }, 1000);
+              });
           });
         },
         allowOutsideClick: () => !Swal.isLoading(),
       })
         .then((result) => {
           if (result.isConfirmed) {
-            resolve(true); // Resuelve la promesa con valor true si la contraseña es correcta
+            // Si hay un usuario temporal guardado, usarlo para actualizar idUser
+            if (window.tempIdUser) {
+              // Actualizar el idUser con el valor del usuario validado
+              const nuevoUsuario = window.tempIdUser;
+              window.tempIdUser = undefined; // Limpiar la variable temporal
+              resolve({validado: true, usuario: nuevoUsuario}); // Resuelve con el nuevo usuario
+            } else {
+              resolve({validado: true, usuario: idUser}); // Mantener el usuario actual si no hay uno nuevo
+            }
           } else {
-            resolve(false); // Resuelve la promesa con valor false si el usuario cancela la entrada de contraseña
+            resolve({validado: false, usuario: idUser}); // Resuelve la promesa con valor false si el usuario cancela
           }
         })
         .catch((error) => {
           console.error(error);
-          resolve(false); // Resuelve la promesa con valor false si ocurre algún error durante la validación de la contraseña
+          resolve({validado: false, usuario: idUser}); // Resuelve la promesa con valor false si ocurre algún error
         });
     });
   }
@@ -862,8 +887,10 @@ function Basic() {
       cancelButtonText: "No",
     }).then(async (result) => {
       if (result.isConfirmed) {
-        const contraseñaValidada = await validarContraseña();
-        if (contraseñaValidada) {
+        const result = await validarContraseña("MODIFICAR_CITA", "AGENDA");
+        if (result.validado) {
+          // Usar el usuario validado
+          const usuarioValidado = result.usuario;
           setDatosParametrosFechaCitaTemp({
             fecha: start,
             usuarioEstilista: slotId,
@@ -942,10 +969,12 @@ function Basic() {
       sortable: false,
       renderCell: (params) => (
         <div style={{ fontSize: "16px", display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {isLoading && <AiOutlineLoading3Quarters className="loading-spinner" />}
-          <FaMoneyBillAlt
+          {isLoading && <AiOutlineLoading3Quarters className="loading-spinner" />} 
+          {params.row.cantidad !== 0 && params.row.tiempo !== "0" ? (
+            <>
+            <FaMoneyBillAlt
             size={23}
-            disabled
+
             onClick={() => {
               // Convert both dates to YYYY-MM-DD format for comparison
               const formatDateForComparison = (dateValue) => {
@@ -1010,6 +1039,7 @@ function Basic() {
             AS
           </FaMoneyBillAlt>
           <AiFillEdit
+          diabled ={params.row.cantidad == 0 && params.row.tiempo == 0}
             size={23}
             onClick={() => {
               setEvent({
@@ -1065,6 +1095,12 @@ function Basic() {
           >
             Cancelar
           </FaTrash>
+          </>
+
+          ) : (
+          <></>)
+          }
+          
           <FaEye
             size={23}
             onClick={async () => {
@@ -1410,6 +1446,13 @@ function Basic() {
     });
   };
   const putEditarCita = async () => {
+    // Validar permisos antes de editar la cita
+    const result = await validarContraseña("MODIFICAR_CITA", "AGENDA");
+    if (!result.validado) return;
+    
+    // Usar el usuario validado
+    const usuarioValidado = result.usuario;
+    
     let fechaActual = new Date();
     // Extrae el año, mes y día
     let año = fechaActual.getFullYear();
@@ -1430,7 +1473,7 @@ function Basic() {
           hora_cita: format(new Date(datosParametrosFechaCitaTemp.fecha), "yyyy-MM-dd'T'HH:mm:ss"),
           fecha: fechaSinHora,
           tiempo: datosParametrosCitaTemp.tiempo,
-          user: idUser,
+          user: usuarioValidado, // Usando el usuario validado
           tipo_servicio: "1",
           serv: "1",
           importe: 100,
@@ -1509,9 +1552,11 @@ function Basic() {
       let día = fechaActual.getDate();
       let fechaSinHora = new Date(año, mes, día);
 
-      // Validar contraseña
-      const contraseñaValidada = await validarContraseña();
-      if (contraseñaValidada) {
+      // Validar contraseña y permisos
+      const result = await validarContraseña("CANCELAR_CITA", "AGENDA");
+      if (result.validado) {
+        // Usar el usuario validado
+        const usuarioValidado = result.usuario;
         // Realizar la solicitud PUT
         const response = await peinadosApi.put("/DetalleCitasReducido", null, {
           params: {
@@ -1521,7 +1566,7 @@ function Basic() {
             dia_cita: eventItem.hora1,
             hora_cita: eventItem.hora1,
             fecha: fechaSinHora,
-            user: idUser,
+            user: usuarioValidado, // Usando el usuario validado
             cancelada: true,
             stao_estilista: 1,
             nota_canc: 0,
@@ -1750,54 +1795,6 @@ function Basic() {
       [name]: checked,
     });
   };
-
-  function validarContraseña() {
-    return new Promise((resolve, reject) => {
-      Swal.fire({
-        title: "Ingrese su contraseña",
-        input: "password",
-        inputAttributes: {
-          autocapitalize: "off",
-        },
-        showCancelButton: true,
-        confirmButtonText: "Confirmar",
-        showLoaderOnConfirm: true,
-        preConfirm: (contraseña) => {
-          // Aquí puedes agregar tu lógica de validación de contraseña
-          // Por ejemplo, podrías comparar la contraseña ingresada con una contraseña almacenada o realizar una llamada a una API para verificar la contraseña
-          return new Promise((resolve) => {
-            setTimeout(() => {
-              // Supongamos que la contraseña es "password"
-              if (contraseña === password_chk) {
-                resolve();
-              } else {
-                Swal.fire({
-                  icon: "error",
-                  title: "Contraseña incorrecta",
-                  text: "Por favor, ingrese una contraseña correcta.",
-                  confirmButtonText: "Entendido",
-                }).then((isConfirmed) => {
-                  if (isConfirmed.isConfirmed) Swal.close();
-                });
-              }
-            }, 1000);
-          });
-        },
-        allowOutsideClick: () => !Swal.isLoading(),
-      })
-        .then((result) => {
-          if (result.isConfirmed) {
-            resolve(true); // Resuelve la promesa con valor true si la contraseña es correcta
-          } else {
-            resolve(false); // Resuelve la promesa con valor false si el usuario cancela la entrada de contraseña
-          }
-        })
-        .catch((error) => {
-          console.error(error);
-          resolve(false); // Resuelve la promesa con valor false si ocurre algún error durante la validación de la contraseña
-        });
-    });
-  }
 
   const minDateTime = setHours(startOfToday(), 8);
 
@@ -2291,9 +2288,11 @@ function Basic() {
       cancelButtonText: "No",
     }).then((result) => {
       if (result.isConfirmed) {
-        validarContraseña().then(async (contraseñaValidada) => {
-          if (!contraseñaValidada) return;
+        validarContraseña("MODIFICAR_CITA", "AGENDA").then(async (result) => {
+          if (!result.validado) return;
           else {
+            // Usar el usuario validado
+            const usuarioValidado = result.usuario;
             ventaTemporal.forEach(async (elemento) => {
               await peinadosApi
                 .post("DetalleCitasServicios", null, {
@@ -2304,7 +2303,7 @@ function Basic() {
                     tiempo: elemento.tiempo,
                     precio: elemento.precio,
                     observaciones: "0",
-                    usuarioAlta: idUser,
+                    usuarioAlta: usuarioValidado, // Usando el usuario validado
                     usuarioCambio: 0,
                     sucursal: idSuc,
                     fecha: new Date(),
@@ -2434,8 +2433,10 @@ function Basic() {
         }).then(async (result) => {
           if (result.isConfirmed) {
             // Si el usuario confirma, mostrar el modal de verificación de contraseña
-            validarContraseña().then(async (contraseñaValidada) => {
-              if (contraseñaValidada) {
+            validarContraseña("AGENDAR_CITA", "AGENDA").then(async (result) => {
+              if (result.validado) {
+                // Usar el usuario validado en lugar del idUser global
+                const usuarioValidado = result.usuario;
                 try {
                   let citaId;
                   
@@ -2453,7 +2454,7 @@ function Basic() {
                       formCita.no_estilista, // idEstilista
                       -1, // mostrar
                       formCitaServicio.idServicio || 0, // idServicio
-                      idUser, // usuario
+                      usuarioValidado, // usuario (usando el usuario validado)
                       formCitaServicio.cantidad || 1, // cantidad
                       formCitaServicio.precio || 0, // precio
                       citaDateTime, // fechaCita
@@ -2471,7 +2472,7 @@ function Basic() {
                         hora_cita: citaDateTime,
                         fecha: fechaSinHora,
                         tiempo: 0,
-                        user: idUser,
+                        user: usuarioValidado, // Usando el usuario validado
                         importe: 0,
                         cancelada: false,
                         stao_estilista: 1,
@@ -2498,7 +2499,7 @@ function Basic() {
                         formCita.no_estilista, // idEstilista
                         -1, // mostrar
                         formCitaServicio.idServicio || 0, // idServicio
-                        idUser, // usuario
+                        usuarioValidado, // usuario (usando el usuario validado)
                         formCitaServicio.cantidad || 1, // cantidad
                         formCitaServicio.precio || 0, // precio
                         citaDateTime, // fechaCita
@@ -2523,35 +2524,55 @@ function Basic() {
           }
         });
       } else {
-        try {
-          const response = await peinadosApi.post("/DetalleCitas", null, {
-            params: {
-              cia: 1,
-              sucursal: idSuc,
-              no_estilista: formCita.no_estilista,
-              no_cliente: formCita.no_cliente,
-              dia_cita: formCita.fecha,
-              hora_cita: formCita.fecha,
-              fecha: fechaSinHora,
-              tiempo: 0,
-              user: idUser,
-              importe: 0,
-              cancelada: false,
-              stao_estilista: 1,
-              nota_canc: 0,
-              registrada: true,
-              observacion: formCitasObservaciones2,
-              user_uc: 0,
-              estatus: formCita.estatusAsignado ? 3 : formCita.estatusRequerido ? 2 : 1,
-              servDomicilio: formCita.esServicioDomicilio == false ? 0 : 1,
-            },
+        // Validar permisos antes de crear la cita
+        const result = await validarContraseña("AGENDAR_CITA", "AGENDA");
+        if (result.validado) {
+          try {
+            // Usar el usuario validado
+            const usuarioValidado = result.usuario;
+            
+            const response = await peinadosApi.post("/DetalleCitas", null, {
+              params: {
+                cia: 1,
+                sucursal: idSuc,
+                no_estilista: formCita.no_estilista,
+                no_cliente: formCita.no_cliente,
+                dia_cita: formCita.fecha,
+                hora_cita: formCita.fecha,
+                fecha: fechaSinHora,
+                tiempo: 0,
+                user: usuarioValidado, // Usando el usuario validado
+                importe: 0,
+                cancelada: false,
+                stao_estilista: 1,
+                nota_canc: 0,
+                registrada: true,
+                observacion: formCitasObservaciones2,
+                user_uc: 0,
+                estatus: formCita.estatusAsignado ? 3 : formCita.estatusRequerido ? 2 : 1,
+                servDomicilio: formCita.esServicioDomicilio == false ? 0 : 1,
+              },
+            });
+            setProductosModal(true);
+            setFormCitaServicio({ ...formCitaServicio, idCita: response.data.mensaje2 });
+            
+            // Si hay servicio a domicilio, también usar el usuario validado
+            if (formCita.esServicioDomicilio) {
+              await postCitasServicios(11948, 0, 1, response.data.mensaje2, usuarioValidado);
+            }
+            
+            return response.data.mensaje2;
+          } catch (error) {
+            alert(`Hubo un error, ${error}`);
+          }
+        } else {
+          // Si la validación de permisos falla, mostrar mensaje
+          Swal.fire({
+            icon: "error",
+            title: "Permiso denegado",
+            text: "No tiene permisos para agendar citas.",
+            confirmButtonText: "Entendido",
           });
-          setProductosModal(true);
-          setFormCitaServicio({ ...formCitaServicio, idCita: response.data.mensaje2 });
-          if (formCita.esServicioDomicilio) postCitasServicios(11948, 0, 1, response.data.mensaje2);
-          return response.data.mensaje2;
-        } catch (error) {
-          alert(`Hubo un error, ${error}`);
         }
       }
     }
@@ -3077,13 +3098,17 @@ function Basic() {
     const shouldReload = skipValidation || isUpdatingService;
 
     
-    // Si no se debe omitir la validación, validar contraseña
-    const contraseñaValidada = await validarContraseña();
+    // Si no se debe omitir la validación, validar contraseña y permisos
+    const result = await validarContraseña("MODIFICAR_CITA", "AGENDA");
   
-    if (!contraseñaValidada) {
-      Swal.fire({ icon: "error", title: "Error", text: "Contraseña incorrecta" }); 
+    if (!result.validado) {
+      Swal.fire({ icon: "error", title: "Error", text: "Permiso denegado o contraseña incorrecta" }); 
       return
     }
+    
+    // Usar el usuario validado
+    const usuarioValidado = result.usuario;
+    usuario = usuarioValidado; // Actualizar el parámetro usuario con el usuario validado
 
     try {
       const response = await peinadosApi.put(`/sp_DetalleCitasServiciosUpd6`, null, {
@@ -3132,8 +3157,12 @@ function Basic() {
     fechaCita,
     estatusCita
   ) => {
-    const contraseñaValidada = await validarContraseña();
-    if (!contraseñaValidada) return;
+    const result = await validarContraseña("MODIFICAR_CITA", "AGENDA");
+    if (!result.validado) return;
+    
+    // Usar el usuario validado en lugar del parámetro usuario
+    const usuarioValidado = result.usuario;
+    usuario = usuarioValidado; // Actualizar el parámetro usuario con el usuario validado
 
     peinadosApi
       .put(`/sp_DetalleCitasServiciosUpd7`, null, {
@@ -3228,9 +3257,11 @@ function Basic() {
       cancelButtonText: "No",
     }).then((result) => {
       if (result.isConfirmed) {
-        validarContraseña().then(async (contraseñaValidada) => {
-          if (!contraseñaValidada) return;
+        validarContraseña("MODIFICAR_CITA", "AGENDA").then(async (result) => {
+          if (!result.validado) return;
           else {
+            // Usar el usuario validado
+            const usuarioValidado = result.usuario;
             await peinadosApi
               .put(`/sp_detalleCitasServiciosTerminado2`, null, {
                 params: {
@@ -3393,7 +3424,7 @@ function Basic() {
   //     // }
   //   });
   // };
-  const postCitasServicios = async (clave, tiempo, precio, idCita) => {
+  const postCitasServicios = async (clave, tiempo, precio, idCita, usuarioValidado = null) => {
     await verificarDisponibilidad(tiempo, formCita.fecha, formCita.no_estilista, formCitaServicio.idCita).then((isVerified) => {
       console.log(isVerified);
       if (isVerified) {
@@ -3406,7 +3437,7 @@ function Basic() {
               tiempo: tiempo,
               precio: precio,
               observaciones: formCitasObservaciones2 ? formCitasObservaciones2 : "",
-              usuarioAlta: idUser,
+              usuarioAlta: usuarioValidado || idUser, // Usar el usuario validado si está disponible
               usuarioCambio: formCita.user,
               sucursal: idSuc,
               fecha: new Date(),
@@ -3517,8 +3548,11 @@ function Basic() {
   };
 
   const updateCita = async () => {
-    const contraseñaValidada = await validarContraseña();
-    if (!contraseñaValidada) return;
+    const result = await validarContraseña("MODIFICAR_CITA", "AGENDA");
+    if (!result.validado) return;
+    
+    // Usar el usuario validado
+    const usuarioValidado = result.usuario;
     let fechaActual = new Date(event?.fecha);
     let año = fechaActual.getFullYear();
     let mes = fechaActual.getMonth(); // Nota: getMonth() devuelve un valor de 0 a 11, donde 0 es enero y 11 es diciembre
@@ -3533,7 +3567,7 @@ function Basic() {
           dia_cita: event?.hora1,
           hora_cita: event?.hora1,
           fecha: fechaSinHora,
-          user: idUser,
+          user: usuarioValidado, // Usando el usuario validado
           cancelada: false,
           stao_estilista: 1,
           nota_canc: 0,
@@ -3573,8 +3607,10 @@ function Basic() {
         //si no confirma
         return false;
       } else {
-        const res = await validarContraseña();
-        if (!res) return false;
+        const result = await validarContraseña("MODIFICAR_CITA", "AGENDA");
+        if (!result.validado) return false;
+        // Usar el usuario validado si es necesario
+        const usuarioValidado = result.usuario;
       }
       // return false;
     }
@@ -3595,8 +3631,10 @@ function Basic() {
         showCancelButton: true,
       });
       if (!isConfirmed2.isConfirmed) return false;
-      const resContraseña = await validarContraseña();
-      if (!resContraseña) return false;
+      const result = await validarContraseña("MODIFICAR_CITA", "AGENDA");
+      if (!result.validado) return false;
+      // Usar el usuario validado si es necesario
+      const usuarioValidado = result.usuario;
     } else if(res && res.data[0] && res.data[0].id>0) {
       Swal.fire({
         icon: "error",
@@ -4296,9 +4334,19 @@ function Basic() {
                   onCellDoubleClick={handleCellDoubleClick}
                   rowHeight={28}
                   columnHeaderHeight={28}
+                  getRowClassName={(params) => {
+                    // Highlight rows where cantidad = 0 and tiempo = "0"
+                    if (params.row.cantidad === 0 && params.row.tiempo === "0") {
+                      return "highlight-row-red";
+                    }
+                    return "";
+                  }}
                   sx={{
                     "& .MuiDataGrid-pagination": {
                       height: "10px",
+                    },
+                    "& .highlight-row-red": {
+                      backgroundColor: "#ffcccc", // Light red color
                     },
                   }}
                 />
@@ -4679,7 +4727,7 @@ function Basic() {
           </div>
           <Label>Ingrese su contraseña</Label>
           <Input onChange={handleChange} type="password"></Input>
-          <Button onClick={validarContraseña}>Guardar</Button>
+          <Button onClick={() => validarContraseña("MODIFICAR_CITA", "AGENDA")}>Guardar</Button>
         </Box>
       </Modal>
 

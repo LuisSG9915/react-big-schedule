@@ -19,17 +19,27 @@ export const useListaEspera = ({ id, sucursal, refreshInterval = 60000 }) => {
     const now = Date.now();
     const timeSinceLastFetch = now - lastFetchTimeRef.current;
     
-    // Only fetch if forced or if enough time has passed since last fetch
+    // Always fetch if forced, otherwise check time since last fetch
     if (force || timeSinceLastFetch >= paramsRef.current.refreshInterval / 2) {
       try {
         const { id, sucursal } = paramsRef.current;
-        const response = await peinadosApi.get(`/ListaEspera9?id=${id}&sucursal=${sucursal}`);
+        
+        // Add a cache-busting parameter to prevent browser caching
+        const cacheBuster = `_t=${now}`;
+        const response = await peinadosApi.get(`/ListaEspera9?id=${id}&sucursal=${sucursal}&${cacheBuster}`);
+        
+        // Update the state with the new data
         setDataListaEspera(response.data);
         lastFetchTimeRef.current = now;
+        
+        // Return the response for promise chaining
+        return response;
       } catch (error) {
         console.error("Error fetching lista espera:", error);
+        throw error; // Re-throw to allow error handling by callers
       }
     }
+    return null; // Return null if no fetch was performed
   }, []); // No dependencies to ensure stability
 
   useEffect(() => {
