@@ -1487,6 +1487,7 @@ function Basic() {
         },
       })
       .then((response) => {
+        
         Swal.fire("Saved!", "", "success");
         setTimeout(() => {
           window.location.reload();
@@ -2345,7 +2346,6 @@ function Basic() {
     });
   };
   const verificaDisponibilidadSucursal = () => {
-    console.log(dataEstilistaDisponibilidadHorario)
     let entradaSucursal = dataEstilistaDisponibilidadHorario[0].hora_entrada;
     let salidaSucursal = dataEstilistaDisponibilidadHorario[0].hora_salida;
 
@@ -3237,10 +3237,11 @@ function Basic() {
       setModalCitasObservaciones(false);
     });
   };
-  const putCitasServiciosTerminadoFunction = async () => {
-    await peinadosApi.put(`/sp_detalleCitasServiciosTerminado2`, null, {
+  const putCitasServiciosTerminadoFunction = async (usuarioValidado) => {
+    await peinadosApi.put(`/sp_detalleCitasServiciosTerminado3`, null, {
       params: {
         idCita: formCitaServicio.idCita,
+        usuario: usuarioValidado || idUser,
       },
     });
   };
@@ -3263,9 +3264,10 @@ function Basic() {
             // Usar el usuario validado
             const usuarioValidado = result.usuario;
             await peinadosApi
-              .put(`/sp_detalleCitasServiciosTerminado2`, null, {
+              .put(`/sp_detalleCitasServiciosTerminado3`, null, {
                 params: {
                   idCita: formCitaServicio.idCita,
+                  usuario: usuarioValidado || idUser,
                 },
               })
               .then((response) => {
@@ -3451,7 +3453,7 @@ function Basic() {
           .then((response) => {
             setTimeout(() => {
               fetchDetalleCitasServicios();
-              if (event?.verificacion == true) putCitasServiciosTerminadoFunction();
+              if (event?.verificacion == true) putCitasServiciosTerminadoFunction(usuarioValidado || idUser);
             }, 1000);
           });
       }
@@ -3619,11 +3621,11 @@ function Basic() {
       
    
       
-    } else if (resHorario.data[0].clave_empleado == "Cita fuera del horario de salida del estilista") {
+    } else if (resHorario.data[0].clave_empleado == "Cita fuera del horario de salida del estilista ¿desea asignar la cita?" || resHorario.data[0].clave_empleado == "Cita dentro del horario de la comida ¿desea asignar la cita?" || resHorario.data[0].clave_empleado == "Cita antes de la apertura del horario del estilista, ¿desea asignar la cita?") {
       const isConfirmed2 = await Swal.fire({
         icon: "error",
         title: "Error",
-        text: `El estilista se encuentra fuera de horario, desea registrar la cita`,
+        text: resHorario.data[0].clave_empleado ? resHorario.data[0].clave_empleado : "",
         confirmButtonColor: "#3085d6",
         confirmButtonText: "Si?",
         cancelButtonText: "CANCELAR",
@@ -4510,11 +4512,8 @@ function Basic() {
                     event?.no_estilista,
                     formCitaServicio.idCita
                   ).then((isVerified) => {
-                    console.log(isVerified);
-                    console.log(dataCitasServicios.reduce((acc, service) => acc + Number(service.tiempo) * Number(service.cantidad), 0));
-                    console.log(hora1);
-                    console.log(event?.no_estilista);
-                    console.log(formCitaServicio.idCita);
+                 
+                    
                     if (isVerified) {
                       updateCita();
                     } else {

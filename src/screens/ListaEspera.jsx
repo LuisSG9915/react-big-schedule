@@ -271,9 +271,9 @@ function ListaEspera() {
             validado: false,
             usuario: idUser
           });
-        });
-    });
-  };
+        })
+    })
+  }
   
   // Define columns array properly
   const columns = [
