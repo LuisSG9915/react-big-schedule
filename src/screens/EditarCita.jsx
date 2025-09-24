@@ -272,9 +272,11 @@ function EditarCita() {
     const isVerified = await verificarDisponibilidad(formCita.tiempo, formCita.fecha, formCita.no_estilista, formCita.id);
     if (!isVerified) return;
 
-    const contraseñaValidada = await validarContraseña();
-    if (!contraseñaValidada) return;
-    let fechaActual = new Date(formCita.fecha);
+    const result = await validarContraseña("MODIFICAR_CITA", "AGENDA");
+    if (!result.validado) return 
+    const usuarioValidado = result.usuario;
+    
+        let fechaActual = new Date(formCita.fecha);
     // Extrae el año, mes y día
     let año = fechaActual.getFullYear();
     let mes = fechaActual.getMonth(); // Nota: getMonth() devuelve un valor de 0 a 11, donde 0 es enero y 11 es diciembre
@@ -298,7 +300,7 @@ function EditarCita() {
           dia_cita: formCita.fecha,
           hora_cita: formCita.fecha,
           fecha: fechaSinHora,
-          user: idUser,
+          user: usuarioValidado,
           cancelada: false,
           stao_estilista: 1,
           nota_canc: 0,
@@ -374,56 +376,85 @@ function EditarCita() {
         });
       });
   };
-  function validarContraseña() {
-    return new Promise((resolve, reject) => {
-      Swal.fire({
-        title: "Ingrese su contraseña",
-        input: "password",
-        inputAttributes: {
-          autocapitalize: "off",
-        },
-        customClass: {
-          popup: "swal2-popup", // Agrega una clase personalizada al cuadro de diálogo
-        },
-        showCancelButton: true,
-        confirmButtonText: "Confirmar",
-        showLoaderOnConfirm: true,
-        preConfirm: (contraseña) => {
-          // Aquí puedes agregar tu lógica de validación de contraseña
-          // Por ejemplo, podrías comparar la contraseña ingresada con una contraseña almacenada o realizar una llamada a una API para verificar la contraseña
-          return new Promise((resolve) => {
-            setTimeout(() => {
-              // Supongamos que la contraseña es "password"
-              if (contraseña === password_chk) {
-                resolve();
-              } else {
-                Swal.fire({
-                  icon: "error",
-                  title: "Contraseña incorrecta",
-                  text: "Por favor, ingrese una contraseña correcta.",
-                  confirmButtonText: "Entendido",
-                }).then((isConfirmed) => {
-                  if (isConfirmed.isConfirmed) Swal.close();
+  function validarContraseña(tipo_operacion = "AGENDAR_CITA", modulo = "AGENDA") {
+      return new Promise((resolve, reject) => {
+        Swal.fire({
+          title: "Ingrese su contraseña",
+          input: "password",
+          inputAttributes: {
+            autocapitalize: "off",
+          },
+          inputAutoFocus: true, // Establece el enfoque automáticamente
+          customClass: {
+            popup: "swal2-popup", // Agrega una clase personalizada al cuadro de diálogo
+            container: "swal2-container", // Agrega una clase personalizada al contenedor
+          },
+  
+          showCancelButton: true,
+          confirmButtonText: "Confirmar",
+          showLoaderOnConfirm: true,
+          preConfirm: (contraseña) => {
+            return new Promise((resolve) => {
+              // Validar contraseña y permisos usando la API
+              peinadosApi.get(`/sp_permiso_password_valida_agenda6?password=${contraseña}&tipo_operacion=${tipo_operacion}&modulo=${modulo}`)
+                .then(response => {
+                  // Verificar si hay datos en la respuesta y si el permiso es 1 (acceso concedido)
+                  if (response.data && response.data.length > 0 && response.data[0].permiso === 1) {
+                    // Si la validación es exitosa, actualizar el usuario con el valor de usuarios
+                    const nuevoUsuario = response.data[0].usuarios;
+                    // Actualizar el idUser global con el nuevo usuario
+                    window.tempIdUser = nuevoUsuario; // Guardamos temporalmente para usarlo después
+                    console.log(`Permiso ${tipo_operacion} validado correctamente. Usuario: ${nuevoUsuario}`);
+                    resolve();
+                  } else {
+                    // Si la validación falla, mostrar mensaje de error
+                    Swal.fire({
+                      icon: "error",
+                      title: "Permiso denegado",
+                      text: `No tiene permisos para ${tipo_operacion} o la contraseña es incorrecta.`,
+                      confirmButtonText: "Entendido",
+                    }).then((isConfirmed) => {
+                      if (isConfirmed.isConfirmed) Swal.close();
+                    });
+                  }
+                })
+                .catch(error => {
+                  console.error("Error al validar permisos:", error);
+                  Swal.fire({
+                    icon: "error",
+                    title: "Error de validación",
+                    text: "Ocurrió un error al validar los permisos. Por favor, intente nuevamente.",
+                    confirmButtonText: "Entendido",
+                  }).then((isConfirmed) => {
+                    if (isConfirmed.isConfirmed) Swal.close();
+                  });
                 });
-              }
-            }, 2000);
-          });
-        },
-        allowOutsideClick: () => !Swal.isLoading(),
-      })
-        .then((result) => {
-          if (result.isConfirmed) {
-            resolve(true); // Resuelve la promesa con valor true si la contraseña es correcta
-          } else {
-            resolve(false); // Resuelve la promesa con valor false si el usuario cancela la entrada de contraseña
-          }
+            });
+          },
+          allowOutsideClick: () => !Swal.isLoading(),
         })
-        .catch((error) => {
-          console.error(error);
-          resolve(false); // Resuelve la promesa con valor false si ocurre algún error durante la validación de la contraseña
-        });
-    });
-  }
+          .then((result) => {
+            if (result.isConfirmed) {
+              // Si hay un usuario temporal guardado, usarlo para actualizar idUser
+              if (window.tempIdUser) {
+                // Actualizar el idUser con el valor del usuario validado
+                const nuevoUsuario = window.tempIdUser;
+                window.tempIdUser = undefined; // Limpiar la variable temporal
+                resolve({validado: true, usuario: nuevoUsuario}); // Resuelve con el nuevo usuario
+              } else {
+                resolve({validado: true, usuario: idUser}); // Mantener el usuario actual si no hay uno nuevo
+              }
+            } else {
+              resolve({validado: false, usuario: idUser}); // Resuelve la promesa con valor false si el usuario cancela
+            }
+          })
+          .catch((error) => {
+            console.error(error);
+            resolve({validado: false, usuario: idUser}); // Resuelve la promesa con valor false si ocurre algún error
+          });
+      });
+    }
+
   const [tempCitaServicio, setTempCitaServicio] = useState({});
   const columns = [
     {

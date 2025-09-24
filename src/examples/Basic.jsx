@@ -3439,8 +3439,8 @@ function Basic() {
               tiempo: tiempo,
               precio: precio,
               observaciones: formCitasObservaciones2 ? formCitasObservaciones2 : "",
-              usuarioAlta: usuarioValidado || idUser, // Usar el usuario validado si está disponible
-              usuarioCambio: formCita.user,
+              usuarioAlta: 0, // Usar el usuario validado si está disponible
+              usuarioCambio: 0,
               sucursal: idSuc,
               fecha: new Date(),
               idCliente: formCita.no_cliente,
@@ -3560,6 +3560,8 @@ function Basic() {
     let mes = fechaActual.getMonth(); // Nota: getMonth() devuelve un valor de 0 a 11, donde 0 es enero y 11 es diciembre
     let día = fechaActual.getDate();
     let fechaSinHora = new Date(año, mes, día);
+    console.log((event?.hora1))
+   
     peinadosApi
       .put("/DetalleCitasReducido", null, {
         params: {
@@ -4433,7 +4435,7 @@ function Basic() {
                       timeSteps={{ minutes: 15 }}
                       slotProps={{ textField: { size: "small" } }}
                       value={event?.hora1 ? new Date(event?.hora1) : null}
-                      onChange={(hora) => handleChangeFechaEvent("hora", hora)}
+                      onChange={(hora) => handleChangeFechaEvent("hora1", hora)}
                       sx={{
                         "& .MuiInputBase-input": {
                           width: "128px",
