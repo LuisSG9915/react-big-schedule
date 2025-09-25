@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useReducer, useState } from "react";
+import React, { useEffect, useMemo, useReducer, useState, useCallback, memo, Suspense, lazy } from "react";
 import * as dayjsLocale from "dayjs/locale/es-mx";
 import * as antdLocale from "antd/locale/es_ES";
 import { Scheduler, SchedulerData, ViewType, wrapperFun, DemoData } from "../index";
@@ -89,6 +89,86 @@ function reducer(state, action) {
       return state;
   }
 }
+
+// ⚡ COMPONENTE OPTIMIZADO: Scheduler memoizado para mejor rendimiento
+const OptimizedScheduler = memo(({ 
+  schedulerData, 
+  prevClick, 
+  nextClick, 
+  onSelectDate, 
+  onViewChange, 
+  ops1, 
+  ops2, 
+  updateEventStart, 
+  updateEventEnd, 
+  moveEvent, 
+  newEvent, 
+  onScrollLeft, 
+  onScrollRight, 
+  onScrollTop, 
+  onScrollBottom, 
+  toggleExpandFunc,
+  isLoading 
+}) => {
+  // Crear una key inteligente basada en datos críticos para reconciliación óptima
+  const schedulerKey = useMemo(() => {
+    if (!schedulerData) return 'empty';
+    return `${schedulerData.startDate}-${schedulerData.events?.length || 0}-${schedulerData.resources?.length || 0}`;
+  }, [schedulerData?.startDate, schedulerData?.events?.length, schedulerData?.resources?.length]);
+
+  // Loading fallback optimizado
+  if (!schedulerData || isLoading) {
+    return (
+      <div style={{ 
+        height: '600px', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        backgroundColor: '#f5f5f5',
+        borderRadius: '4px'
+      }}>
+        <div>⏳ Cargando agenda...</div>
+      </div>
+    );
+  }
+
+  return (
+    <Scheduler
+      key={schedulerKey}
+      schedulerData={schedulerData}
+      prevClick={prevClick}
+      isLoading={isLoading}
+      nextClick={nextClick}
+      onSelectDate={onSelectDate}
+      onViewChange={onViewChange}
+      viewEventClick={ops1}
+      viewEventText="Editar cita:"
+      viewEvent2Text="Seleccionar opciones"
+      viewEvent2Click={ops2}
+      updateEventStart={updateEventStart}
+      updateEventEnd={updateEventEnd}
+      moveEvent={moveEvent}
+      newEvent={newEvent}
+      onScrollLeft={onScrollLeft}
+      onScrollRight={onScrollRight}
+      onScrollTop={onScrollTop}
+      onScrollBottom={onScrollBottom}
+      toggleExpandFunc={toggleExpandFunc}
+    />
+  );
+}, (prevProps, nextProps) => {
+  // Comparación personalizada para optimizar re-renders
+  return (
+    prevProps.schedulerData === nextProps.schedulerData &&
+    prevProps.isLoading === nextProps.isLoading &&
+    prevProps.prevClick === nextProps.prevClick &&
+    prevProps.nextClick === nextProps.nextClick &&
+    prevProps.onSelectDate === nextProps.onSelectDate &&
+    prevProps.onViewChange === nextProps.onViewChange &&
+    prevProps.ops1 === nextProps.ops1 &&
+    prevProps.ops2 === nextProps.ops2
+  );
+});
 
 function Basic() {
   const { dataSucursales } = useSucursales();
@@ -326,7 +406,7 @@ function Basic() {
   const [modalBitacora, setModalBitacora] = useState(false)
   const [isUpdatingService, setIsUpdatingService] = useState(false)
   const getBitacoraCitas = async (idCita) => {
-    const response = await peinadosApi.get(`/spBitacoraCitas4?idCita=${idCita}`)
+    const response = await peinadosApi.get(`/spBitacoraCitas5?idCita=${idCita}`)
     setbitacoraCitas(response.data);
     setModalBitacora(true);
   }
@@ -383,11 +463,12 @@ function Basic() {
           "yyyyMMdd"
         )}&suc=${idSuc}&nomberEstilista=${"%"}&nombreCliente=${"%"}`
       );
+   
       // Filtrar solo las citas del estilista 37 para análisis
       const citasEstilista37 = response.data.filter((item) => item.no_estilista === 37);
       
       // Mostrar los datos originales para diagnóstico
-      console.log('Datos originales de citas (estilista 37):', 
+      console.log('📊 Datos originales de citas (estilista 37):', 
         citasEstilista37.map(item => ({
           id: item.id,
           fecha: item.fecha,
@@ -396,47 +477,45 @@ function Basic() {
         }))
       );
       
-      // Procesar y mostrar las fechas transformadas
-      console.log('Fechas transformadas (estilista 37):', 
-        citasEstilista37.map((item) => {
-          // Crear fechas a partir de los datos
-          let fechaBase = new Date(item.fecha);
-          
-          // Extraer las horas y minutos de hora1 y hora2
-          let hora1Original = new Date(item.hora1);
-          let hora2Original = new Date(item.hora2);
-          
-          // Mostrar información de diagnóstico
-          console.log(`Cita ID ${item.id}:`);
-          console.log(`  fecha: ${item.fecha}, fechaBase: ${fechaBase.toISOString()}`);
-          console.log(`  hora1: ${item.hora1}, hora1Original: ${hora1Original.toISOString()}`);
-          console.log(`  hora1Original.getHours(): ${hora1Original.getHours()}, hora1Original.getMinutes(): ${hora1Original.getMinutes()}`);
-          
-          console.log(`  hora1: ${item.hora2}, hora2Original: ${hora2Original.toISOString()}`);
-          console.log(`  hora2Original.getHours(): ${hora2Original.getHours()}, hora2Original.getMinutes(): ${hora2Original.getMinutes()}`);
-          
-          // Crear nuevas fechas con la fecha base y las horas/minutos de hora1 y hora2
-          let hora1 = new Date(fechaBase);
-          let hora2 = new Date(fechaBase);
-          
-          hora1.setHours(hora1Original.getHours(), hora1Original.getMinutes(), 0, 0);
-          hora2.setHours(hora2Original.getHours(), hora2Original.getMinutes(), 0, 0);
-          
-          // Mostrar resultado final
-          const result = {
-            start: hora1.toISOString(),
-            end: hora2.toISOString(),
-            resourceId: item.no_estilista,
-            // Añadir información de diagnóstico
-            startLocal: hora1.toString(),
-            endLocal: hora2.toString(),
-          };
-          
-          console.log(`  Resultado: start=${result.start}, startLocal=${result.startLocal}`);
-          
-          return result;
-        })
-      )
+      // Procesar y mostrar las fechas transformadas con debugging detallado
+      console.log('🔄 Procesando fechas transformadas (estilista 37):');
+      
+      citasEstilista37.forEach((item) => {
+        console.log(`\n🎯 === CITA ID ${item.id} ===`);
+        
+   
+        
+        // Crear fechas a partir de los datos
+        let fechaBase = new Date(item.fecha);
+        let hora1Original = new Date(item.hora1);
+        let hora2Original = new Date(item.hora2);
+        
+      
+        
+        // Crear nuevas fechas con la fecha base y las horas/minutos de hora1 y hora2
+        let hora1 = new Date(fechaBase);
+        let hora2 = new Date(fechaBase);
+
+        hora1.setHours(hora1Original.getHours(), hora1Original.getMinutes(), 0, 0);
+        hora2.setHours(hora2Original.getHours(), hora2Original.getMinutes(), 0, 0);
+     
+        // Crear el resultado final - CAMBIO IMPORTANTE: enviamos Date objects, no ISO strings
+        const result = {
+          start: hora1, // Date object local
+          end: hora2,   // Date object local
+          resourceId: item.no_estilista,
+          // Añadir información de diagnóstico extendida
+          startLocal: hora1.toString(),
+          endLocal: hora2.toString(),
+          startMexicoTime: hora1.toLocaleString('es-MX', { timeZone: 'America/Mexico_City' }),
+          endMexicoTime: hora2.toLocaleString('es-MX', { timeZone: 'America/Mexico_City' }),
+          originalHour1: item.hora1,
+          originalHour2: item.hora2,
+        };
+        
+
+        return result;
+      });
       setArregloCita(
         response.data.map((item) => {
           // Crear fechas a partir de los datos
@@ -459,8 +538,8 @@ function Basic() {
           
           return {
             ...item,
-            start: hora1.toISOString(),
-            end: hora2.toISOString(),
+            start: hora1, // Enviar objeto Date local en lugar de ISO string
+            end: hora2,   // Enviar objeto Date local en lugar de ISO string
             resourceId: item.no_estilista,
             title: "",
             type: 2,
@@ -733,8 +812,33 @@ function Basic() {
       dayStartFrom: horaEntrada, // Hora de entrada dinámica
       dayStopTo: horaSalida, // Hora de salida dinámica
     });
+    // 🐛 DEBUGGING y CORRECCIÓN: Configuración de zona horaria local
+    console.log('🔧 CONFIGURANDO SCHEDULER CON ZONA HORARIA LOCAL');
+    console.log('Zona horaria del navegador:', Intl.DateTimeFormat().resolvedOptions().timeZone);
+    
     schedulerData.setSchedulerLocale(dayjsLocale);
     schedulerData.setCalendarPopoverLocale(antdLocale);
+    
+    // ✅ CORRECCIÓN: Sobrescribir localeDayjs para manejar correctamente zona horaria local
+    const originalLocaleDayjs = schedulerData.localeDayjs.bind(schedulerData);
+    schedulerData.localeDayjs = (date) => {
+      // Si recibimos un objeto Date, mantener la hora local sin convertir a GMT
+      if (date instanceof Date) {
+        // Crear dayjs usando los componentes de fecha/hora locales directamente
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const day = date.getDate();
+        const hours = date.getHours();
+        const minutes = date.getMinutes();
+        const seconds = date.getSeconds();
+        
+        const localizedDayjs = originalLocaleDayjs(`${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')} ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+        
+        return localizedDayjs;
+      }
+      return originalLocaleDayjs(date);
+    };
+    
     schedulerData.setResources(arreglo);
     schedulerData.setEvents(arregloCita);
     // if (arreglo.length > 0 && arregloCita.length > 0) {
@@ -809,19 +913,20 @@ function Basic() {
     });
   };
 
-  const prevClick = (schedulerData) => {
+  // ⚡ OPTIMIZACIÓN: Memoizar funciones de callback para evitar re-renders
+  const prevClick = useCallback((schedulerData) => {
     actualizarFechayCitas(schedulerData, -1);
-  };
+  }, []);
 
-  const nextClick = (schedulerData) => {
+  const nextClick = useCallback((schedulerData) => {
     actualizarFechayCitas(schedulerData, +1);
-  };
+  }, []);
 
-  const onSelectDate = (schedulerData, date) => {
+  const onSelectDate = useCallback((schedulerData, date) => {
     actualizarFechayCitas(schedulerData, 0, date);
-  };
+  }, []);
 
-  const onViewChange = (schedulerData, view) => {
+  const onViewChange = useCallback((schedulerData, view) => {
     const start = new Date();
 
     schedulerData.setViewType(view.viewType, view.showAgenda, view.isEventPerspective);
@@ -833,9 +938,9 @@ function Basic() {
       return diff / 1000;
     };
     console.log("Elapsed seconds: " + secondsBetween(start, new Date()));
-  };
+  }, [arregloCita]); // Dependencia de arregloCita
 
-  const ops1 = (schedulerData, event) => {
+  const ops1 = useCallback((schedulerData, event) => {
     console.log(event)
     handleOpenNewWindowEdit({
       idCita: event.idCita,
@@ -895,30 +1000,30 @@ function Basic() {
       .catch((err) => {
         console.log(err);
       });
-  };
+  }, [idRec, idSuc, datosParametros.fecha]); // Dependencias de ops1
 
-  const ops2 = (schedulerData, event) => {
+  const ops2 = useCallback((schedulerData, event) => {
     openModal();
     setEvent(event);
     console.log(event);
     return;
     editCita2(event);
-  };
+  }, [openModal, setEvent]); // Dependencias de ops2
 
-  const updateEventStart = (schedulerData, event, newStart) => {
+  const updateEventStart = useCallback((schedulerData, event, newStart) => {
     if (confirm(`Do you want to adjust the start of the event? {eventId: ${event.id}, eventTitle: ${event.title}, newStart: ${newStart}}`)) {
     }
     dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
-  };
+  }, []);
 
-  const updateEventEnd = (schedulerData, event, newEnd) => {
+  const updateEventEnd = useCallback((schedulerData, event, newEnd) => {
     if (confirm(`Do you want to adjust the end of the event? {eventId: ${event.id}, eventTitle: ${event.title}, newEnd: ${newEnd}}`)) {
       schedulerData.updateEventEnd(event, newEnd);
     }
     dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
-  };
+  }, []);
 
-  const moveEvent = async (schedulerData, event, slotId, slotName, start, end) => {
+  const moveEvent = useCallback(async (schedulerData, event, slotId, slotName, start, end) => {
     if (event.estadoCita == 4) {
       Swal.fire({
         icon: "error",
@@ -976,9 +1081,9 @@ function Basic() {
         }
       }
     });
-  };
+  }, [Swal, arreglo, setDatosParametrosFechaCitaTemp, setDatosParametrosCitaTemp, validarContraseña]);
 
-  const newEvent = (schedulerData, slotId, slotName, start, end, type, item) => {
+  const newEvent = useCallback((schedulerData, slotId, slotName, start, end, type, item) => {
     console.log(schedulerData);
     // return
     //     handleOpenNewWindow({
@@ -1009,33 +1114,34 @@ function Basic() {
     //   schedulerData.addEvent(newEvent);
     //   dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
     // }
-  };
+  }, []); // newEvent no tiene dependencias específicas
 
-  const onScrollLeft = (schedulerData, schedulerContent) => {
+  const onScrollLeft = useCallback((schedulerData, schedulerContent) => {
     if (schedulerData.ViewTypes === ViewType.Day) {
       schedulerData.prev();
       schedulerData.setEvents(DemoData.events);
       dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
       schedulerContent.scrollLeft = 10;
     }
-  };
-  const onScrollRight = (schedulerData, schedulerContent, maxScrollLeft) => {
+  }, []);
+  
+  const onScrollRight = useCallback((schedulerData, schedulerContent, maxScrollLeft) => {
     if (schedulerData.ViewTypes === ViewType.Day) {
       schedulerData.next();
       schedulerData.setEvents(DemoData.events);
       dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
       schedulerContent.scrollLeft = maxScrollLeft - 10;
     }
-  };
+  }, []);
 
-  const onScrollTop = () => console.log("onScrollTop");
+  const onScrollTop = useCallback(() => console.log("onScrollTop"), []);
 
-  const onScrollBottom = () => console.log("onScrollBottom");
+  const onScrollBottom = useCallback(() => console.log("onScrollBottom"), []);
 
-  const toggleExpandFunc = (schedulerData, slotId) => {
+  const toggleExpandFunc = useCallback((schedulerData, slotId) => {
     schedulerData.toggleExpandStatus(slotId);
     dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
-  };
+  }, []);
 
   const columns2 = [
     {
@@ -1566,7 +1672,7 @@ function Basic() {
       })
       .then((response) => {
         Swal.fire("Saved!", "", "success");
-        return
+        
         setTimeout(() => {
           window.location.reload();
         }, 1000);
@@ -2451,6 +2557,17 @@ function Basic() {
       return;
     }
 
+    const disponibilidad = await verificarDisponibilidad(
+      formCita.tiempo,
+      formCita.fecha,
+      formCita.no_estilista,
+      formCita.idCita
+    );
+
+    if (!disponibilidad.disponible) {
+      return;
+    }
+
     let fechaActual = new Date(datosParametros.fecha);
     // Extrae el año, mes y día
     let año = fechaActual.getFullYear();
@@ -2556,7 +2673,7 @@ function Basic() {
                         stao_estilista: 1,
                         nota_canc: 0,
                         registrada: true,
-                        observacion: formCitasObservaciones2,
+                        observacion: disponibilidad.observacion || formCitasObservaciones2,
                         user_uc: 0,
                         estatus: formCita.estatusAsignado ? 3 : formCita.estatusRequerido ? 2 : 1,
                         servDomicilio: formCita.esServicioDomicilio == false ? 0 : 1,
@@ -2625,7 +2742,7 @@ function Basic() {
                 stao_estilista: 1,
                 nota_canc: 0,
                 registrada: true,
-                observacion: formCitasObservaciones2,
+                observacion: disponibilidad.observacion || formCitasObservaciones2,
                 user_uc: 0,
                 estatus: formCita.estatusAsignado ? 3 : formCita.estatusRequerido ? 2 : 1,
                 servDomicilio: formCita.esServicioDomicilio == false ? 0 : 1,
@@ -3505,9 +3622,9 @@ function Basic() {
   //   });
   // };
   const postCitasServicios = async (clave, tiempo, precio, idCita, usuarioValidado = null) => {
-    await verificarDisponibilidad(tiempo, formCita.fecha, formCita.no_estilista, formCitaServicio.idCita).then((isVerified) => {
-      console.log(isVerified);
-      if (isVerified) {
+    const disponibilidad = await verificarDisponibilidad(tiempo, formCita.fecha, formCita.no_estilista, formCitaServicio.idCita);
+
+    if (disponibilidad.disponible) {
         peinadosApi
           .post(`/sp_detalleCitasServiciosAdd7`, null, {
             params: {
@@ -3535,7 +3652,6 @@ function Basic() {
             }, 1000);
           });
       }
-    });
   };
   const handleChangeFecha = (type, value) => {
     let newDateTime;
@@ -3671,9 +3787,10 @@ function Basic() {
       });
   };
 
-  async function verificarDisponibilidad(tiempo, fecha, estilista, idCita) {
+    async function verificarDisponibilidad(tiempo, fecha, estilista, idCita) {
     const res = await fetchCitaEmpalme5(tiempo, new Date(fecha), estilista, idCita);
     const resHorario = await fetchHorarioDisponibleEstilistas(new Date(fecha), estilista, tiempo);
+    let observacion = '';
 
     if (res && res.data[0].id > 0) {
       const isConfirmed = await Swal.fire({
@@ -3686,47 +3803,53 @@ function Basic() {
         showCancelButton: true,
       });
       if (!isConfirmed.isConfirmed) {
-        //si no confirma
-        return false;
+        return { disponible: false };
       } else {
         const result = await validarContraseña("MODIFICAR_CITA", "AGENDA");
-        if (!result.validado) return false;
-        // Usar el usuario validado si es necesario
-        const usuarioValidado = result.usuario;
+        if (!result.validado) return { disponible: false };
       }
-      // return false;
     }
-    if (!resHorario) return false;
-    if (resHorario.data[0].clave_empleado == "Cita sin restricciones" || resHorario.data[0].clave_empleado == "Prosiga") {
-      
-   
-      
-    } else if (resHorario.data[0].clave_empleado == "Cita fuera del horario de salida del estilista ¿desea asignar la cita?" || resHorario.data[0].clave_empleado == "Cita dentro del horario de la comida ¿desea asignar la cita?" || resHorario.data[0].clave_empleado == "Cita antes de la apertura del horario del estilista, ¿desea asignar la cita?") {
+
+    if (!resHorario || !resHorario.data || !resHorario.data[0]) return { disponible: false };
+
+    const claveEmpleado = resHorario.data[0].clave_empleado;
+
+    if (claveEmpleado === "Cita sin restricciones" || claveEmpleado === "Prosiga") {
+      // No action needed, continue
+    } else if (
+      claveEmpleado === "Cita fuera del horario de salida del estilista ¿desea asignar la cita?" ||
+      claveEmpleado === "Cita dentro del horario de la comida ¿desea asignar la cita?" ||
+      claveEmpleado === "Cita antes de la apertura del horario del estilista, ¿desea asignar la cita?" ||
+      claveEmpleado === "Esta sucursal tiene restricciones en esta fecha"
+    ) {
+      if (claveEmpleado === "Esta sucursal tiene restricciones en esta fecha") {
+        observacion = 'RESTRICCION';
+      }
       const isConfirmed2 = await Swal.fire({
         icon: "error",
         title: "Error",
-        text: resHorario.data[0].clave_empleado ? resHorario.data[0].clave_empleado : "",
+        text: claveEmpleado || "",
         confirmButtonColor: "#3085d6",
-        confirmButtonText: "Si?",
+        confirmButtonText: "Si",
         cancelButtonText: "CANCELAR",
         showConfirmButton: true,
         showCancelButton: true,
       });
-      if (!isConfirmed2.isConfirmed) return false;
+      if (!isConfirmed2.isConfirmed) return { disponible: false };
+
       const result = await validarContraseña("MODIFICAR_CITA", "AGENDA");
-      if (!result.validado) return false;
-      // Usar el usuario validado si es necesario
-      const usuarioValidado = result.usuario;
-    } else if(res && res.data[0] && res.data[0].id>0) {
+      if (!result.validado) return { disponible: false };
+    } else if (res && res.data[0] && res.data[0].id > 0) {
       Swal.fire({
         icon: "error",
         title: "Error",
         text: `El estilista no tiene horario disponible desde temprano, no se podria poner a las: ${format(fecha, "HH:mm")}`,
         confirmButtonColor: "#3085d6",
       });
-      return false;
+      return { disponible: false };
     }
-    return true;
+
+    return { disponible: true, observacion: observacion };
   }
   const [colummEdit, setColummEdit] = useState("");
   const handleCellDoubleClick = (params) => {
@@ -4142,18 +4265,14 @@ function Basic() {
 
       <div style={{ marginLeft: "0%" }}>
         {state.showScheduler && (
-          <Scheduler
-            key={1}
+          <OptimizedScheduler
             schedulerData={state.viewModel}
             prevClick={prevClick}
-            isLoading={isLoading}
             nextClick={nextClick}
             onSelectDate={onSelectDate}
             onViewChange={onViewChange}
-            viewEventClick={ops1}
-            viewEventText="Editar cita:"
-            viewEvent2Text="Seleccionar opciones"
-            viewEvent2Click={ops2}
+            ops1={ops1}
+            ops2={ops2}
             updateEventStart={updateEventStart}
             updateEventEnd={updateEventEnd}
             moveEvent={moveEvent}
@@ -4163,6 +4282,7 @@ function Basic() {
             onScrollTop={onScrollTop}
             onScrollBottom={onScrollBottom}
             toggleExpandFunc={toggleExpandFunc}
+            isLoading={isLoading}
           />
         )}
       </div>
@@ -6692,7 +6812,7 @@ function Basic() {
                 }
                 columns={[
                   { field: 'nombreUsuario', headerName: 'Usuario', width: 200 },
-                  { field: 'fechaCambio', headerName: 'Fecha cambio', width: 220, valueFormatter: (params) => (params.value) },
+                  { field: 'fechaCambio', headerName: 'Fecha cambio', width: 220, valueFormatter: (params) => (params.value).replace('T', ' '), },
                   { field: 'nombreServicio', headerName: 'Servicio', width: 250 },
                   { field: 'movimiento', headerName: 'Movimiento', width: 250 },
                   {
@@ -6701,9 +6821,9 @@ function Basic() {
                     width: 120,
                     renderCell: (params) => {
                       let color = '';
-                      if (params.value === 'Requerido') color = '#4CAF50';
-                      else if (params.value === 'Confirmado') color = '#FFA500';
-                      else if (params.value === 'Cancelado') color = '#F44336';
+                      if (params.value === 2) color = '#4CAF50';
+                      else if (params.value === 3) color = '#FFA500';
+                      else if (params.value === 4) color = '#F44336';
                       else color = '#2196F3';
 
                       return (
@@ -6715,14 +6835,23 @@ function Basic() {
                           fontSize: '0.8rem',
                           fontWeight: 'bold'
                         }}>
-                          {params.value}
+                          {params.value === 2 ? 'Requerido' : params.value === 3 ? 'Confirmado' : params.value === 4 ? 'Cancelado' : 'Asignado'}
                         </div>
                       );
                     }
                   },
                   { field: 'nombreEstilista', headerName: 'Estilista', width: 150 },
                   { field: 'fechaCita', headerName: 'Fecha', width: 120, valueFormatter: (params) => (params.value) },
-                  { field: 'fechaCita1', headerName: 'Hora', width: 200, valueGetter: (params) => params.row.fechaCita, valueFormatter: (params) => (params.value) },
+                  { field: 'fechaCita1', headerName: 'Hora', width: 200, valueGetter: (params) => params.row.fechaCita, valueFormatter: (params) => {
+                    if (!params.value) return '';
+                    const timeStr = (params.value).split('T')[1];
+                    if (!timeStr) return '';
+                    const [hours, minutes] = timeStr.split(':');
+                    const hour = parseInt(hours, 10);
+                    const ampm = hour >= 12 ? 'PM' : 'AM';
+                    const displayHour = hour % 12 || 12;
+                    return `${displayHour}:${minutes} ${ampm}`;
+                  } },
                 ]}
                 rowHeight={35}
                 columnHeaderHeight={40}

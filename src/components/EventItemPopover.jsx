@@ -20,8 +20,16 @@ function EventItemPopover({
   eventItemPopoverTemplateResolver,
 }) {
   const { localeDayjs, config } = schedulerData;
-  const start = localeDayjs(new Date(startTime));
-  const end = localeDayjs(new Date(endTime));
+  
+
+  // Manejar tanto objetos Date como strings
+  const startDate = startTime instanceof Date ? startTime : new Date(startTime);
+  const endDate = endTime instanceof Date ? endTime : new Date(endTime);
+  
+
+  // Crear objetos dayjs
+  const start = localeDayjs(startDate);
+  const end = localeDayjs(endDate);
 
   if (eventItemPopoverTemplateResolver) {
     return eventItemPopoverTemplateResolver(schedulerData, eventItem, title, start, end, statusColor);

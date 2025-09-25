@@ -299,8 +299,29 @@ class ResourceEvents extends Component {
             const eventEnd = localeDayjs(evt.eventItem.end);
             const isStart = eventStart >= durationStart;
             const isEnd = eventEnd <= durationEnd;
-            const left = index * cellWidth + (index > 0 ? 2 : 3);
-            const width = evt.span * cellWidth - (index > 0 ? 5 : 6) > 0 ? evt.span * cellWidth - (index > 0 ? 5 : 6) : 0;
+            
+          
+            // Calcular la posición real basada en la hora del evento
+            let realLeftIndex = 0;
+            if (cellUnit === CellUnit.Hour) {
+              // Calcular índice basado en la diferencia en minutos desde dayStartFrom
+              const eventHour = eventStart.hour();
+              const eventMinute = eventStart.minute();
+              const startFromHour = config.dayStartFrom || 0;
+              
+              // Convertir a minutos totales desde el inicio del día mostrado
+              const eventMinutesFromStart = (eventHour - startFromHour) * 60 + eventMinute;
+              realLeftIndex = Math.floor(eventMinutesFromStart / config.minuteStep);
+            
+            } else {
+              realLeftIndex = index; // Para otros tipos de celda, usar el índice original
+            }
+            
+            // Usar el índice calculado para la posición
+            const correctedLeft = realLeftIndex * cellWidth + (realLeftIndex > 0 ? 2 : 3);
+       
+            const left = correctedLeft;
+            const width = evt.span * cellWidth - (realLeftIndex > 0 ? 5 : 6) > 0 ? evt.span * cellWidth - (realLeftIndex > 0 ? 5 : 6) : 0;
             const top = marginTop + idx * config.eventItemLineHeight;
             const eventItem = (
               <DnDEventItem
@@ -313,8 +334,8 @@ class ResourceEvents extends Component {
                 left={left}
                 width={width}
                 top={top}
-                leftIndex={index}
-                rightIndex={index + evt.span}
+                leftIndex={realLeftIndex}
+                rightIndex={realLeftIndex + evt.span}
               />
             );
             eventList.push(eventItem);

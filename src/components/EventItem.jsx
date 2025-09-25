@@ -457,7 +457,16 @@ class EventItem extends Component {
       />
     );
 
-    const start = localeDayjs(new Date(eventItem.start));
+
+    // Manejar si eventItem.start ya es un Date object o string
+    const startDate = eventItem.start instanceof Date ? eventItem.start : new Date(eventItem.start);
+    const endDate = eventItem.end instanceof Date ? eventItem.end : new Date(eventItem.end);
+    
+ 
+    const start = localeDayjs(startDate);
+    const end = localeDayjs(endDate);
+    
+  
     const eventTitle = isInPopover ? `${start.format("HH:mm")} ${titleText}` : titleText;
     let startResizeDiv = <div />;
     if (startResizable(this.props)) startResizeDiv = <div className="event-resizer event-start-resizer" ref={(ref) => (this.startResizer = ref)} />;
