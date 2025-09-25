@@ -746,6 +746,7 @@ function Basic() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [inicializarAgenda, setinicializarAgenda] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isNavigatingDate, setIsNavigatingDate] = useState(false);
   useEffect(() => {
     // Obtener las horas de entrada y salida de la agenda para la fecha actual
     const horaEntradaDefault = 10; // Valor por defecto: 10:00 AM
@@ -843,26 +844,34 @@ function Basic() {
     schedulerData.setEvents(arregloCita);
     // if (arreglo.length > 0 && arregloCita.length > 0) {
     setTimeout(() => {
-      if (arreglo.length > 0 && arregloCita.length > 0) {
+      // 🚫 PREVENIR CONFLICTO: No actualizar durante navegación de fechas
+      if (arreglo.length > 0 && arregloCita.length > 0 && !isLoading && !isNavigatingDate) {
         if (inicializarAgenda == false) {
           setinicializarAgenda(true);
           dispatch({ type: "INITIALIZE", payload: schedulerData });
           console.log("INICIALIZADO");
+        } else {
+          // Solo actualizar si no estamos cargando nuevas fechas
+          console.log("ACTUALIZADO - useEffect");
+          console.log(schedulerData);
+          dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
         }
-        console.log("ACTUALIZADO");
-        console.log(schedulerData);
-        dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
+      } else if (isLoading || isNavigatingDate) {
+        console.log("⏳ Saltando actualización - navegando fechas o loading");
       }
-    }, 1500);
+    }, 800); // 🚀 Reducido de 1500ms a 800ms para mejor responsive
     // }
-  }, [arregloCita, arreglo, dataSucursales]);
+  }, [arregloCita, arreglo, dataSucursales, isLoading, isNavigatingDate]);
   const actualizarAgenda = (response, schedulerData) => {
     schedulerData.setEvents(response);
-    // dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
+    // 🎯 SOLUCIÓN DEFINITIVA: Actualizar arregloCita para sincronizar con useEffect
+    setArregloCita(response);
+    dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
   };
 
-  const actualizarFechayCitas = async (schedulerData, dias, fecha) => {
+  const actualizarFechayCitas = useCallback(async (schedulerData, dias, fecha) => {
     setIsLoading(true);
+    setIsNavigatingDate(true);
     setDatosParametros((datosParametrosPrevios) => {
 
       // Manejar el caso cuando es un objeto o una fecha string
@@ -885,46 +894,59 @@ function Basic() {
       
       if (dias == 0) tempFecha.setDate(tempFecha.getDate() + 0);
       
-      // Primero obtenemos los horarios de la agenda para la nueva fecha
-      fetchHorariosAgenda(tempFecha).then((horariosResult) => {
-        // Luego obtenemos los datos de estilistas
-        fetchData(tempFecha).then(() => {
+      // Usar async/await para mejor control de flujo
+      (async () => {
+        try {
+          // Primero obtenemos los horarios de la agenda para la nueva fecha
+          const horariosResult = await fetchHorariosAgenda(tempFecha);
+          
+          // Luego obtenemos los datos de estilistas  
+          await fetchData(tempFecha);
+          
           // Finalmente obtenemos las citas
-          getCitas(tempFecha).then((response) => {
-            if (dias < 0) {
-              schedulerData.prev();
-            } else if (dias === 0) {
-              schedulerData.setDate(tempFecha.toISOString().split("T")[0]);
-            } else {
-              schedulerData.next();
-            }
-            actualizarAgenda(response, schedulerData);
-            setTimeout(() => {
-              setIsLoading(false);
-            }, 1000);
-          });
-        });
-      });
+          const response = await getCitas(tempFecha);
+          
+          // Actualizar schedulerData después de que todos los datos estén listos
+          if (dias < 0) {
+            schedulerData.prev();
+          } else if (dias === 0) {
+            schedulerData.setDate(tempFecha.toISOString().split("T")[0]);
+          } else {
+            schedulerData.next();
+          }
+          
+          // Actualizar la agenda con los nuevos datos
+          actualizarAgenda(response, schedulerData);
+          
+          // Terminar loading y navegación inmediatamente para evitar conflictos de timing
+          setIsLoading(false);
+          setIsNavigatingDate(false);
+        } catch (error) {
+          console.error('Error al actualizar fecha y citas:', error);
+          setIsLoading(false);
+          setIsNavigatingDate(false);
+        }
+      })();
       
       return {
         ...datosParametrosPrevios,
         fecha: tempFecha,
       };
     });
-  };
+  }, [idSuc, setArregloCita, setIsLoading, setIsNavigatingDate]);
 
   // ⚡ OPTIMIZACIÓN: Memoizar funciones de callback para evitar re-renders
   const prevClick = useCallback((schedulerData) => {
     actualizarFechayCitas(schedulerData, -1);
-  }, []);
+  }, [actualizarFechayCitas]);
 
   const nextClick = useCallback((schedulerData) => {
     actualizarFechayCitas(schedulerData, +1);
-  }, []);
+  }, [actualizarFechayCitas]);
 
   const onSelectDate = useCallback((schedulerData, date) => {
     actualizarFechayCitas(schedulerData, 0, date);
-  }, []);
+  }, [actualizarFechayCitas]);
 
   const onViewChange = useCallback((schedulerData, view) => {
     const start = new Date();
