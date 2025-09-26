@@ -401,8 +401,8 @@ function ListaEspera() {
         }
       });
       
-      peinadosApi
-        .post("/sp_listaEsperaAdd5", null, {
+      try {
+        await peinadosApi.post("/sp_listaEsperaAdd5", null, {
           params: {
             sucursal: idSuc ? idSuc : 1,
             idListaEspera: idListaEspera,
@@ -410,42 +410,27 @@ function ListaEspera() {
             fecha: fecha,
             usuario: usuarioValidado ? usuarioValidado : 0
           },
-        })
-        .then((response) => {
-          // Esperar un momento para asegurar que el servidor procesó la solicitud
-          setTimeout(() => {
-            // Intentar actualizar la tabla
-            fetchListaEspera()
-              .then(() => {
-                // Mostrar mensaje de éxito
-                Swal.fire({
-                  icon: "success",
-                  title: "Listo!",
-                  text: "Se creo exitosamente.",
-                  confirmButtonText: "Entendido",
-                });
-              })
-              .catch((error) => {
-                console.error("Error al actualizar la lista de espera:", error);
-                // Intentar una segunda vez si falla
-                setTimeout(() => fetchListaEspera(), 1000);
-                Swal.fire({
-                  icon: "success",
-                  title: "Listo!",
-                  text: "Se creo exitosamente. Actualizando datos...",
-                  confirmButtonText: "Entendido",
-                });
-              });
-          }, 500);
-        })
-        .catch((error) => {
-          console.error("Error al crear la lista de espera:", error);
-          Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: "Ocurrió un error al crear la lista de espera. Por favor, inténtelo de nuevo.",
-          });
         });
+
+        await fetchListaEspera(true);
+
+        Swal.fire({
+          icon: "success",
+          title: "Listo!",
+          text: "Se creo exitosamente.",
+          confirmButtonText: "Entendido",
+        });
+      } catch (error) {
+        console.error("Error al crear la lista de espera:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Ocurrió un error al crear la lista de espera. Por favor, inténtelo de nuevo.",
+        });
+
+        // Intentar una recarga adicional por si la petición fue exitosa pero la respuesta falló
+        setTimeout(() => fetchListaEspera(true), 1000);
+      }
     }
   };
   const [formListaEsperaVerificacion, setFormListaEsperaVerificacion] = useState();
@@ -454,6 +439,8 @@ function ListaEspera() {
       <div style={{ display: "flex" }}>
         <MdCalendarMonth
           onClick={() => {
+            console.log(params.row.hora_estimada)
+            
             listaEsperaPost(params.row.id, 1, params.row.tiempo_servicio, params.row.estilista, new Date(params.row.hora_estimada));
           }}
           title="C"
@@ -529,7 +516,7 @@ function ListaEspera() {
                     text: "Registro eliminado con éxito",
                     confirmButtonColor: "#3085d6",
                   });
-                  fetchListaEspera();
+                  fetchListaEspera(true);
                   // getDescuento();
                 });
               }
@@ -613,7 +600,6 @@ function ListaEspera() {
   ];
   const columnListaEspera = [
     { field: "Accion", headerName: "Accion", renderCell: renderDeleteListaEspera, width: 130 },
-
     {
       field: "fecha",
       headerName: "hora",
@@ -633,10 +619,6 @@ function ListaEspera() {
     { field: "observacion", headerName: "Observacion", width: 500 },
   ];
   const putListaEspera = async (id) => {
-    console.log(formClienteEspera.no_cliente);
-    console.log(formClienteEspera.clave_prod);
-    console.log(formClienteEspera.hora_estimada);
-    console.log(formClienteEspera.estilista);
     if (
       formClienteEspera.no_cliente == null ||
       formClienteEspera.clave_prod == null ||
@@ -667,24 +649,13 @@ function ListaEspera() {
           observacion: formClienteEspera.observacion ? formClienteEspera.observacion : "",
         },
       });
-      
+
+      await fetchListaEspera(true);
+
       await Swal.fire({
         icon: "success",
         text: "Lista de espera actualizada correctamente",
       });
-      
-      // Add a small delay before fetching to ensure the server has processed the update
-      setTimeout(async () => {
-        try {
-          await fetchListaEspera();
-          console.log("Lista de espera actualizada y recargada correctamente");
-        } catch (fetchError) {
-          console.error("Error al recargar la lista de espera:", fetchError);
-          // Try one more time if the first fetch fails
-          setTimeout(() => fetchListaEspera(), 1000);
-        }
-      }, 500);
-      
     } catch (error) {
       console.error("Error al actualizar la lista de espera:", error);
       Swal.fire({
@@ -692,6 +663,9 @@ function ListaEspera() {
         title: "Error",
         text: "No se pudo actualizar la lista de espera. Intente nuevamente.",
       });
+
+      // Intentar una recarga adicional por si la petición fue exitosa pero la respuesta falló
+      setTimeout(() => fetchListaEspera(true), 1000);
     }
   };
   const postListaEspera = async () => {
@@ -746,7 +720,7 @@ function ListaEspera() {
         // Esperar un momento para asegurar que el servidor procesó la solicitud
         setTimeout(() => {
           // Intentar actualizar la tabla
-          fetchListaEspera()
+          fetchListaEspera(true)
             .then(() => {
               // Mostrar mensaje de éxito
               Swal.fire({
@@ -757,9 +731,9 @@ function ListaEspera() {
             .catch((error) => {
               console.error("Error al actualizar la lista de espera:", error);
               // Intentar una segunda vez si falla
-              setTimeout(() => fetchListaEspera(), 1000);
+              setTimeout(() => fetchListaEspera(true), 1000);
             });
-        }, 500);
+        }, 1000);
       }).catch((error) => {
         console.error("Error al crear la lista de espera:", error);
         Swal.fire({
@@ -1092,6 +1066,9 @@ function ListaEspera() {
                   slotProps={{ textField: { size: "small" } }}
                   value={formListaEsperaVerificacion?.hora_estimada ? formListaEsperaVerificacion.hora_estimada : null}
                   inputFormat="HH:mm"
+                  onChange={(newValue) => {
+                    setFormListaEsperaVerificacion({ ...formListaEsperaVerificacion, hora_estimada: newValue });
+                  }}
                   renderInput={(params) => <TextField {...params} style={{ fontSize: "1.2rem", height: "4rem" }} />}
                 />
               </LocalizationProvider>
@@ -1107,6 +1084,7 @@ function ListaEspera() {
             color="primary"
             onClick={() => {
               //listaEsperaPost(formListaEsperaVerificacion.id, 2);
+              console.log(formListaEsperaVerificacion.hora_estimada)
               listaEsperaPost(
                 formListaEsperaVerificacion.id,
                 2,

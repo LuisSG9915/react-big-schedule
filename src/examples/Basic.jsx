@@ -326,7 +326,7 @@ function Basic() {
   const [modalBitacora, setModalBitacora] = useState(false)
   const [isUpdatingService, setIsUpdatingService] = useState(false)
   const getBitacoraCitas = async (idCita) => {
-    const response = await peinadosApi.get(`/spBitacoraDetalleCitas3?idCita=${idCita}`)
+    const response = await peinadosApi.get(`/spBitacoraCitas4?idCita=${idCita}`)
     setbitacoraCitas(response.data);
     setModalBitacora(true);
   }
@@ -383,12 +383,80 @@ function Basic() {
           "yyyyMMdd"
         )}&suc=${idSuc}&nomberEstilista=${"%"}&nombreCliente=${"%"}`
       );
+      // Filtrar solo las citas del estilista 37 para análisis
+      const citasEstilista37 = response.data.filter((item) => item.no_estilista === 37);
+      
+      // Mostrar los datos originales para diagnóstico
+      console.log('Datos originales de citas (estilista 37):', 
+        citasEstilista37.map(item => ({
+          id: item.id,
+          fecha: item.fecha,
+          hora1: item.hora1,
+          hora2: item.hora2
+        }))
+      );
+      
+      // Procesar y mostrar las fechas transformadas
+      console.log('Fechas transformadas (estilista 37):', 
+        citasEstilista37.map((item) => {
+          // Crear fechas a partir de los datos
+          let fechaBase = new Date(item.fecha);
+          
+          // Extraer las horas y minutos de hora1 y hora2
+          let hora1Original = new Date(item.hora1);
+          let hora2Original = new Date(item.hora2);
+          
+          // Mostrar información de diagnóstico
+          console.log(`Cita ID ${item.id}:`);
+          console.log(`  fecha: ${item.fecha}, fechaBase: ${fechaBase.toISOString()}`);
+          console.log(`  hora1: ${item.hora1}, hora1Original: ${hora1Original.toISOString()}`);
+          console.log(`  hora1Original.getHours(): ${hora1Original.getHours()}, hora1Original.getMinutes(): ${hora1Original.getMinutes()}`);
+          
+          console.log(`  hora1: ${item.hora2}, hora2Original: ${hora2Original.toISOString()}`);
+          console.log(`  hora2Original.getHours(): ${hora2Original.getHours()}, hora2Original.getMinutes(): ${hora2Original.getMinutes()}`);
+          
+          // Crear nuevas fechas con la fecha base y las horas/minutos de hora1 y hora2
+          let hora1 = new Date(fechaBase);
+          let hora2 = new Date(fechaBase);
+          
+          hora1.setHours(hora1Original.getHours(), hora1Original.getMinutes(), 0, 0);
+          hora2.setHours(hora2Original.getHours(), hora2Original.getMinutes(), 0, 0);
+          
+          // Mostrar resultado final
+          const result = {
+            start: hora1.toISOString(),
+            end: hora2.toISOString(),
+            resourceId: item.no_estilista,
+            // Añadir información de diagnóstico
+            startLocal: hora1.toString(),
+            endLocal: hora2.toString(),
+          };
+          
+          console.log(`  Resultado: start=${result.start}, startLocal=${result.startLocal}`);
+          
+          return result;
+        })
+      )
       setArregloCita(
         response.data.map((item) => {
-          let hora1 = new Date(item.hora1);
-          let hora2 = new Date(item.hora2);
-          hora1.setFullYear(new Date(item.fecha).getFullYear(), new Date(item.fecha).getMonth(), new Date(item.fecha).getDate());
-          hora2.setFullYear(new Date(item.fecha).getFullYear(), new Date(item.fecha).getMonth(), new Date(item.fecha).getDate());
+          // Crear fechas a partir de los datos
+          let fechaBase = new Date(item.fecha);
+          
+          // Extraer las horas y minutos de hora1 y hora2
+          let hora1Original = new Date(item.hora1);
+          let hora2Original = new Date(item.hora2);
+          
+          // Crear nuevas fechas con la fecha base y las horas/minutos de hora1 y hora2
+          let hora1 = new Date(fechaBase);
+          let hora2 = new Date(fechaBase);
+          
+          hora1.setHours(hora1Original.getHours(), hora1Original.getMinutes(), 0, 0);
+          hora2.setHours(hora2Original.getHours(), hora2Original.getMinutes(), 0, 0);
+          
+          // Ajustar para la zona horaria de México (UTC-6)
+          // No es necesario ajustar manualmente ya que toISOString() ya convierte a UTC
+          // y la biblioteca de calendario interpretará correctamente la hora UTC
+          
           return {
             ...item,
             start: hora1.toISOString(),
@@ -417,11 +485,20 @@ function Basic() {
       );
 
       return response.data.map((item) => {
-        let hora1 = new Date(item.hora1);
-        let hora2 = new Date(item.hora2);
+        // Crear fechas a partir de los datos
         let fechaBase = new Date(item.fecha);
-        hora1.setFullYear(fechaBase.getFullYear(), fechaBase.getMonth(), fechaBase.getDate());
-        hora2.setFullYear(fechaBase.getFullYear(), fechaBase.getMonth(), fechaBase.getDate());
+        
+        // Extraer las horas y minutos de hora1 y hora2
+        let hora1Original = new Date(item.hora1);
+        let hora2Original = new Date(item.hora2);
+        
+        // Crear nuevas fechas con la fecha base y las horas/minutos de hora1 y hora2
+        let hora1 = new Date(fechaBase);
+        let hora2 = new Date(fechaBase);
+        
+        hora1.setHours(hora1Original.getHours(), hora1Original.getMinutes(), 0, 0);
+        hora2.setHours(hora2Original.getHours(), hora2Original.getMinutes(), 0, 0);
+        
         return {
           ...item,
           start: hora1.toISOString(),
@@ -473,8 +550,8 @@ function Basic() {
           response.data.map((item) => {
             const newItem = {
               ...item,
-              // name: item.clave + " - " + item.estilista,
-              name: item.estilista,
+               name: item.clave + " - " + item.estilista,
+              // name: item.estilista,
               id: item.clave,
             };
             delete newItem.toggleExpandStatus;
@@ -1459,6 +1536,7 @@ function Basic() {
     let mes = fechaActual.getMonth(); // Nota: getMonth() devuelve un valor de 0 a 11, donde 0 es enero y 11 es diciembre
     let día = fechaActual.getDate();
     let fechaSinHora = new Date(año, mes, día);
+    
     peinadosApi
       .put("/DetalleCitas", null, {
         params: {
@@ -1487,8 +1565,8 @@ function Basic() {
         },
       })
       .then((response) => {
-        
         Swal.fire("Saved!", "", "success");
+        return
         setTimeout(() => {
           window.location.reload();
         }, 1000);
@@ -6608,13 +6686,17 @@ function Basic() {
             <ThemeProvider theme={theme}>
               <DataGrid
                 rows={bitacoraCitas.length > 0 ? bitacoraCitas : []}
-                getRowId={(row) => row.id}
+                getRowId={(row) => 
+// no tengo id: 
+                  row.servicio
+                }
                 columns={[
-                  { field: 'nombre', headerName: 'Usuario', width: 200 },
-                  { field: 'fechaLog', headerName: 'Fecha cambio', width: 220, valueFormatter: (params) => new Date(params.value).toLocaleString() },
-                  { field: 'descripcion', headerName: 'Servicio', width: 250 },
+                  { field: 'nombreUsuario', headerName: 'Usuario', width: 200 },
+                  { field: 'fechaCambio', headerName: 'Fecha cambio', width: 220, valueFormatter: (params) => (params.value) },
+                  { field: 'nombreServicio', headerName: 'Servicio', width: 250 },
+                  { field: 'movimiento', headerName: 'Movimiento', width: 250 },
                   {
-                    field: 'estatusCita',
+                    field: 'estatus',
                     headerName: 'Modo',
                     width: 120,
                     renderCell: (params) => {
@@ -6639,8 +6721,8 @@ function Basic() {
                     }
                   },
                   { field: 'nombreEstilista', headerName: 'Estilista', width: 150 },
-                  { field: 'fechaCita', headerName: 'Fecha', width: 120, valueFormatter: (params) => new Date(params.value).toLocaleDateString() },
-                  { field: 'fechaCita1', headerName: 'Hora', width: 200, valueGetter: (params) => params.row.fechaCita, valueFormatter: (params) => new Date(params.value).toLocaleTimeString() },
+                  { field: 'fechaCita', headerName: 'Fecha', width: 120, valueFormatter: (params) => (params.value) },
+                  { field: 'fechaCita1', headerName: 'Hora', width: 200, valueGetter: (params) => params.row.fechaCita, valueFormatter: (params) => (params.value) },
                 ]}
                 rowHeight={35}
                 columnHeaderHeight={40}
