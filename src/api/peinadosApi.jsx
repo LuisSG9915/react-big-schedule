@@ -1,7 +1,7 @@
 import axios from "axios";
 
 export const peinadosApi = axios.create({
-  baseURL: "http://217.216.95.62:9018",
+  baseURL: "/peinadosapi",
   headers: {
     "Content-Type": "text/plain; charset=UTF-8; application/json",
     // "Content-Type": "application/json",
