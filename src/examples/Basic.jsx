@@ -215,7 +215,7 @@ function Basic() {
   useEffect(() => {
     if (!idSuc) {
       alert("Favor de ingresar en la página principal");
-      window.location.href = "https://cbinfo.no-ip.info:9020/";
+      window.location.href = "http://217.216.95.62:9020/";
     }
     setDataEvent({ ...dataEvent, sucursal: Number(idSuc), d_sucursal: suc, idRec: Number(idRec) });
   }, []);
@@ -4205,7 +4205,7 @@ function Basic() {
         <div className="nBarra">
           <div className="botones-barra" style={{ justifyContent: "space-between", alignItems: "center", display: "flex", paddingTop: 10 }}>
             <ButtonGroup variant="contained" aria-label="outlined primary button group">
-              <Button size="sm" href="https://cbinfo.no-ip.info:9020/Ventas" color="success">
+              <Button size="sm" href="http://217.216.95.62:9020/Ventas" color="success">
                 <FaMoneyBillAlt size={20}></FaMoneyBillAlt>
                 Ventas
               </Button>

@@ -117,7 +117,7 @@ function Agenda2() {
   useEffect(() => {
     if (!idSuc) {
       alert("Favor de ingresar en la página principal");
-      window.location.href = "https://cbinfo.no-ip.info:9020/";
+      window.location.href = "http://217.216.95.62:9020/";
     }
     setDataEvent({ ...dataEvent, sucursal: Number(idSuc), d_sucursal: suc, idRec: Number(idRec) });
   }, []);
