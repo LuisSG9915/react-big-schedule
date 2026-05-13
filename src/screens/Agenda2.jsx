@@ -271,15 +271,23 @@ function Agenda2() {
       const response = await peinadosApi.get(
         `/DetalleAgendaSelv20?fecha=${format(
           fecha ? fecha : datosParametros.fecha,
-          "yyyyMMdd"
-        )}&suc=${idSuc}&nomberEstilista=${"%"}&nombreCliente=${"%"}`
+          "yyyyMMdd",
+        )}&suc=${idSuc}&nomberEstilista=${"%"}&nombreCliente=${"%"}`,
       );
       setArregloCita(
         response.data.map((item) => {
           let hora1 = new Date(item.hora1);
           let hora2 = new Date(item.hora2);
-          hora1.setFullYear(new Date(item.fecha).getFullYear(), new Date(item.fecha).getMonth(), new Date(item.fecha).getDate());
-          hora2.setFullYear(new Date(item.fecha).getFullYear(), new Date(item.fecha).getMonth(), new Date(item.fecha).getDate());
+          hora1.setFullYear(
+            new Date(item.fecha).getFullYear(),
+            new Date(item.fecha).getMonth(),
+            new Date(item.fecha).getDate(),
+          );
+          hora2.setFullYear(
+            new Date(item.fecha).getFullYear(),
+            new Date(item.fecha).getMonth(),
+            new Date(item.fecha).getDate(),
+          );
           return {
             ...item,
             start: hora1.toISOString(),
@@ -304,7 +312,7 @@ function Agenda2() {
                 ? "#DDA0DD" // Plum
                 : "#bababa", // Light Gray
           };
-        })
+        }),
       );
 
       return response.data.map((item) => {
@@ -344,7 +352,11 @@ function Agenda2() {
 
   const fetchData = async (tempFecha) => {
     await peinadosApi
-      .get(`/Estilistas5?id=0&sucursal=${idSuc}&fecha=${tempFecha ? tempFecha.toISOString().split("T")[0] : new Date().toISOString().split("T")[0]}`)
+      .get(
+        `/Estilistas5?id=0&sucursal=${idSuc}&fecha=${
+          tempFecha ? tempFecha.toISOString().split("T")[0] : new Date().toISOString().split("T")[0]
+        }`,
+      )
       .then((response) => {
         setArreglo(
           response.data.map((item) => {
@@ -355,7 +367,7 @@ function Agenda2() {
             };
             delete newItem.toggleExpandStatus;
             return newItem;
-          })
+          }),
         );
       })
       .catch((err) => {
@@ -369,7 +381,9 @@ function Agenda2() {
       .get(
         `/ClientesCitasDia10?suc=${idSuc}&cliente=0&fecha=${format(datosParametros.fecha, "yyyyMMdd")}&tipoCita=${
           tipoCita ? tipoCita : "%"
-        }&nombreEstilista=${elimina ? "" : datosParametros.nombreEstilista}&nombreCliente=${elimina ? "" : datosParametros.nombreCliente}`
+        }&nombreEstilista=${elimina ? "" : datosParametros.nombreEstilista}&nombreCliente=${
+          elimina ? "" : datosParametros.nombreCliente
+        }`,
       )
       .then((response) => {
         setArregloCitaDia(response.data);
@@ -402,16 +416,16 @@ function Agenda2() {
     schedulerData.setResources(arreglo);
     schedulerData.setEvents(arregloCita);
     // if (arreglo.length > 0 && arregloCita.length > 0) {
-      setTimeout(() => {
-        if (arreglo.length > 0 && arregloCita.length > 0) {
+    setTimeout(() => {
+      if (arreglo.length > 0 && arregloCita.length > 0) {
         if (inicializarAgenda == false) {
           setinicializarAgenda(true);
           dispatch({ type: "INITIALIZE", payload: schedulerData });
-          console.log("INICIALIZADO")
+          console.log("INICIALIZADO");
         }
-        console.log("ACTUALIZADO")
-        console.log(schedulerData)
-      dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
+        console.log("ACTUALIZADO");
+        console.log(schedulerData);
+        dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
       }
     }, 1500);
     // }
@@ -517,7 +531,11 @@ function Agenda2() {
   };
 
   const updateEventEnd = (schedulerData, event, newEnd) => {
-    if (confirm(`Do you want to adjust the end of the event? {eventId: ${event.id}, eventTitle: ${event.title}, newEnd: ${newEnd}}`)) {
+    if (
+      confirm(
+        `Do you want to adjust the end of the event? {eventId: ${event.id}, eventTitle: ${event.title}, newEnd: ${newEnd}}`,
+      )
+    ) {
       schedulerData.updateEventEnd(event, newEnd);
     }
     dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
@@ -560,8 +578,12 @@ function Agenda2() {
       title: "Cambio de Cita",
       html: `
         <p>CLIENTE: Publico en General</p>
-        <p>ANTERIOR:<br>Horas: ${format(new Date(event.hora1), "hh:mm a")}   Estilista: ${nombreAgendaAnterior ? nombreAgendaAnterior : ""}</p>
-        <p>NUEVA:<br>Horas: ${format(new Date(start), "hh:mm a")}   Estilista: ${nombreAgendaNuevo ? nombreAgendaNuevo : ""}</p>
+        <p>ANTERIOR:<br>Horas: ${format(new Date(event.hora1), "hh:mm a")}   Estilista: ${
+        nombreAgendaAnterior ? nombreAgendaAnterior : ""
+      }</p>
+        <p>NUEVA:<br>Horas: ${format(new Date(start), "hh:mm a")}   Estilista: ${
+        nombreAgendaNuevo ? nombreAgendaNuevo : ""
+      }</p>
         <p>Quiere confirmar el cambio?</p>
       `,
       showCancelButton: true,
@@ -739,7 +761,19 @@ function Agenda2() {
                 return;
               }
 
-              putDetalleCitasServiciosUpd4(0, params.row.sucursal, params.row.id, 0, params.row.idEstilista, 0, 0, idUser, 0, 0, new Date());
+              putDetalleCitasServiciosUpd4(
+                0,
+                params.row.sucursal,
+                params.row.id,
+                0,
+                params.row.idEstilista,
+                0,
+                0,
+                idUser,
+                0,
+                0,
+                new Date(),
+              );
             }}
           >
             Cancelar
@@ -749,7 +783,14 @@ function Agenda2() {
     },
 
     // Esta es la columna del ID único
-    { field: "d_stilista", headerName: "Estilista", width: 85, align: "center", sortable: false, style: { fontSize: "16px" } }, // Esta es la columna del ID único
+    {
+      field: "d_stilista",
+      headerName: "Estilista",
+      width: 85,
+      align: "center",
+      sortable: false,
+      style: { fontSize: "16px" },
+    }, // Esta es la columna del ID único
     {
       field: "stao_estilista",
       headerName: "M/Folio",
@@ -788,7 +829,9 @@ function Agenda2() {
       headerName: "T",
       width: 40,
       renderCell: (params) => (
-        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0, fontSize: "16px" }}>{params.row.tiempo}</p>
+        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0, fontSize: "16px" }}>
+          {params.row.tiempo}
+        </p>
       ),
     },
 
@@ -906,7 +949,19 @@ function Agenda2() {
             disabled
             size={23}
             onClick={() =>
-              putDetalleCitasServiciosUpd4(0, params.row.sucursal, params.row.id, 0, params.row.idEstilista, 0, 0, idUser, 0, 0, new Date())
+              putDetalleCitasServiciosUpd4(
+                0,
+                params.row.sucursal,
+                params.row.id,
+                0,
+                params.row.idEstilista,
+                0,
+                0,
+                idUser,
+                0,
+                0,
+                new Date(),
+              )
             }
           >
             Cancelar
@@ -954,7 +1009,9 @@ function Agenda2() {
       field: "tiempo",
       headerName: "T",
       width: 40,
-      renderCell: (params) => <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>{params.row.tiempo}</p>,
+      renderCell: (params) => (
+        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>{params.row.tiempo}</p>
+      ),
     },
 
     {
@@ -962,7 +1019,9 @@ function Agenda2() {
       headerName: "HI",
       width: 60,
       renderCell: (params) => (
-        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>{format(new Date(params.row.hora_cita), "HH:mm")}</p>
+        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>
+          {format(new Date(params.row.hora_cita), "HH:mm")}
+        </p>
       ),
     },
     {
@@ -970,7 +1029,9 @@ function Agenda2() {
       headerName: "HF",
       width: 60,
       renderCell: (params) => (
-        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>{format(new Date(params.row.horafinal), "HH:mm")}</p>
+        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>
+          {format(new Date(params.row.horafinal), "HH:mm")}
+        </p>
       ),
     },
     {
@@ -994,7 +1055,7 @@ function Agenda2() {
   ];
 
   // const ligaPruebas = "http://localhost:5173/";
-  const ligaPruebas = "https://cbinfo.no-ip.info:9019/";
+  const ligaPruebas = "https://217.216.95.62:9019/";
   const handleOpenNewWindow = ({ idCita, idUser, idCliente, fecha, flag }) => {
     const url = `${ligaPruebas}miliga/crearcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idSuc=${1}&idRec=${1}&flag=${flag}`; // Reemplaza esto con la URL que desees abrir
     const width = 390;
@@ -1004,7 +1065,17 @@ function Agenda2() {
     const features = `width=${width},height=${height},left=${left},top=${top},toolbar=0,location=0,menubar=0,scrollbars=1,resizable=1`;
     window.open(url, "_blank", features);
   };
-  const handleOpenNewWindowEdit = ({ idCita, idUser, idCliente, fecha, flag, estadoCita, tiempo, nombreCliente, idSuc }) => {
+  const handleOpenNewWindowEdit = ({
+    idCita,
+    idUser,
+    idCliente,
+    fecha,
+    flag,
+    estadoCita,
+    tiempo,
+    nombreCliente,
+    idSuc,
+  }) => {
     const url = `${ligaPruebas}miliga/editarcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idRec=${idRec}&flag=${flag}&estadoCita=${estadoCita}&tiempo=${tiempo}&nombreCliente=${nombreCliente}&idSuc=${idSuc}`; // Reemplaza esto con la URL que desees abrir
     const width = 600;
     const height = 800;
@@ -1439,8 +1510,10 @@ function Agenda2() {
     await peinadosApi
       .get(
         `/estilistas5?id=0&sucursal=${idSuc}&fecha=${
-          datosParametros.fecha ? datosParametros.fecha.toISOString().split("T")[0] : new Date().toISOString().split("T")[0]
-        }`
+          datosParametros.fecha
+            ? datosParametros.fecha.toISOString().split("T")[0]
+            : new Date().toISOString().split("T")[0]
+        }`,
       )
       .then((response) => {
         setDataEstilistas(response.data);
@@ -1461,7 +1534,9 @@ function Agenda2() {
 
   const getProductos = () => {
     peinadosApi
-      .get("/sp_cPSEAC?id=0&cia=1&sucursal=2&almacen=1&marca=%&descripcion=%&verinventariable=0&esServicio=2&esInsumo=0&obsoleto=0")
+      .get(
+        "/sp_cPSEAC?id=0&cia=1&sucursal=2&almacen=1&marca=%&descripcion=%&verinventariable=0&esServicio=2&esInsumo=0&obsoleto=0",
+      )
       .then((response) => {
         setDataProductos(response.data);
       });
@@ -1469,7 +1544,7 @@ function Agenda2() {
   const getOperaciones = () => {
     peinadosApi
       .get(
-        `/sp_detalleOperaciones7?noCliente=${formCita.no_cliente}&sucursal=${formPuntosObservaciones.sucursal}&noMovto=${formPuntosObservaciones.idMovto}`
+        `/sp_detalleOperaciones7?noCliente=${formCita.no_cliente}&sucursal=${formPuntosObservaciones.sucursal}&noMovto=${formPuntosObservaciones.idMovto}`,
       )
       .then((response) => {
         setDataOperaciones(response.data);
@@ -1495,7 +1570,9 @@ function Agenda2() {
   });
   const { dataCuentasPendientes } = useDetalleCuentaPendietes({ no_cliente: formCita.no_cliente });
   const { dataObservaciones, fetchObservaciones } = useObservaciones({ idCliente: formCita.no_cliente });
-  const { dataCitasObservaciones, fetchDetalleCitasObservaciones } = useDetalleCitasObservaciones({ idCliente: formCita.no_cliente });
+  const { dataCitasObservaciones, fetchDetalleCitasObservaciones } = useDetalleCitasObservaciones({
+    idCliente: formCita.no_cliente,
+  });
   const { dataClientesSaldosPendientes } = useDetalleSaldosPendientes({ no_cliente: formCita.no_cliente });
   const { dataTrabajadores } = useNominaTrabajadores();
   const { DataVentasOperaciones } = useVentasOperaciones({
@@ -1546,10 +1623,14 @@ function Agenda2() {
 
   const { dataPromocionesZonas } = usePromocionesZonas();
   const { dataPromocionesGrupos } = usePromocionesGrupos({ idPromocion: formPromocion.id });
-  const { dataVentasOperacionesMediosPagos2 } = useVentasOperacionesMediosPagos2({ sucursal: idSuc, folioVenta: formVentaOperaciones.no_venta });
+  const { dataVentasOperacionesMediosPagos2 } = useVentasOperacionesMediosPagos2({
+    sucursal: idSuc,
+    folioVenta: formVentaOperaciones.no_venta,
+  });
 
   const { dataPrepagos, fetchPrepagos } = usePrepagos();
-  const { fetchProductosAreaDeptoSub, dataProductosAreaDeptoSub, setDataProductosAreaDeptoSub } = useProductosAreaDeptoSub();
+  const { fetchProductosAreaDeptoSub, dataProductosAreaDeptoSub, setDataProductosAreaDeptoSub } =
+    useProductosAreaDeptoSub();
   const putCitasObservaciones = (estado, idCita) => {
     setModalCitasObservaciones(false);
     if (estado == 1) {
@@ -1562,7 +1643,7 @@ function Agenda2() {
           peinadosApi
             .put(
               `/sp_DetalleCitasObservacionesput?id=${idCita}&observaciones=${observaciones}
-          `
+          `,
             )
             .then((response) => {
               Swal.fire({
@@ -1673,7 +1754,7 @@ function Agenda2() {
                 cell.row.id_servicio,
                 idUser,
                 0,
-                cell.row.precio
+                cell.row.precio,
               );
             }}
           >
@@ -1755,7 +1836,7 @@ function Agenda2() {
                 cell.row.id_servicio,
                 idUser,
                 0,
-                cell.row.precio
+                cell.row.precio,
               );
             }}
           >
@@ -1948,7 +2029,9 @@ function Agenda2() {
     console.log(minutosDesdeMedianocheSalida);
     console.log(minutosDesdeMedianocheCita);
 
-    let esValida = minutosDesdeMedianocheCita >= minutosDesdeMedianocheEntrada && minutosDesdeMedianocheCita <= minutosDesdeMedianocheSalida;
+    let esValida =
+      minutosDesdeMedianocheCita >= minutosDesdeMedianocheEntrada &&
+      minutosDesdeMedianocheCita <= minutosDesdeMedianocheSalida;
     return esValida;
   };
   const postCrearCita = async () => {
@@ -2181,7 +2264,10 @@ function Agenda2() {
                 return;
               }
               if (formVentaHistoriales.botonConsultar) {
-                setFormVentaHistoriales({ claveProd: cell.row.original.id, claveProdDescripcion: cell.row.original.descripcion });
+                setFormVentaHistoriales({
+                  claveProd: cell.row.original.id,
+                  claveProdDescripcion: cell.row.original.descripcion,
+                });
               } else {
                 setDataVentaTemporal({
                   clave: cell.row.original.id,
@@ -2295,7 +2381,10 @@ function Agenda2() {
                 return;
               }
               if (formVentaHistoriales.botonConsultar) {
-                setFormVentaHistoriales({ claveProd: cell.row.original.id, claveProdDescripcion: cell.row.original.descripcion });
+                setFormVentaHistoriales({
+                  claveProd: cell.row.original.id,
+                  claveProdDescripcion: cell.row.original.descripcion,
+                });
               } else {
                 setFormDetalleCitasServicios({
                   ...formDetalleCitasServicios,
@@ -2343,7 +2432,9 @@ function Agenda2() {
       header: "Precio",
       size: 50,
       Cell: ({ cell }) => (
-        <p className="centered-cell">{Number(cell.row.original.precioPromocion).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}</p>
+        <p className="centered-cell">
+          {Number(cell.row.original.precioPromocion).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}
+        </p>
       ),
       className: "centered-cell", // Agrega esta línea para aplicar la clase CSS
     },
@@ -2395,7 +2486,9 @@ function Agenda2() {
       header: "Precio",
       size: 100,
       Cell: ({ cell }) => (
-        <p className="centered-cell">{Number(cell.row.original.precio).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}</p>
+        <p className="centered-cell">
+          {Number(cell.row.original.precio).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}
+        </p>
       ),
       className: "centered-cell", // Agrega esta línea para aplicar la clase CSS
     },
@@ -2404,7 +2497,9 @@ function Agenda2() {
       header: "Precio",
       size: 100,
       Cell: ({ cell }) => (
-        <p className="centered-cell">{Number(cell.row.original.precioPromocion).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}</p>
+        <p className="centered-cell">
+          {Number(cell.row.original.precioPromocion).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}
+        </p>
       ),
       className: "centered-cell", // Agrega esta línea para aplicar la clase CSS
     },
@@ -2414,8 +2509,18 @@ function Agenda2() {
     { field: "x", headerName: "Seleccion", renderCell: renderButtonProduct, width: 130 },
     { field: "clave_prod", headerName: "Clave prod", width: 130 },
     { field: "descripcion", headerName: "Descripción", width: 250 },
-    { field: "precio_lista", headerName: "Precio", width: 130, renderCell: (params) => <p>{params.row.precio_lista.toFixed(2)}</p> },
-    { field: "tiempox", headerName: "Tiempo", width: 130, renderCell: (params) => <p>{params.row.tiempox + " Min"}</p> },
+    {
+      field: "precio_lista",
+      headerName: "Precio",
+      width: 130,
+      renderCell: (params) => <p>{params.row.precio_lista.toFixed(2)}</p>,
+    },
+    {
+      field: "tiempox",
+      headerName: "Tiempo",
+      width: 130,
+      renderCell: (params) => <p>{params.row.tiempox + " Min"}</p>,
+    },
   ];
   const columnsDataVentasHistoriales = [
     { field: "x", headerName: "Seleccion", renderCell: renderButtonVentaHistorial, width: 130 },
@@ -2491,7 +2596,7 @@ function Agenda2() {
                 params.row.usr_registro,
                 params.row.act_sucursal,
                 params.row.visualizar,
-                params.row.sucursal
+                params.row.sucursal,
               )
             }
           />
@@ -2518,7 +2623,10 @@ function Agenda2() {
       width: 90,
       renderCell: (params) => (
         <p className="centered-cell">
-          {Number(params.row.precio * params.row.cant_producto).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}
+          {Number(params.row.precio * params.row.cant_producto).toLocaleString("es-MX", {
+            style: "currency",
+            currency: "MXN",
+          })}
         </p>
       ),
     },
@@ -2589,7 +2697,7 @@ function Agenda2() {
     usuario,
     cantidad,
     precio,
-    fechaCita
+    fechaCita,
   ) => {
     const contraseñaValidada = await validarContraseña();
     if (!contraseñaValidada) return;
@@ -2640,7 +2748,7 @@ function Agenda2() {
     cantidad,
     precio,
     fechaCita,
-    estatusCita
+    estatusCita,
   ) => {
     const contraseñaValidada = await validarContraseña();
     if (!contraseñaValidada) return;
@@ -2904,37 +3012,45 @@ function Agenda2() {
   //   });
   // };
   const postCitasServicios = async (clave, tiempo, precio, idCita) => {
-    await verificarDisponibilidad(tiempo, formCita.fecha, formCita.no_estilista, formCitaServicio.idCita).then((isVerified) => {
-      console.log(isVerified);
-      if (isVerified) {
-        peinadosApi
-          .post(`/sp_detalleCitasServiciosAdd7`, null, {
-            params: {
-              id_Cita: idCita ? idCita : formCitaServicio.idCita,
-              id_servicio: clave,
-              cantidad: formCitaServicio.cantidad ? formCitaServicio.cantidad : 1,
-              tiempo: tiempo,
-              precio: precio,
-              observaciones: formCitasObservaciones2 ? formCitasObservaciones2 : "",
-              usuarioAlta: idUser,
-              usuarioCambio: formCita.no_estilista,
-              sucursal: idSuc,
-              fecha: new Date(),
-              idCliente: formCita.no_cliente,
-              idEstilista: formCita.no_estilista,
-              fechaCita: formCita.fecha,
-              esDomicilio: formCita.esServicioDomicilio == false ? 0 : 1,
-              estatusCita: formCita.estatusAsignado ? 3 : formCita.estatusRequerido ? 2 : formCita.estatusCita == 100 ? 100 : 1,
-            },
-          })
-          .then((response) => {
-            setTimeout(() => {
-              fetchDetalleCitasServicios();
-              if (event?.verificacion == true) putCitasServiciosTerminadoFunction();
-            }, 1000);
-          });
-      }
-    });
+    await verificarDisponibilidad(tiempo, formCita.fecha, formCita.no_estilista, formCitaServicio.idCita).then(
+      (isVerified) => {
+        console.log(isVerified);
+        if (isVerified) {
+          peinadosApi
+            .post(`/sp_detalleCitasServiciosAdd7`, null, {
+              params: {
+                id_Cita: idCita ? idCita : formCitaServicio.idCita,
+                id_servicio: clave,
+                cantidad: formCitaServicio.cantidad ? formCitaServicio.cantidad : 1,
+                tiempo: tiempo,
+                precio: precio,
+                observaciones: formCitasObservaciones2 ? formCitasObservaciones2 : "",
+                usuarioAlta: idUser,
+                usuarioCambio: formCita.no_estilista,
+                sucursal: idSuc,
+                fecha: new Date(),
+                idCliente: formCita.no_cliente,
+                idEstilista: formCita.no_estilista,
+                fechaCita: formCita.fecha,
+                esDomicilio: formCita.esServicioDomicilio == false ? 0 : 1,
+                estatusCita: formCita.estatusAsignado
+                  ? 3
+                  : formCita.estatusRequerido
+                  ? 2
+                  : formCita.estatusCita == 100
+                  ? 100
+                  : 1,
+              },
+            })
+            .then((response) => {
+              setTimeout(() => {
+                fetchDetalleCitasServicios();
+                if (event?.verificacion == true) putCitasServiciosTerminadoFunction();
+              }, 1000);
+            });
+        }
+      },
+    );
   };
   const handleChangeFecha = (type, value) => {
     let newDateTime;
@@ -2979,7 +3095,9 @@ function Agenda2() {
         newDateTime = new Date(`${value.toDateString()} ${time}`);
       }
     } else {
-      newDateTime = formCitaServioActualizacion?.hora_cita ? new Date(formCitaServioActualizacion?.hora_cita) : new Date();
+      newDateTime = formCitaServioActualizacion?.hora_cita
+        ? new Date(formCitaServioActualizacion?.hora_cita)
+        : new Date();
       newDateTime.setHours(value.getHours());
       newDateTime.setMinutes(value.getMinutes());
     }
@@ -3087,7 +3205,10 @@ function Agenda2() {
       // return false;
     }
     if (!resHorario) return false;
-    if (resHorario.data[0].clave_empleado == "Cita sin restricciones" || resHorario.data[0].clave_empleado == "Prosiga") {
+    if (
+      resHorario.data[0].clave_empleado == "Cita sin restricciones" ||
+      resHorario.data[0].clave_empleado == "Prosiga"
+    ) {
       console.log("");
     } else if (resHorario.data[0].clave_empleado == "Cita fuera del horario de salida del estilista") {
       const isConfirmed2 = await Swal.fire({
@@ -3107,7 +3228,10 @@ function Agenda2() {
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: `El estilista no tiene horario disponible desde temprano, no se podria poner a las: ${format(fecha, "HH:mm")}`,
+        text: `El estilista no tiene horario disponible desde temprano, no se podria poner a las: ${format(
+          fecha,
+          "HH:mm",
+        )}`,
         confirmButtonColor: "#3085d6",
       });
       return false;
@@ -3189,7 +3313,7 @@ function Agenda2() {
         ),
       },
     ],
-    []
+    [],
   );
   const columnsPromo = useMemo(
     () => [
@@ -3250,7 +3374,7 @@ function Agenda2() {
       //   ),
       // },
     ],
-    [dataPromocionesZonas]
+    [dataPromocionesZonas],
   );
   const columnsPrepagos = useMemo(
     () => [
@@ -3280,7 +3404,7 @@ function Agenda2() {
         size: 100,
       },
     ],
-    []
+    [],
   );
 
   const columnsPromoDias = useMemo(
@@ -3370,7 +3494,7 @@ function Agenda2() {
         },
       },
     ],
-    []
+    [],
   );
   const putVentaAgenda = async (idVenta, horaInicio, horafinal, estilista, tiempo) => {
     peinadosApi
@@ -3437,7 +3561,14 @@ function Agenda2() {
       </div>
       <div className="cardEstatus">
         <div
-          style={{ marginBottom: "10px", marginTop: "2%", display: "flex", justifyItems: "center", alignItems: "center", flexDirection: "column" }}
+          style={{
+            marginBottom: "10px",
+            marginTop: "2%",
+            display: "flex",
+            justifyItems: "center",
+            alignItems: "center",
+            flexDirection: "column",
+          }}
         >
           <div style={statusBoxStyle}>
             <div style={boxStyles.noDisponible}>NO DISPONIBLE</div>
@@ -3487,7 +3618,10 @@ function CustomNoRowsOverlay() {
               className="ant-empty-img-1"
               d="M122.034 69.674L98.109 40.229c-1.148-1.386-2.826-2.225-4.593-2.225h-51.44c-1.766 0-3.444.839-4.592 2.225L13.56 69.674v15.383h108.475V69.674z"
             />
-            <path className="ant-empty-img-2" d="M33.83 0h67.933a4 4 0 0 1 4 4v93.344a4 4 0 0 1-4 4H33.83a4 4 0 0 1-4-4V4a4 4 0 0 1 4-4z" />
+            <path
+              className="ant-empty-img-2"
+              d="M33.83 0h67.933a4 4 0 0 1 4 4v93.344a4 4 0 0 1-4 4H33.83a4 4 0 0 1-4-4V4a4 4 0 0 1 4-4z"
+            />
             <path
               className="ant-empty-img-3"
               d="M42.678 9.953h50.237a2 2 0 0 1 2 2V36.91a2 2 0 0 1-2 2H42.678a2 2 0 0 1-2-2V11.953a2 2 0 0 1 2-2zM42.94 49.767h49.713a2.262 2.262 0 1 1 0 4.524H42.94a2.262 2.262 0 0 1 0-4.524zM42.94 61.53h49.713a2.262 2.262 0 1 1 0 4.525H42.94a2.262 2.262 0 0 1 0-4.525zM121.813 105.032c-.775 3.071-3.497 5.36-6.735 5.36H20.515c-3.238 0-5.96-2.29-6.734-5.36a7.309 7.309 0 0 1-.222-1.79V69.675h26.318c2.907 0 5.25 2.448 5.25 5.42v.04c0 2.971 2.37 5.37 5.277 5.37h34.785c2.907 0 5.277-2.421 5.277-5.393V75.1c0-2.972 2.343-5.426 5.25-5.426h26.318v33.569c0 .617-.077 1.216-.221 1.789z"
