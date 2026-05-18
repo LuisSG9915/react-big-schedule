@@ -1055,7 +1055,7 @@ function Agenda2() {
   ];
 
   // const ligaPruebas = "http://localhost:5173/";
-  const ligaPruebas = "https://217.216.95.62:9019/";
+  const ligaPruebas = "http://217.216.95.62:9019/";
   const handleOpenNewWindow = ({ idCita, idUser, idCliente, fecha, flag }) => {
     const url = `${ligaPruebas}miliga/crearcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idSuc=${1}&idRec=${1}&flag=${flag}`; // Reemplaza esto con la URL que desees abrir
     const width = 390;
