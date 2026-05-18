@@ -3,7 +3,19 @@ import React, { useState, useEffect, useMemo } from "react";
 import { DataGrid } from "@mui/x-data-grid";
 import { peinadosApi } from "../api/peinadosApi";
 import { FormControl, TextField, FormControlLabel, Checkbox, Box, ButtonGroup, Modal, Typography } from "@mui/material";
-import { FormGroup, Label, Input, Button, Container, Row, Col, InputGroup, InputGroupText, Collapse, Spinner } from "reactstrap";
+import {
+  FormGroup,
+  Label,
+  Input,
+  Button,
+  Container,
+  Row,
+  Col,
+  InputGroup,
+  InputGroupText,
+  Collapse,
+  Spinner,
+} from "reactstrap";
 import { styled } from "@mui/material/styles";
 import { LocalizationProvider, DateTimePicker, TimePicker } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
@@ -142,7 +154,7 @@ function EditarCita() {
   const cambioCitaModo = new URLSearchParams(window.location.search).get("flag");
   const tiempo = new URLSearchParams(window.location.search).get("tiempo");
   const nombreCliente = new URLSearchParams(window.location.search).get("nombreCliente");
- const password_chk = new URLSearchParams(window.location.search).get("password_chk");
+  const password_chk = new URLSearchParams(window.location.search).get("password_chk");
   const minDateTime = setHours(startOfToday(), 8);
 
   const maxDateTime = setHours(startOfToday(), 20);
@@ -172,7 +184,10 @@ function EditarCita() {
       const seleccionarNombre = dataClientes.find((cliente) => cliente.id == formCita.no_cliente);
       const seleccionarNombreTemp = dataClientes.find((cliente) => cliente.id == tempFormCita.no_cliente);
       setFormCitaDescripciones({ ...formCitaDescripciones, descripcion_no_cliente: seleccionarNombre?.nombre });
-      setTempFormCitaDescripciones({ ...tempFormCitaDescripciones, descripcion_no_cliente: seleccionarNombreTemp?.nombre });
+      setTempFormCitaDescripciones({
+        ...tempFormCitaDescripciones,
+        descripcion_no_cliente: seleccionarNombreTemp?.nombre,
+      });
       setLoadingModal(false);
     }
   }, [dataClientes, formCita.no_cliente]);
@@ -195,7 +210,9 @@ function EditarCita() {
 
   const getDetalleCitasServicios = () => {
     peinadosApi
-      .get(`/DetalleCitasServicios?fecha=${formCita.fecha}&no_cliente=${formCita.no_cliente}&sucursal=${idSuc}&idCita=${idCita}`)
+      .get(
+        `/DetalleCitasServicios?fecha=${formCita.fecha}&no_cliente=${formCita.no_cliente}&sucursal=${idSuc}&idCita=${idCita}`,
+      )
       .then((response) => {
         setDataCitasServicios(response.data);
       });
@@ -208,38 +225,39 @@ function EditarCita() {
       let fechaObj;
       try {
         // Si es un string, convertirlo a Date
-        if (typeof fecha === 'string') {
+        if (typeof fecha === "string") {
           fechaObj = new Date(fecha);
         } else {
           // Si ya es un objeto Date, usarlo directamente
           fechaObj = fecha;
         }
-        
+
         // Verificar que sea una fecha válida
         if (isNaN(fechaObj.getTime())) {
-          console.error('Fecha inválida:', fecha);
+          console.error("Fecha inválida:", fecha);
           return formatearFecha(new Date()); // Usar fecha actual como fallback
         }
-        
+
         const año = fechaObj.getFullYear();
-        const mes = String(fechaObj.getMonth() + 1).padStart(2, '0');
-        const dia = String(fechaObj.getDate()).padStart(2, '0');
+        const mes = String(fechaObj.getMonth() + 1).padStart(2, "0");
+        const dia = String(fechaObj.getDate()).padStart(2, "0");
         return `${año}-${mes}-${dia}`;
       } catch (error) {
-        console.error('Error al formatear fecha:', error);
+        console.error("Error al formatear fecha:", error);
         return formatearFecha(new Date()); // Usar fecha actual como fallback
       }
     };
 
     const fechaFormateada = fecha ? formatearFecha(fecha) : formatearFecha(fechaActual);
 
-   await peinadosApi
-        .get(`/estilistas5?id=0&sucursal=${idSuc}&fecha=${fechaFormateada}`)
-        .then((response) => {
-          setDataEstilistas(response.data);
-        }).catch((error) => {
-          console.log(error);
-        });
+    await peinadosApi
+      .get(`/estilistas5?id=0&sucursal=${idSuc}&fecha=${fechaFormateada}`)
+      .then((response) => {
+        setDataEstilistas(response.data);
+      })
+      .catch((error) => {
+        console.log(error);
+      });
   };
   const getClientes = () => {
     peinadosApi.get(`/clientesZonas?id=0&idSuc=${idSuc ? idSuc : 0}`).then((response) => {
@@ -256,7 +274,9 @@ function EditarCita() {
 
   const getProductos = () => {
     peinadosApi
-      .get("/sp_cPSEAC?id=0&cia=1&sucursal=2&almacen=1&marca=%&descripcion=%&verinventariable=0&esServicio=2&esInsumo=0&obsoleto=0")
+      .get(
+        "/sp_cPSEAC?id=0&cia=1&sucursal=2&almacen=1&marca=%&descripcion=%&verinventariable=0&esServicio=2&esInsumo=0&obsoleto=0",
+      )
       .then((response) => {
         setDataProductos(response.data);
       });
@@ -267,16 +287,20 @@ function EditarCita() {
     });
   };
 
-  
   const updateCita = async () => {
-    const isVerified = await verificarDisponibilidad(formCita.tiempo, formCita.fecha, formCita.no_estilista, formCita.id);
+    const isVerified = await verificarDisponibilidad(
+      formCita.tiempo,
+      formCita.fecha,
+      formCita.no_estilista,
+      formCita.id,
+    );
     if (!isVerified) return;
 
     const result = await validarContraseña("MODIFICAR_CITA", "AGENDA");
-    if (!result.validado) return 
+    if (!result.validado) return;
     const usuarioValidado = result.usuario;
-    
-        let fechaActual = new Date(formCita.fecha);
+
+    let fechaActual = new Date(formCita.fecha);
     // Extrae el año, mes y día
     let año = fechaActual.getFullYear();
     let mes = fechaActual.getMonth(); // Nota: getMonth() devuelve un valor de 0 a 11, donde 0 es enero y 11 es diciembre
@@ -289,8 +313,7 @@ function EditarCita() {
         text: "La fecha debe ser mayor o igual a la fecha actual",
       });
     }
-   
-    
+
     peinadosApi
       .put("/DetalleCitasReducido2", null, {
         params: {
@@ -308,17 +331,16 @@ function EditarCita() {
           observacion: "",
           user_uc: 0,
           estatus:
-             formCita.cambioCitaModo == "1" && formCita.estatusAsignado
-             
+            formCita.cambioCitaModo == "1" && formCita.estatusAsignado
               ? 2
-               : formCita.cambioCitaModo == "1" && formCita.estatusRequerido
+              : formCita.cambioCitaModo == "1" && formCita.estatusRequerido
               ? 3
               : estadoCita == 6
               ? 6
-              : formCita.cambioCitaModo == "0" && formCita.estatusRequerido  ?
-              2
-              : formCita.cambioCitaModo == "0" && formCita.estatusAsignado  ?
-              3
+              : formCita.cambioCitaModo == "0" && formCita.estatusRequerido
+              ? 2
+              : formCita.cambioCitaModo == "0" && formCita.estatusAsignado
+              ? 3
               : 4,
           tiempo: formCita.tiempo,
           // estatus: formCita.estatusAsignado ? 3 : formCita.estatusRequerido ? 2 : 4,
@@ -330,6 +352,13 @@ function EditarCita() {
           title: "Cita actualizada",
           icon: "success",
           confirmButtonText: "Ok",
+        }).then(() => {
+          // Notificar a la ventana padre que se actualizó la cita
+          if (window.opener) {
+            window.opener.postMessage({ type: "CITA_ACTUALIZADA", idCita: formCita.id }, "*");
+          }
+          // Cerrar la ventana
+          window.close();
         });
         setAgregarServicios(true);
       });
@@ -348,14 +377,16 @@ function EditarCita() {
   }, [ventaTemporal]);
 
   const borrarServicio = (idServicio) => {
-    peinadosApi.delete(`/sp_DetalleCitasServiciosDel?idServicio=${idServicio}&idCita=${idCita}&idCliente=${idCliente}`).then((response) => {
-      getDetalleCitasServicios();
-      Swal.fire({
-        title: "Servicio borrado",
-        icon: "success",
-        confirmButtonText: "Ok",
+    peinadosApi
+      .delete(`/sp_DetalleCitasServiciosDel?idServicio=${idServicio}&idCita=${idCita}&idCliente=${idCliente}`)
+      .then((response) => {
+        getDetalleCitasServicios();
+        Swal.fire({
+          title: "Servicio borrado",
+          icon: "success",
+          confirmButtonText: "Ok",
+        });
       });
-    });
   };
 
   const editarServicio = () => {
@@ -363,7 +394,7 @@ function EditarCita() {
       .put(
         `/sp_detalleCitasServiciosUpd2?id=${tempCitaServicio.id}&idServicio=${tempCitaServicio.id_servicio}&cantidad=${
           tempCitaServicio.cantidad ? tempCitaServicio.cantidad : 1
-        }&tiempo=${tempCitaServicio.tiempo}&idCita=${idCita}`
+        }&tiempo=${tempCitaServicio.tiempo}&idCita=${idCita}`,
       )
       .then((response) => {
         console.log(response.data);
@@ -377,83 +408,86 @@ function EditarCita() {
       });
   };
   function validarContraseña(tipo_operacion = "AGENDAR_CITA", modulo = "AGENDA") {
-      return new Promise((resolve, reject) => {
-        Swal.fire({
-          title: "Ingrese su contraseña",
-          input: "password",
-          inputAttributes: {
-            autocapitalize: "off",
-          },
-          inputAutoFocus: true, // Establece el enfoque automáticamente
-          customClass: {
-            popup: "swal2-popup", // Agrega una clase personalizada al cuadro de diálogo
-            container: "swal2-container", // Agrega una clase personalizada al contenedor
-          },
-  
-          showCancelButton: true,
-          confirmButtonText: "Confirmar",
-          showLoaderOnConfirm: true,
-          preConfirm: (contraseña) => {
-            return new Promise((resolve) => {
-              // Validar contraseña y permisos usando la API
-              peinadosApi.get(`/sp_permiso_password_valida_agenda6?password=${contraseña}&tipo_operacion=${tipo_operacion}&modulo=${modulo}`)
-                .then(response => {
-                  // Verificar si hay datos en la respuesta y si el permiso es 1 (acceso concedido)
-                  if (response.data && response.data.length > 0 && response.data[0].permiso === 1) {
-                    // Si la validación es exitosa, actualizar el usuario con el valor de usuarios
-                    const nuevoUsuario = response.data[0].usuarios;
-                    // Actualizar el idUser global con el nuevo usuario
-                    window.tempIdUser = nuevoUsuario; // Guardamos temporalmente para usarlo después
-                    console.log(`Permiso ${tipo_operacion} validado correctamente. Usuario: ${nuevoUsuario}`);
-                    resolve();
-                  } else {
-                    // Si la validación falla, mostrar mensaje de error
-                    Swal.fire({
-                      icon: "error",
-                      title: "Permiso denegado",
-                      text: `No tiene permisos para ${tipo_operacion} o la contraseña es incorrecta.`,
-                      confirmButtonText: "Entendido",
-                    }).then((isConfirmed) => {
-                      if (isConfirmed.isConfirmed) Swal.close();
-                    });
-                  }
-                })
-                .catch(error => {
-                  console.error("Error al validar permisos:", error);
+    return new Promise((resolve, reject) => {
+      Swal.fire({
+        title: "Ingrese su contraseña",
+        input: "password",
+        inputAttributes: {
+          autocapitalize: "off",
+        },
+        inputAutoFocus: true, // Establece el enfoque automáticamente
+        customClass: {
+          popup: "swal2-popup", // Agrega una clase personalizada al cuadro de diálogo
+          container: "swal2-container", // Agrega una clase personalizada al contenedor
+        },
+
+        showCancelButton: true,
+        confirmButtonText: "Confirmar",
+        showLoaderOnConfirm: true,
+        preConfirm: (contraseña) => {
+          return new Promise((resolve) => {
+            // Validar contraseña y permisos usando la API
+            peinadosApi
+              .get(
+                `/sp_permiso_password_valida_agenda6?password=${contraseña}&tipo_operacion=${tipo_operacion}&modulo=${modulo}`,
+              )
+              .then((response) => {
+                // Verificar si hay datos en la respuesta y si el permiso es 1 (acceso concedido)
+                if (response.data && response.data.length > 0 && response.data[0].permiso === 1) {
+                  // Si la validación es exitosa, actualizar el usuario con el valor de usuarios
+                  const nuevoUsuario = response.data[0].usuarios;
+                  // Actualizar el idUser global con el nuevo usuario
+                  window.tempIdUser = nuevoUsuario; // Guardamos temporalmente para usarlo después
+                  console.log(`Permiso ${tipo_operacion} validado correctamente. Usuario: ${nuevoUsuario}`);
+                  resolve();
+                } else {
+                  // Si la validación falla, mostrar mensaje de error
                   Swal.fire({
                     icon: "error",
-                    title: "Error de validación",
-                    text: "Ocurrió un error al validar los permisos. Por favor, intente nuevamente.",
+                    title: "Permiso denegado",
+                    text: `No tiene permisos para ${tipo_operacion} o la contraseña es incorrecta.`,
                     confirmButtonText: "Entendido",
                   }).then((isConfirmed) => {
                     if (isConfirmed.isConfirmed) Swal.close();
                   });
+                }
+              })
+              .catch((error) => {
+                console.error("Error al validar permisos:", error);
+                Swal.fire({
+                  icon: "error",
+                  title: "Error de validación",
+                  text: "Ocurrió un error al validar los permisos. Por favor, intente nuevamente.",
+                  confirmButtonText: "Entendido",
+                }).then((isConfirmed) => {
+                  if (isConfirmed.isConfirmed) Swal.close();
                 });
-            });
-          },
-          allowOutsideClick: () => !Swal.isLoading(),
-        })
-          .then((result) => {
-            if (result.isConfirmed) {
-              // Si hay un usuario temporal guardado, usarlo para actualizar idUser
-              if (window.tempIdUser) {
-                // Actualizar el idUser con el valor del usuario validado
-                const nuevoUsuario = window.tempIdUser;
-                window.tempIdUser = undefined; // Limpiar la variable temporal
-                resolve({validado: true, usuario: nuevoUsuario}); // Resuelve con el nuevo usuario
-              } else {
-                resolve({validado: true, usuario: idUser}); // Mantener el usuario actual si no hay uno nuevo
-              }
-            } else {
-              resolve({validado: false, usuario: idUser}); // Resuelve la promesa con valor false si el usuario cancela
-            }
-          })
-          .catch((error) => {
-            console.error(error);
-            resolve({validado: false, usuario: idUser}); // Resuelve la promesa con valor false si ocurre algún error
+              });
           });
-      });
-    }
+        },
+        allowOutsideClick: () => !Swal.isLoading(),
+      })
+        .then((result) => {
+          if (result.isConfirmed) {
+            // Si hay un usuario temporal guardado, usarlo para actualizar idUser
+            if (window.tempIdUser) {
+              // Actualizar el idUser con el valor del usuario validado
+              const nuevoUsuario = window.tempIdUser;
+              window.tempIdUser = undefined; // Limpiar la variable temporal
+              resolve({ validado: true, usuario: nuevoUsuario }); // Resuelve con el nuevo usuario
+            } else {
+              resolve({ validado: true, usuario: idUser }); // Mantener el usuario actual si no hay uno nuevo
+            }
+          } else {
+            resolve({ validado: false, usuario: idUser }); // Resuelve la promesa con valor false si el usuario cancela
+          }
+        })
+        .catch((error) => {
+          console.error(error);
+          resolve({ validado: false, usuario: idUser }); // Resuelve la promesa con valor false si ocurre algún error
+        });
+    });
+  }
 
   const [tempCitaServicio, setTempCitaServicio] = useState({});
   const columns = [
@@ -481,14 +515,20 @@ function EditarCita() {
       field: "precio",
       headerName: "Precio",
       width: 130,
-      renderCell: (cell) => <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>{cell.row.precio.toFixed(2)}</p>,
+      renderCell: (cell) => (
+        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>
+          {cell.row.precio.toFixed(2)}
+        </p>
+      ),
       cellClassName: "centered-cell",
     },
     {
       field: "tiempo",
       headerName: "Tiempo",
       width: 130,
-      renderCell: (cell) => <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>{cell.row.tiempo + " Min"}</p>,
+      renderCell: (cell) => (
+        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>{cell.row.tiempo + " Min"}</p>
+      ),
       cellClassName: "centered-cell",
     },
     { field: "cantidad", headerName: "Cantidad", width: 130 },
@@ -636,7 +676,12 @@ function EditarCita() {
     { field: "nombre", headerName: "Nombre", width: 250 },
     { field: "telefono", headerName: "Telefono", width: 130 },
     { field: "celular", headerName: "Celular", width: 130 },
-    { field: "cumpleaños", headerName: "Cumpleaños", width: 130, renderCell: (params) => <p>{params.row.cumpleaños}</p> },
+    {
+      field: "cumpleaños",
+      headerName: "Cumpleaños",
+      width: 130,
+      renderCell: (params) => <p>{params.row.cumpleaños}</p>,
+    },
     { field: "edit", headerName: "Seleccionar", renderCell: renderButtonClient, width: 130 },
   ];
 
@@ -729,15 +774,35 @@ function EditarCita() {
     { field: "x", headerName: "Seleccion", renderCell: renderButtonProduct, width: 130 },
     { field: "clave_prod", headerName: "Clave prod", width: 130 },
     { field: "descripcion", headerName: "Descripción", width: 250 },
-    { field: "precio", headerName: "Precio", width: 130, renderCell: (params) => <p>{params.row.precio.toFixed(2)}</p> },
-    { field: "tiempox", headerName: "Tiempo", width: 130, renderCell: (params) => <p>{params.row.tiempox + " Min"}</p> },
+    {
+      field: "precio",
+      headerName: "Precio",
+      width: 130,
+      renderCell: (params) => <p>{params.row.precio.toFixed(2)}</p>,
+    },
+    {
+      field: "tiempox",
+      headerName: "Tiempo",
+      width: 130,
+      renderCell: (params) => <p>{params.row.tiempox + " Min"}</p>,
+    },
   ];
   const columnsProductosEdit = [
     { field: "x", headerName: "Seleccion", renderCell: renderButtonProductEdit, width: 130 },
     { field: "clave_prod", headerName: "Clave prod", width: 130 },
     { field: "descripcion", headerName: "Descripción", width: 250 },
-    { field: "precio", headerName: "Precio", width: 130, renderCell: (params) => <p>{params.row.precio.toFixed(2)}</p> },
-    { field: "tiempox", headerName: "Tiempo", width: 130, renderCell: (params) => <p>{params.row.tiempox + " Min"}</p> },
+    {
+      field: "precio",
+      headerName: "Precio",
+      width: 130,
+      renderCell: (params) => <p>{params.row.precio.toFixed(2)}</p>,
+    },
+    {
+      field: "tiempox",
+      headerName: "Tiempo",
+      width: 130,
+      renderCell: (params) => <p>{params.row.tiempox + " Min"}</p>,
+    },
   ];
 
   const columnsProductosMRT = useMemo(() => [
@@ -787,14 +852,20 @@ function EditarCita() {
       header: "precio_lista",
       size: 100,
       Cell: ({ cell }) => (
-        <p className="centered-cell">{Number(cell.row.original.precio_lista).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}</p>
+        <p className="centered-cell">
+          {Number(cell.row.original.precio_lista).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}
+        </p>
       ),
       className: "centered-cell", // Agrega esta línea para aplicar la clase CSS
     },
   ]);
 
   const columnsPuntos = [
-    { field: "x", headerName: "Seleccion", renderCell: () => <MdOutlineFolder size={20} onClick={() => setModalOperacionesPuntos(true)} /> },
+    {
+      field: "x",
+      headerName: "Seleccion",
+      renderCell: () => <MdOutlineFolder size={20} onClick={() => setModalOperacionesPuntos(true)} />,
+    },
     { field: "sucursal", headerName: "Sucursal", width: 90 },
     {
       field: "fecha_movto",
@@ -918,7 +989,10 @@ function EditarCita() {
       // return false;
     }
     if (!resHorario) return false;
-    if (resHorario.data[0].clave_empleado == "Cita sin restricciones" || resHorario.data[0].clave_empleado == "Prosiga") {
+    if (
+      resHorario.data[0].clave_empleado == "Cita sin restricciones" ||
+      resHorario.data[0].clave_empleado == "Prosiga"
+    ) {
       console.log("");
     } else if (resHorario.data[0].clave_empleado == "Cita fuera del horario de salida del estilista") {
       const isConfirmed2 = await Swal.fire({
@@ -934,12 +1008,15 @@ function EditarCita() {
       if (!isConfirmed2.isConfirmed) return false;
       const resContraseña = await validarContraseña();
       if (!resContraseña) return false;
-      console.log(res)
-    } else if(res && res.data[0] && res.data[0].id>0) {
+      console.log(res);
+    } else if (res && res.data[0] && res.data[0].id > 0) {
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: `El estilista no tiene horario disponible desde temprano, no se podria poner a las: ${format(fecha, "HH:mm")}`,
+        text: `El estilista no tiene horario disponible desde temprano, no se podria poner a las: ${format(
+          fecha,
+          "HH:mm",
+        )}`,
         confirmButtonColor: "#3085d6",
       });
       return false;
@@ -991,7 +1068,16 @@ function EditarCita() {
             <Label style={{ fontSize: "1.2rem", maxWidth: "100px", width: "80px" }} for="cliente">
               Cliente:{" "}
             </Label>
-            <Input style={{ fontSize: "1.2rem" }} bsSize="sm" disabled value={nombreCliente} type="text" name="cliente" id="cliente" size={"small"} />
+            <Input
+              style={{ fontSize: "1.2rem" }}
+              bsSize="sm"
+              disabled
+              value={nombreCliente}
+              type="text"
+              name="cliente"
+              id="cliente"
+              size={"small"}
+            />
           </InputGroup>
         </Row>
         <Row style={{ marginBottom: "10px" }}>
@@ -1144,15 +1230,20 @@ function EditarCita() {
             ) : (
               <InputGroup>
                 <Label style={{ fontSize: "1.2rem", maxWidth: "100px", width: "100px" }}>Modo:</Label>
-                <Input style={{ fontSize: "1.2rem" }} disabled value={formCita.estatusRequerido == true ? "R" : "A"}></Input>
+                <Input
+                  style={{ fontSize: "1.2rem" }}
+                  disabled
+                  value={formCita.estatusRequerido == true ? "R" : "A"}
+                ></Input>
                 <Button
-                  onClick={() =>
-                    setFormCita({
-                      ...formCita,
-                      estatusRequerido: formCita.estatusRequerido ? false : true,
-                      estatusAsignado: formCita.estatusAsignado ? false : true,
-                    })
-                    
+                  onClick={
+                    () =>
+                      setFormCita({
+                        ...formCita,
+                        estatusRequerido: formCita.estatusRequerido ? false : true,
+                        estatusAsignado: formCita.estatusAsignado ? false : true,
+                      })
+
                     // formCita.cambioCitaModo
                   }
                 >
@@ -1403,7 +1494,10 @@ function CustomNoRowsOverlay() {
               className="ant-empty-img-1"
               d="M122.034 69.674L98.109 40.229c-1.148-1.386-2.826-2.225-4.593-2.225h-51.44c-1.766 0-3.444.839-4.592 2.225L13.56 69.674v15.383h108.475V69.674z"
             />
-            <path className="ant-empty-img-2" d="M33.83 0h67.933a4 4 0 0 1 4 4v93.344a4 4 0 0 1-4 4H33.83a4 4 0 0 1-4-4V4a4 4 0 0 1 4-4z" />
+            <path
+              className="ant-empty-img-2"
+              d="M33.83 0h67.933a4 4 0 0 1 4 4v93.344a4 4 0 0 1-4 4H33.83a4 4 0 0 1-4-4V4a4 4 0 0 1 4-4z"
+            />
             <path
               className="ant-empty-img-3"
               d="M42.678 9.953h50.237a2 2 0 0 1 2 2V36.91a2 2 0 0 1-2 2H42.678a2 2 0 0 1-2-2V11.953a2 2 0 0 1 2-2zM42.94 49.767h49.713a2.262 2.262 0 1 1 0 4.524H42.94a2.262 2.262 0 0 1 0-4.524zM42.94 61.53h49.713a2.262 2.262 0 1 1 0 4.525H42.94a2.262 2.262 0 0 1 0-4.525zM121.813 105.032c-.775 3.071-3.497 5.36-6.735 5.36H20.515c-3.238 0-5.96-2.29-6.734-5.36a7.309 7.309 0 0 1-.222-1.79V69.675h26.318c2.907 0 5.25 2.448 5.25 5.42v.04c0 2.971 2.37 5.37 5.277 5.37h34.785c2.907 0 5.277-2.421 5.277-5.393V75.1c0-2.972 2.343-5.426 5.25-5.426h26.318v33.569c0 .617-.077 1.216-.221 1.789z"

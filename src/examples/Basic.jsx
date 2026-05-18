@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useReducer, useState, useCallback, memo, Sus
 import * as dayjsLocale from "dayjs/locale/es-mx";
 import * as antdLocale from "antd/locale/es_ES";
 import { Scheduler, SchedulerData, ViewType, wrapperFun, DemoData } from "../index";
-import { jezaApi } from "../api/jezaApi2";
 import { peinadosApi } from "../api/peinadosApi";
 // import Modal from "../components/Modal";
 import { format } from "date-fns-tz";
@@ -91,84 +90,89 @@ function reducer(state, action) {
 }
 
 // ⚡ COMPONENTE OPTIMIZADO: Scheduler memoizado para mejor rendimiento
-const OptimizedScheduler = memo(({ 
-  schedulerData, 
-  prevClick, 
-  nextClick, 
-  onSelectDate, 
-  onViewChange, 
-  ops1, 
-  ops2, 
-  updateEventStart, 
-  updateEventEnd, 
-  moveEvent, 
-  newEvent, 
-  onScrollLeft, 
-  onScrollRight, 
-  onScrollTop, 
-  onScrollBottom, 
-  toggleExpandFunc,
-  isLoading 
-}) => {
-  // Crear una key inteligente basada en datos críticos para reconciliación óptima
-  const schedulerKey = useMemo(() => {
-    if (!schedulerData) return 'empty';
-    return `${schedulerData.startDate}-${schedulerData.events?.length || 0}-${schedulerData.resources?.length || 0}`;
-  }, [schedulerData?.startDate, schedulerData?.events?.length, schedulerData?.resources?.length]);
+const OptimizedScheduler = memo(
+  ({
+    schedulerData,
+    prevClick,
+    nextClick,
+    onSelectDate,
+    onViewChange,
+    ops1,
+    ops2,
+    updateEventStart,
+    updateEventEnd,
+    moveEvent,
+    newEvent,
+    onScrollLeft,
+    onScrollRight,
+    onScrollTop,
+    onScrollBottom,
+    toggleExpandFunc,
+    isLoading,
+  }) => {
+    // Crear una key inteligente basada en datos críticos para reconciliación óptima
+    const schedulerKey = useMemo(() => {
+      if (!schedulerData) return "empty";
+      return `${schedulerData.startDate}-${schedulerData.events?.length || 0}-${schedulerData.resources?.length || 0}`;
+    }, [schedulerData?.startDate, schedulerData?.events?.length, schedulerData?.resources?.length]);
 
-  // Loading fallback optimizado
-  if (!schedulerData || isLoading) {
+    // Loading fallback optimizado
+    if (!schedulerData || isLoading) {
+      return (
+        <div
+          style={{
+            height: "600px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "#f5f5f5",
+            borderRadius: "4px",
+          }}
+        >
+          <div>⏳ Cargando agenda...</div>
+        </div>
+      );
+    }
+
     return (
-      <div style={{ 
-        height: '600px', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        backgroundColor: '#f5f5f5',
-        borderRadius: '4px'
-      }}>
-        <div>⏳ Cargando agenda...</div>
-      </div>
+      <Scheduler
+        key={schedulerKey}
+        schedulerData={schedulerData}
+        prevClick={prevClick}
+        isLoading={isLoading}
+        nextClick={nextClick}
+        onSelectDate={onSelectDate}
+        onViewChange={onViewChange}
+        viewEventClick={ops1}
+        viewEventText="Editar cita:"
+        viewEvent2Text="Seleccionar opciones"
+        viewEvent2Click={ops2}
+        updateEventStart={updateEventStart}
+        updateEventEnd={updateEventEnd}
+        moveEvent={moveEvent}
+        newEvent={newEvent}
+        onScrollLeft={onScrollLeft}
+        onScrollRight={onScrollRight}
+        onScrollTop={onScrollTop}
+        onScrollBottom={onScrollBottom}
+        toggleExpandFunc={toggleExpandFunc}
+      />
     );
-  }
-
-  return (
-    <Scheduler
-      key={schedulerKey}
-      schedulerData={schedulerData}
-      prevClick={prevClick}
-      isLoading={isLoading}
-      nextClick={nextClick}
-      onSelectDate={onSelectDate}
-      onViewChange={onViewChange}
-      viewEventClick={ops1}
-      viewEventText="Editar cita:"
-      viewEvent2Text="Seleccionar opciones"
-      viewEvent2Click={ops2}
-      updateEventStart={updateEventStart}
-      updateEventEnd={updateEventEnd}
-      moveEvent={moveEvent}
-      newEvent={newEvent}
-      onScrollLeft={onScrollLeft}
-      onScrollRight={onScrollRight}
-      onScrollTop={onScrollTop}
-      onScrollBottom={onScrollBottom}
-      toggleExpandFunc={toggleExpandFunc}
-    />
-  );
-}, (prevProps, nextProps) => {
-  // Comparación personalizada para optimizar re-renders
-  return (
-    prevProps.schedulerData === nextProps.schedulerData &&
-    prevProps.isLoading === nextProps.isLoading &&
-    prevProps.prevClick === nextProps.prevClick &&
-    prevProps.nextClick === nextProps.nextClick &&
-    prevProps.onSelectDate === nextProps.onSelectDate &&
-    prevProps.onViewChange === nextProps.onViewChange &&
-    prevProps.ops1 === nextProps.ops1 &&
-    prevProps.ops2 === nextProps.ops2
-  );
-});
+  },
+  (prevProps, nextProps) => {
+    // Comparación personalizada para optimizar re-renders
+    return (
+      prevProps.schedulerData === nextProps.schedulerData &&
+      prevProps.isLoading === nextProps.isLoading &&
+      prevProps.prevClick === nextProps.prevClick &&
+      prevProps.nextClick === nextProps.nextClick &&
+      prevProps.onSelectDate === nextProps.onSelectDate &&
+      prevProps.onViewChange === nextProps.onViewChange &&
+      prevProps.ops1 === nextProps.ops1 &&
+      prevProps.ops2 === nextProps.ops2
+    );
+  },
+);
 
 function Basic() {
   const { dataSucursales } = useSucursales();
@@ -240,8 +244,8 @@ function Basic() {
   useEffect(() => {
     // Añadir la clase al body y estilos del spinner
     document.body.classList.add("special-body");
-    
-    const styleElement = document.createElement('style');
+
+    const styleElement = document.createElement("style");
     styleElement.innerHTML = `
       @keyframes spin {
         from { transform: rotate(0deg); }
@@ -292,13 +296,12 @@ function Basic() {
     nombreCliente: "",
     nombreEstilista: "",
     fecha1: new Date(),
-    fecha2: new Date()
+    fecha2: new Date(),
   });
   const [datosParametrosCitaTemp, setDatosParametrosCitaTemp] = useState({});
   const [datosParametrosFechaCitaTemp, setDatosParametrosFechaCitaTemp] = useState({});
   const handleChangeObservaciones = (e) => {
-      setFormCitasObservaciones2(e.target.value);
-
+    setFormCitasObservaciones2(e.target.value);
   };
 
   function validarContraseña(tipo_operacion = "AGENDAR_CITA", modulo = "AGENDA") {
@@ -321,8 +324,11 @@ function Basic() {
         preConfirm: (contraseña) => {
           return new Promise((resolve) => {
             // Validar contraseña y permisos usando la API
-            peinadosApi.get(`/sp_permiso_password_valida_agenda6?password=${contraseña}&tipo_operacion=${tipo_operacion}&modulo=${modulo}`)
-              .then(response => {
+            peinadosApi
+              .get(
+                `/sp_permiso_password_valida_agenda6?password=${contraseña}&tipo_operacion=${tipo_operacion}&modulo=${modulo}`,
+              )
+              .then((response) => {
                 // Verificar si hay datos en la respuesta y si el permiso es 1 (acceso concedido)
                 if (response.data && response.data.length > 0 && response.data[0].permiso === 1) {
                   // Si la validación es exitosa, actualizar el usuario con el valor de usuarios
@@ -343,7 +349,7 @@ function Basic() {
                   });
                 }
               })
-              .catch(error => {
+              .catch((error) => {
                 console.error("Error al validar permisos:", error);
                 Swal.fire({
                   icon: "error",
@@ -365,17 +371,17 @@ function Basic() {
               // Actualizar el idUser con el valor del usuario validado
               const nuevoUsuario = window.tempIdUser;
               window.tempIdUser = undefined; // Limpiar la variable temporal
-              resolve({validado: true, usuario: nuevoUsuario}); // Resuelve con el nuevo usuario
+              resolve({ validado: true, usuario: nuevoUsuario }); // Resuelve con el nuevo usuario
             } else {
-              resolve({validado: true, usuario: idUser}); // Mantener el usuario actual si no hay uno nuevo
+              resolve({ validado: true, usuario: idUser }); // Mantener el usuario actual si no hay uno nuevo
             }
           } else {
-            resolve({validado: false, usuario: idUser}); // Resuelve la promesa con valor false si el usuario cancela
+            resolve({ validado: false, usuario: idUser }); // Resuelve la promesa con valor false si el usuario cancela
           }
         })
         .catch((error) => {
           console.error(error);
-          resolve({validado: false, usuario: idUser}); // Resuelve la promesa con valor false si ocurre algún error
+          resolve({ validado: false, usuario: idUser }); // Resuelve la promesa con valor false si ocurre algún error
         });
     });
   }
@@ -402,22 +408,22 @@ function Basic() {
     setIsModalOpen(!isModalOpen);
   };
   const { dataListaEspera, fetchListaEspera } = useListaEspera({ id: 0, sucursal: idSuc, refreshInterval: 60000 }); // Refresh every 30 seconds (60,000 ms)
-  const [bitacoraCitas, setbitacoraCitas] = useState([])
-  const [modalBitacora, setModalBitacora] = useState(false)
-  const [isUpdatingService, setIsUpdatingService] = useState(false)
+  const [bitacoraCitas, setbitacoraCitas] = useState([]);
+  const [modalBitacora, setModalBitacora] = useState(false);
+  const [isUpdatingService, setIsUpdatingService] = useState(false);
   const getBitacoraCitas = async (idCita) => {
-    const response = await peinadosApi.get(`/spBitacoraCitas5?idCita=${idCita}`)
+    const response = await peinadosApi.get(`/spBitacoraCitas5?idCita=${idCita}`);
     setbitacoraCitas(response.data);
     setModalBitacora(true);
-  }
+  };
 
   const toggleBitacoraModal = () => {
     setModalBitacora(!modalBitacora);
-  }
+  };
   // Add CSS for blinking effect
   useEffect(() => {
     // Create a style element
-    const styleElement = document.createElement('style');
+    const styleElement = document.createElement("style");
     styleElement.innerHTML = `
       @keyframes blink {
         0% { opacity: 1; }
@@ -460,59 +466,55 @@ function Basic() {
       const response = await peinadosApi.get(
         `/DetalleAgendaSelv20?fecha=${format(
           fecha ? fecha : datosParametros.fecha,
-          "yyyyMMdd"
-        )}&suc=${idSuc}&nomberEstilista=${"%"}&nombreCliente=${"%"}`
+          "yyyyMMdd",
+        )}&suc=${idSuc}&nomberEstilista=${"%"}&nombreCliente=${"%"}`,
       );
-   
+
       // Filtrar solo las citas del estilista 37 para análisis
       const citasEstilista37 = response.data.filter((item) => item.no_estilista === 37);
-      
+
       // Mostrar los datos originales para diagnóstico
-      console.log('📊 Datos originales de citas (estilista 37):', 
-        citasEstilista37.map(item => ({
+      console.log(
+        "📊 Datos originales de citas (estilista 37):",
+        citasEstilista37.map((item) => ({
           id: item.id,
           fecha: item.fecha,
           hora1: item.hora1,
-          hora2: item.hora2
-        }))
+          hora2: item.hora2,
+        })),
       );
-      
+
       // Procesar y mostrar las fechas transformadas con debugging detallado
-      console.log('🔄 Procesando fechas transformadas (estilista 37):');
-      
+      console.log("🔄 Procesando fechas transformadas (estilista 37):");
+
       citasEstilista37.forEach((item) => {
         console.log(`\n🎯 === CITA ID ${item.id} ===`);
-        
-   
-        
+
         // Crear fechas a partir de los datos
         let fechaBase = new Date(item.fecha);
         let hora1Original = new Date(item.hora1);
         let hora2Original = new Date(item.hora2);
-        
-      
-        
+
         // Crear nuevas fechas con la fecha base y las horas/minutos de hora1 y hora2
         let hora1 = new Date(fechaBase);
         let hora2 = new Date(fechaBase);
 
         hora1.setHours(hora1Original.getHours(), hora1Original.getMinutes(), 0, 0);
         hora2.setHours(hora2Original.getHours(), hora2Original.getMinutes(), 0, 0);
-     
+
         // Crear el resultado final - CAMBIO IMPORTANTE: enviamos Date objects, no ISO strings
         const result = {
           start: hora1, // Date object local
-          end: hora2,   // Date object local
+          end: hora2, // Date object local
           resourceId: item.no_estilista,
           // Añadir información de diagnóstico extendida
           startLocal: hora1.toString(),
           endLocal: hora2.toString(),
-          startMexicoTime: hora1.toLocaleString('es-MX', { timeZone: 'America/Mexico_City' }),
-          endMexicoTime: hora2.toLocaleString('es-MX', { timeZone: 'America/Mexico_City' }),
+          startMexicoTime: hora1.toLocaleString("es-MX", { timeZone: "America/Mexico_City" }),
+          endMexicoTime: hora2.toLocaleString("es-MX", { timeZone: "America/Mexico_City" }),
           originalHour1: item.hora1,
           originalHour2: item.hora2,
         };
-        
 
         return result;
       });
@@ -520,26 +522,26 @@ function Basic() {
         response.data.map((item) => {
           // Crear fechas a partir de los datos
           let fechaBase = new Date(item.fecha);
-          
+
           // Extraer las horas y minutos de hora1 y hora2
           let hora1Original = new Date(item.hora1);
           let hora2Original = new Date(item.hora2);
-          
+
           // Crear nuevas fechas con la fecha base y las horas/minutos de hora1 y hora2
           let hora1 = new Date(fechaBase);
           let hora2 = new Date(fechaBase);
-          
+
           hora1.setHours(hora1Original.getHours(), hora1Original.getMinutes(), 0, 0);
           hora2.setHours(hora2Original.getHours(), hora2Original.getMinutes(), 0, 0);
-          
+
           // Ajustar para la zona horaria de México (UTC-6)
           // No es necesario ajustar manualmente ya que toISOString() ya convierte a UTC
           // y la biblioteca de calendario interpretará correctamente la hora UTC
-          
+
           return {
             ...item,
             start: hora1, // Enviar objeto Date local en lugar de ISO string
-            end: hora2,   // Enviar objeto Date local en lugar de ISO string
+            end: hora2, // Enviar objeto Date local en lugar de ISO string
             resourceId: item.no_estilista,
             title: "",
             type: 2,
@@ -547,37 +549,37 @@ function Basic() {
               item.estadoCita == 6
                 ? "#bababa"
                 : item.estadoCita == 1
-                  ? "#F8C471" // Sandy Orange
-                  : item.esDomicilio == true
-                    ? "#DDA0DD" // Plum
-                    : item.estadoCita == 2
-                      ? "#AFEEEE" // Pale Turquoise
-                      : item.estadoCita == 3
-                        ? "#FFF26C" // Lemon Chiffon
-                        : item.estadoCita == 4
-                          ? "#90EE90" // Light Green
-                          : item.estadoCita == 5
-                            ? "#DDA0DD" // Plum
-                            : "#bababa", // Light Gray
+                ? "#F8C471" // Sandy Orange
+                : item.esDomicilio == true
+                ? "#DDA0DD" // Plum
+                : item.estadoCita == 2
+                ? "#AFEEEE" // Pale Turquoise
+                : item.estadoCita == 3
+                ? "#FFF26C" // Lemon Chiffon
+                : item.estadoCita == 4
+                ? "#90EE90" // Light Green
+                : item.estadoCita == 5
+                ? "#DDA0DD" // Plum
+                : "#bababa", // Light Gray
           };
-        })
+        }),
       );
 
       return response.data.map((item) => {
         // Crear fechas a partir de los datos
         let fechaBase = new Date(item.fecha);
-        
+
         // Extraer las horas y minutos de hora1 y hora2
         let hora1Original = new Date(item.hora1);
         let hora2Original = new Date(item.hora2);
-        
+
         // Crear nuevas fechas con la fecha base y las horas/minutos de hora1 y hora2
         let hora1 = new Date(fechaBase);
         let hora2 = new Date(fechaBase);
-        
+
         hora1.setHours(hora1Original.getHours(), hora1Original.getMinutes(), 0, 0);
         hora2.setHours(hora2Original.getHours(), hora2Original.getMinutes(), 0, 0);
-        
+
         return {
           ...item,
           start: hora1.toISOString(),
@@ -590,16 +592,16 @@ function Basic() {
             item.estadoCita == 6
               ? "#bababa"
               : item.estadoCita == 1
-                ? "#F8C471" // Sandy Orange
-                : item.esDomicilio == true
-                  ? "#DDA0DD" // Plum
-                  : item.estadoCita == 2
-                    ? "#AFEEEE" // Pale Turquoise
-                    : item.estadoCita == 3
-                      ? "#FFF26C" // Lemon Chiffon
-                      : item.estadoCita == 4
-                        ? "#90EE90" // Light Green
-                        : "#bababa", // Light Gray
+              ? "#F8C471" // Sandy Orange
+              : item.esDomicilio == true
+              ? "#DDA0DD" // Plum
+              : item.estadoCita == 2
+              ? "#AFEEEE" // Pale Turquoise
+              : item.estadoCita == 3
+              ? "#FFF26C" // Lemon Chiffon
+              : item.estadoCita == 4
+              ? "#90EE90" // Light Green
+              : "#bababa", // Light Gray
         };
       });
     } catch (err) {
@@ -611,8 +613,8 @@ function Basic() {
     // Formatear la fecha en formato YYYY-MM-DD usando la fecha local
     const formatearFecha = (fecha) => {
       const año = fecha.getFullYear();
-      const mes = String(fecha.getMonth() + 1).padStart(2, '0');
-      const dia = String(fecha.getDate()).padStart(2, '0');
+      const mes = String(fecha.getMonth() + 1).padStart(2, "0");
+      const dia = String(fecha.getDate()).padStart(2, "0");
       return `${año}-${mes}-${dia}`;
     };
 
@@ -620,7 +622,7 @@ function Basic() {
     const fechaFormateada = tempFecha ? formatearFecha(tempFecha) : formatearFecha(new Date());
 
     // Verificar la fecha que se está usando (para depuración)
-    console.log('Fecha utilizada en fetchData:', fechaFormateada);
+    console.log("Fecha utilizada en fetchData:", fechaFormateada);
 
     await peinadosApi
       .get(`/Estilistas5?id=0&sucursal=${idSuc}&fecha=${fechaFormateada}`)
@@ -629,13 +631,13 @@ function Basic() {
           response.data.map((item) => {
             const newItem = {
               ...item,
-               name: item.clave + " - " + item.estilista,
+              name: item.clave + " - " + item.estilista,
               // name: item.estilista,
               id: item.clave,
             };
             delete newItem.toggleExpandStatus;
             return newItem;
-          })
+          }),
         );
       })
       .catch((err) => {
@@ -653,7 +655,7 @@ function Basic() {
         return format(dateValue, "yyyyMMdd");
       }
       // If it's a string from the date input (YYYY-MM-DD format)
-      if (typeof dateValue === 'string' && dateValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      if (typeof dateValue === "string" && dateValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
         return dateValue.replace(/-/g, "");
       }
       // Default fallback
@@ -666,8 +668,11 @@ function Basic() {
 
     peinadosApi
       .get(
-        `/ClientesCitasDia12?suc=${idSuc}&cliente=0&fecha=${fechaActualFormatted}&tipoCita=${tipoCita ? tipoCita : "%"
-        }&nombreEstilista=${elimina ? "" : datosParametros.nombreEstilista}&nombreCliente=${elimina ? "" : datosParametros.nombreCliente}&fecha1=${fecha1Formatted || fechaActualFormatted}&fecha2=${fecha2Formatted || fechaActualFormatted}`
+        `/ClientesCitasDia12?suc=${idSuc}&cliente=0&fecha=${fechaActualFormatted}&tipoCita=${
+          tipoCita ? tipoCita : "%"
+        }&nombreEstilista=${elimina ? "" : datosParametros.nombreEstilista}&nombreCliente=${
+          elimina ? "" : datosParametros.nombreCliente
+        }&fecha1=${fecha1Formatted || fechaActualFormatted}&fecha2=${fecha2Formatted || fechaActualFormatted}`,
       )
       .then((response) => {
         setArregloCitaDia(response.data);
@@ -684,23 +689,23 @@ function Basic() {
         }
         return fecha;
       };
-      
+
       const fechaFormateada = formatearFecha(fecha);
       console.log(`Obteniendo horarios para sucursal ${idSuc} y fecha ${fechaFormateada}`);
-      
+
       const response = await peinadosApi.get(`/sp_catHorariosGetAgenda2?sucursal=${idSuc}&fecha=${fechaFormateada}`);
-      console.log('Horarios obtenidos:', response.data);
-      
+      console.log("Horarios obtenidos:", response.data);
+
       if (response.data && response.data.length > 0) {
         setHorariosAgenda(response.data[0]);
         return response.data[0];
       } else {
-        console.log('No se encontraron horarios para esta fecha y sucursal');
+        console.log("No se encontraron horarios para esta fecha y sucursal");
         setHorariosAgenda(null);
         return null;
       }
     } catch (error) {
-      console.error('Error al obtener horarios de agenda:', error);
+      console.error("Error al obtener horarios de agenda:", error);
       setHorariosAgenda(null);
       return null;
     }
@@ -711,33 +716,60 @@ function Basic() {
     getCitasDia();
     fetchHorariosAgenda(datosParametros.fecha);
   }, []);
+
+  // Escuchar mensajes de la ventana hija (EditarCita) para refrescar el scheduler
+  useEffect(() => {
+    const handleMessage = (event) => {
+      if (event.data && event.data.type === "CITA_ACTUALIZADA") {
+        console.log("Cita actualizada desde ventana externa:", event.data.idCita);
+        // Refrescar el scheduler sin recargar la página
+        getCitas();
+        // Swal.fire({
+        //   title: "Agenda actualizada",
+        //   icon: "info",
+        //   timer: 1500,
+        //   showConfirmButton: false,
+        // });
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => {
+      window.removeEventListener("message", handleMessage);
+    };
+  }, [getCitas]);
+
   useEffect(() => {
     getEstilistas();
     getCitasDia();
   }, [tipoCita, datosParametros.fecha]);
-  
+
   // Actualizar la agenda cuando cambian los horarios
   useEffect(() => {
     if (horariosAgenda && inicializarAgenda && state.viewModel && state.viewModel.config) {
-      console.log('Actualizando configuración de horarios en la agenda:', horariosAgenda);
-      
+      console.log("Actualizando configuración de horarios en la agenda:", horariosAgenda);
+
       // Extraer las horas de los horarios de la agenda
-      const [horasInicio, minutosInicio] = horariosAgenda.hora_inicio ? horariosAgenda.hora_inicio.split(':').map(Number) : [10, 0];
-      const [horasFinal, minutosFinal] = horariosAgenda.hora_final ? horariosAgenda.hora_final.split(':').map(Number) : [23, 0];
-      
+      const [horasInicio, minutosInicio] = horariosAgenda.hora_inicio
+        ? horariosAgenda.hora_inicio.split(":").map(Number)
+        : [10, 0];
+      const [horasFinal, minutosFinal] = horariosAgenda.hora_final
+        ? horariosAgenda.hora_final.split(":").map(Number)
+        : [23, 0];
+
       let horaEntrada = horasInicio;
       let horaSalida = horasFinal;
-      
+
       // Ajustar la hora de salida si tiene minutos adicionales
       if (minutosFinal > 0) {
         horaSalida += 1; // Añadir una hora más para incluir la hora parcial
       }
-      
+
       // Actualizar la configuración del scheduler
       const updatedSchedulerData = state.viewModel;
       updatedSchedulerData.config.dayStartFrom = horaEntrada;
       updatedSchedulerData.config.dayStopTo = horaSalida;
-      
+
       // Actualizar el estado del scheduler
       dispatch({ type: "UPDATE_SCHEDULER", payload: updatedSchedulerData });
     }
@@ -751,55 +783,64 @@ function Basic() {
     // Obtener las horas de entrada y salida de la agenda para la fecha actual
     const horaEntradaDefault = 10; // Valor por defecto: 10:00 AM
     const horaSalidaDefault = 23; // Valor por defecto: 11:00 PM (23:00)
-    
+
     let horaEntrada = horaEntradaDefault;
     let horaSalida = horaSalidaDefault;
-    
+
     // Primero intentamos usar los horarios de la agenda para el día específico
     if (horariosAgenda && horariosAgenda.hora_inicio && horariosAgenda.hora_final) {
       // Extraer la hora de los campos hora_inicio y hora_final
-      const [horasInicio, minutosInicio] = horariosAgenda.hora_inicio.split(':').map(Number);
-      const [horasFinal, minutosFinal] = horariosAgenda.hora_final.split(':').map(Number);
-      
+      const [horasInicio, minutosInicio] = horariosAgenda.hora_inicio.split(":").map(Number);
+      const [horasFinal, minutosFinal] = horariosAgenda.hora_final.split(":").map(Number);
+
       horaEntrada = horasInicio;
       horaSalida = horasFinal;
-      
+
       // Ajustar la hora de salida si tiene minutos adicionales
       if (minutosFinal > 0) {
         horaSalida += 1; // Añadir una hora más para incluir la hora parcial
       }
-      
-      console.log(`Horario de agenda para ${horariosAgenda.dia}: ${horaEntrada}:${minutosInicio.toString().padStart(2, '0')} - ${horasFinal}:${minutosFinal.toString().padStart(2, '0')}`);
+
+      console.log(
+        `Horario de agenda para ${horariosAgenda.dia}: ${horaEntrada}:${minutosInicio
+          .toString()
+          .padStart(2, "0")} - ${horasFinal}:${minutosFinal.toString().padStart(2, "0")}`,
+      );
       console.log(`Configurando agenda con horario: ${horaEntrada}:00 - ${horaSalida}:00`);
     }
     // Si no hay horarios específicos para el día, intentamos usar los horarios de la sucursal
     else if (dataSucursales && dataSucursales.length > 0) {
-      const sucursalActual = dataSucursales.find(suc => suc.sucursal === Number(idSuc));
-      
+      const sucursalActual = dataSucursales.find((suc) => suc.sucursal === Number(idSuc));
+
       if (sucursalActual && sucursalActual.hora_entrada && sucursalActual.hora_salida) {
         // Extraer solo la hora de los campos hora_entrada y hora_salida
         const fechaEntrada = new Date(sucursalActual.hora_entrada);
         const fechaSalida = new Date(sucursalActual.hora_salida);
-        
+
         // Obtener la hora (0-23)
         horaEntrada = fechaEntrada.getHours();
         horaSalida = fechaSalida.getHours();
-        
+
         // Ajustar la hora de salida si tiene minutos adicionales
         const minutosSalida = fechaSalida.getMinutes();
         if (minutosSalida > 0) {
           horaSalida += 1; // Añadir una hora más para incluir la hora parcial
         }
-        
-        console.log(`Horario de sucursal ${sucursalActual.descripcion}: ${horaEntrada}:${fechaEntrada.getMinutes().toString().padStart(2, '0')} - ${fechaSalida.getHours()}:${minutosSalida.toString().padStart(2, '0')}`);
+
+        console.log(
+          `Horario de sucursal ${sucursalActual.descripcion}: ${horaEntrada}:${fechaEntrada
+            .getMinutes()
+            .toString()
+            .padStart(2, "0")} - ${fechaSalida.getHours()}:${minutosSalida.toString().padStart(2, "0")}`,
+        );
         console.log(`Configurando agenda con horario: ${horaEntrada}:00 - ${horaSalida}:00`);
       } else {
-        console.log('No se encontró la sucursal o no tiene horarios configurados. Usando valores por defecto.');
+        console.log("No se encontró la sucursal o no tiene horarios configurados. Usando valores por defecto.");
       }
     } else {
-      console.log('No hay datos de horarios ni de sucursales. Usando valores por defecto.');
+      console.log("No hay datos de horarios ni de sucursales. Usando valores por defecto.");
     }
-    
+
     schedulerData = new SchedulerData(datosParametros.fecha, ViewType.Day, false, false, {
       besidesWidth: window.innerWidth <= 1600 ? 100 : 350,
       dayMaxEvents: 99,
@@ -814,12 +855,12 @@ function Basic() {
       dayStopTo: horaSalida, // Hora de salida dinámica
     });
     // 🐛 DEBUGGING y CORRECCIÓN: Configuración de zona horaria local
-    console.log('🔧 CONFIGURANDO SCHEDULER CON ZONA HORARIA LOCAL');
-    console.log('Zona horaria del navegador:', Intl.DateTimeFormat().resolvedOptions().timeZone);
-    
+    console.log("🔧 CONFIGURANDO SCHEDULER CON ZONA HORARIA LOCAL");
+    console.log("Zona horaria del navegador:", Intl.DateTimeFormat().resolvedOptions().timeZone);
+
     schedulerData.setSchedulerLocale(dayjsLocale);
     schedulerData.setCalendarPopoverLocale(antdLocale);
-    
+
     // ✅ CORRECCIÓN: Sobrescribir localeDayjs para manejar correctamente zona horaria local
     const originalLocaleDayjs = schedulerData.localeDayjs.bind(schedulerData);
     schedulerData.localeDayjs = (date) => {
@@ -832,14 +873,18 @@ function Basic() {
         const hours = date.getHours();
         const minutes = date.getMinutes();
         const seconds = date.getSeconds();
-        
-        const localizedDayjs = originalLocaleDayjs(`${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')} ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
-        
+
+        const localizedDayjs = originalLocaleDayjs(
+          `${year}-${(month + 1).toString().padStart(2, "0")}-${day.toString().padStart(2, "0")} ${hours
+            .toString()
+            .padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`,
+        );
+
         return localizedDayjs;
       }
       return originalLocaleDayjs(date);
     };
-    
+
     schedulerData.setResources(arreglo);
     schedulerData.setEvents(arregloCita);
     // if (arreglo.length > 0 && arregloCita.length > 0) {
@@ -869,241 +914,276 @@ function Basic() {
     dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
   };
 
-  const actualizarFechayCitas = useCallback(async (schedulerData, dias, fecha) => {
-    setIsLoading(true);
-    setIsNavigatingDate(true);
-    setDatosParametros((datosParametrosPrevios) => {
-
-      // Manejar el caso cuando es un objeto o una fecha string
-      let fechaBase;
-      if (fecha) {
-        fechaBase = fecha;
-      } else if (typeof datosParametrosPrevios.fecha === "object") {
-        // Si es un objeto Date
-        fechaBase = datosParametrosPrevios.fecha.toISOString().split("T")[0];
-      } else if (typeof datosParametrosPrevios.fecha === "string") {
-        // Si es string con formato ISO
-        fechaBase = datosParametrosPrevios.fecha.split("T")[0];
-      }
-
-      const tempFecha = parseISO(fechaBase);
-      console.log({ tempFecha });
-
-      // Ahora podemos sumar los días de manera segura
-      tempFecha.setDate(tempFecha.getDate() + dias);
-      
-      if (dias == 0) tempFecha.setDate(tempFecha.getDate() + 0);
-      
-      // Usar async/await para mejor control de flujo
-      (async () => {
-        try {
-          // Primero obtenemos los horarios de la agenda para la nueva fecha
-          const horariosResult = await fetchHorariosAgenda(tempFecha);
-          
-          // Luego obtenemos los datos de estilistas  
-          await fetchData(tempFecha);
-          
-          // Finalmente obtenemos las citas
-          const response = await getCitas(tempFecha);
-          
-          // Actualizar schedulerData después de que todos los datos estén listos
-          if (dias < 0) {
-            schedulerData.prev();
-          } else if (dias === 0) {
-            schedulerData.setDate(tempFecha.toISOString().split("T")[0]);
-          } else {
-            schedulerData.next();
-          }
-          
-          // Actualizar la agenda con los nuevos datos
-          actualizarAgenda(response, schedulerData);
-          
-          // Terminar loading y navegación inmediatamente para evitar conflictos de timing
-          setIsLoading(false);
-          setIsNavigatingDate(false);
-        } catch (error) {
-          console.error('Error al actualizar fecha y citas:', error);
-          setIsLoading(false);
-          setIsNavigatingDate(false);
+  const actualizarFechayCitas = useCallback(
+    async (schedulerData, dias, fecha) => {
+      setIsLoading(true);
+      setIsNavigatingDate(true);
+      setDatosParametros((datosParametrosPrevios) => {
+        // Manejar el caso cuando es un objeto o una fecha string
+        let fechaBase;
+        if (fecha) {
+          fechaBase = fecha;
+        } else if (typeof datosParametrosPrevios.fecha === "object") {
+          // Si es un objeto Date
+          fechaBase = datosParametrosPrevios.fecha.toISOString().split("T")[0];
+        } else if (typeof datosParametrosPrevios.fecha === "string") {
+          // Si es string con formato ISO
+          fechaBase = datosParametrosPrevios.fecha.split("T")[0];
         }
-      })();
-      
-      return {
-        ...datosParametrosPrevios,
-        fecha: tempFecha,
-      };
-    });
-  }, [idSuc, setArregloCita, setIsLoading, setIsNavigatingDate]);
+
+        const tempFecha = parseISO(fechaBase);
+        console.log({ tempFecha });
+
+        // Ahora podemos sumar los días de manera segura
+        tempFecha.setDate(tempFecha.getDate() + dias);
+
+        if (dias == 0) tempFecha.setDate(tempFecha.getDate() + 0);
+
+        // Usar async/await para mejor control de flujo
+        (async () => {
+          try {
+            // Primero obtenemos los horarios de la agenda para la nueva fecha
+            const horariosResult = await fetchHorariosAgenda(tempFecha);
+
+            // Luego obtenemos los datos de estilistas
+            await fetchData(tempFecha);
+
+            // Finalmente obtenemos las citas
+            const response = await getCitas(tempFecha);
+
+            // Actualizar schedulerData después de que todos los datos estén listos
+            if (dias < 0) {
+              schedulerData.prev();
+            } else if (dias === 0) {
+              schedulerData.setDate(tempFecha.toISOString().split("T")[0]);
+            } else {
+              schedulerData.next();
+            }
+
+            // Actualizar la agenda con los nuevos datos
+            actualizarAgenda(response, schedulerData);
+
+            // Terminar loading y navegación inmediatamente para evitar conflictos de timing
+            setIsLoading(false);
+            setIsNavigatingDate(false);
+          } catch (error) {
+            console.error("Error al actualizar fecha y citas:", error);
+            setIsLoading(false);
+            setIsNavigatingDate(false);
+          }
+        })();
+
+        return {
+          ...datosParametrosPrevios,
+          fecha: tempFecha,
+        };
+      });
+    },
+    [idSuc, setArregloCita, setIsLoading, setIsNavigatingDate],
+  );
 
   // ⚡ OPTIMIZACIÓN: Memoizar funciones de callback para evitar re-renders
-  const prevClick = useCallback((schedulerData) => {
-    actualizarFechayCitas(schedulerData, -1);
-  }, [actualizarFechayCitas]);
+  const prevClick = useCallback(
+    (schedulerData) => {
+      actualizarFechayCitas(schedulerData, -1);
+    },
+    [actualizarFechayCitas],
+  );
 
-  const nextClick = useCallback((schedulerData) => {
-    actualizarFechayCitas(schedulerData, +1);
-  }, [actualizarFechayCitas]);
+  const nextClick = useCallback(
+    (schedulerData) => {
+      actualizarFechayCitas(schedulerData, +1);
+    },
+    [actualizarFechayCitas],
+  );
 
-  const onSelectDate = useCallback((schedulerData, date) => {
-    actualizarFechayCitas(schedulerData, 0, date);
-  }, [actualizarFechayCitas]);
+  const onSelectDate = useCallback(
+    (schedulerData, date) => {
+      actualizarFechayCitas(schedulerData, 0, date);
+    },
+    [actualizarFechayCitas],
+  );
 
-  const onViewChange = useCallback((schedulerData, view) => {
-    const start = new Date();
+  const onViewChange = useCallback(
+    (schedulerData, view) => {
+      const start = new Date();
 
-    schedulerData.setViewType(view.viewType, view.showAgenda, view.isEventPerspective);
-    schedulerData.setEvents(arregloCita);
-    dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
+      schedulerData.setViewType(view.viewType, view.showAgenda, view.isEventPerspective);
+      schedulerData.setEvents(arregloCita);
+      dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
 
-    const secondsBetween = (date1, date2) => {
-      const diff = Math.abs(date1.getTime() - date2.getTime());
-      return diff / 1000;
-    };
-    console.log("Elapsed seconds: " + secondsBetween(start, new Date()));
-  }, [arregloCita]); // Dependencia de arregloCita
+      const secondsBetween = (date1, date2) => {
+        const diff = Math.abs(date1.getTime() - date2.getTime());
+        return diff / 1000;
+      };
+      console.log("Elapsed seconds: " + secondsBetween(start, new Date()));
+    },
+    [arregloCita],
+  ); // Dependencia de arregloCita
 
-  const ops1 = useCallback((schedulerData, event) => {
-    console.log(event)
-    handleOpenNewWindowEdit({
-      idCita: event.idCita,
-      idUser: event.no_estilista,
-      idRec: idRec,
-      idCliente: event.no_cliente,
-      fecha: event.hora1,
-      flag: 0,
-      estadoCita: event.estadoCita2,
-      tiempo: event.tiempo,
-      idServicio: event.idServicios,
-      nombreCliente: event.nombre,
-      idSuc: idSuc,
-    });
-    return;
-    setDatosParametros({
-      fecha: fecha.setDate(fecha.getDate() + 1),
-    });
-    dispatch({ type: "REINITIALIZE", payload: schedulerData });
-
-    jezaApi
-      .get(`/Estilistas?suc=21&fecha=${format(datosParametros.fecha + 1, "yyyy-MM-dd")}`)
-      .then((response) => {
-        setArreglo(
-          response.data.map((item) => {
-            const newItem = {
-              ...item,
-              name: item.nombre,
-            };
-            delete newItem.toggleExpandStatus;
-            return newItem;
-          })
-        );
-      })
-      .catch((err) => {
-        console.log(err);
+  const ops1 = useCallback(
+    (schedulerData, event) => {
+      console.log(event);
+      handleOpenNewWindowEdit({
+        idCita: event.idCita,
+        idUser: event.no_estilista,
+        idRec: idRec,
+        idCliente: event.no_cliente,
+        fecha: event.hora1,
+        flag: 0,
+        estadoCita: event.estadoCita2,
+        tiempo: event.tiempo,
+        idServicio: event.idServicios,
+        nombreCliente: event.nombre,
+        idSuc: idSuc,
       });
-    jezaApi
-      .get(`/Cita?cliente=%&f1=${format(datosParametros.fecha, "yyyyMMdd")}&suc=21`)
-      .then((response) => {
-        setArregloCita(
-          response.data.map((item) => {
-            const newItem = {
-              ...item,
-              start: item.fechaCita,
-              end: item.horaFin,
-              resourceId: item.idEstilista,
-              title: item.ServicioDescripción,
-              type: 3,
-              bgColor: "red",
-            };
-            delete newItem.toggleExpandStatus;
-            return newItem;
-          })
-        );
-      })
-      .catch((err) => {
-        console.log(err);
+      return;
+      setDatosParametros({
+        fecha: fecha.setDate(fecha.getDate() + 1),
       });
-  }, [idRec, idSuc, datosParametros.fecha]); // Dependencias de ops1
+      dispatch({ type: "REINITIALIZE", payload: schedulerData });
 
-  const ops2 = useCallback((schedulerData, event) => {
-    openModal();
-    setEvent(event);
-    console.log(event);
-    return;
-    editCita2(event);
-  }, [openModal, setEvent]); // Dependencias de ops2
+      jezaApi
+        .get(`/Estilistas?suc=21&fecha=${format(datosParametros.fecha + 1, "yyyy-MM-dd")}`)
+        .then((response) => {
+          setArreglo(
+            response.data.map((item) => {
+              const newItem = {
+                ...item,
+                name: item.nombre,
+              };
+              delete newItem.toggleExpandStatus;
+              return newItem;
+            }),
+          );
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+      jezaApi
+        .get(`/Cita?cliente=%&f1=${format(datosParametros.fecha, "yyyyMMdd")}&suc=21`)
+        .then((response) => {
+          setArregloCita(
+            response.data.map((item) => {
+              const newItem = {
+                ...item,
+                start: item.fechaCita,
+                end: item.horaFin,
+                resourceId: item.idEstilista,
+                title: item.ServicioDescripción,
+                type: 3,
+                bgColor: "red",
+              };
+              delete newItem.toggleExpandStatus;
+              return newItem;
+            }),
+          );
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    },
+    [idRec, idSuc, datosParametros.fecha],
+  ); // Dependencias de ops1
+
+  const ops2 = useCallback(
+    (schedulerData, event) => {
+      openModal();
+      setEvent(event);
+      console.log(event);
+      return;
+      editCita2(event);
+    },
+    [openModal, setEvent],
+  ); // Dependencias de ops2
 
   const updateEventStart = useCallback((schedulerData, event, newStart) => {
-    if (confirm(`Do you want to adjust the start of the event? {eventId: ${event.id}, eventTitle: ${event.title}, newStart: ${newStart}}`)) {
+    if (
+      confirm(
+        `Do you want to adjust the start of the event? {eventId: ${event.id}, eventTitle: ${event.title}, newStart: ${newStart}}`,
+      )
+    ) {
     }
     dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
   }, []);
 
   const updateEventEnd = useCallback((schedulerData, event, newEnd) => {
-    if (confirm(`Do you want to adjust the end of the event? {eventId: ${event.id}, eventTitle: ${event.title}, newEnd: ${newEnd}}`)) {
+    if (
+      confirm(
+        `Do you want to adjust the end of the event? {eventId: ${event.id}, eventTitle: ${event.title}, newEnd: ${newEnd}}`,
+      )
+    ) {
       schedulerData.updateEventEnd(event, newEnd);
     }
     dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
   }, []);
 
-  const moveEvent = useCallback(async (schedulerData, event, slotId, slotName, start, end) => {
-    if (event.estadoCita == 4) {
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: `Cita en proceso, imposible cambiar de estilista desde agenda`,
-      });
-      return;
-    }
-    // return;
-    if (new Date(start) < new Date()) {
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: `La fecha de la hora no puede ser anterior al dia de hoy`,
-      });
-      return;
-    }
-    const isVerified = await verificarDisponibilidad(event.tiempo, new Date(start), slotId, event.idCita);
-    if (!isVerified) return;
+  const moveEvent = useCallback(
+    async (schedulerData, event, slotId, slotName, start, end) => {
+      if (event.estadoCita == 4) {
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: `Cita en proceso, imposible cambiar de estilista desde agenda`,
+        });
+        return;
+      }
+      // return;
+      if (new Date(start) < new Date()) {
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: `La fecha de la hora no puede ser anterior al dia de hoy`,
+        });
+        return;
+      }
+      const isVerified = await verificarDisponibilidad(event.tiempo, new Date(start), slotId, event.idCita);
+      if (!isVerified) return;
 
-    if (event.estadoCita == 2 && slotId != event.no_estilista) {
+      if (event.estadoCita == 2 && slotId != event.no_estilista) {
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: `Cita requerida, imposible cambiar de estilista`,
+        });
+        return;
+      }
+
+      const nombreAgendaNuevo = dataTrabajadores.find((item) => item.id === slotId).nombre_agenda;
+      const nombreAgendaAnterior = dataTrabajadores.find((item) => item.id === event.no_estilista).nombre_agenda;
+
       Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: `Cita requerida, imposible cambiar de estilista`,
-      });
-      return;
-    }
-
-    const nombreAgendaNuevo = dataTrabajadores.find((item) => item.id === slotId).nombre_agenda;
-    const nombreAgendaAnterior = dataTrabajadores.find((item) => item.id === event.no_estilista).nombre_agenda;
-
-    Swal.fire({
-      title: "Cambio de Cita",
-      html: `
+        title: "Cambio de Cita",
+        html: `
         <p>CLIENTE: Publico en General</p>
-        <p>ANTERIOR:<br>Horas: ${format(new Date(event.hora1), "hh:mm a")}   Estilista: ${nombreAgendaAnterior ? nombreAgendaAnterior : ""}</p>
-        <p>NUEVA:<br>Horas: ${format(new Date(start), "hh:mm a")}   Estilista: ${nombreAgendaNuevo ? nombreAgendaNuevo : ""}</p>
+        <p>ANTERIOR:<br>Horas: ${format(new Date(event.hora1), "hh:mm a")}   Estilista: ${
+          nombreAgendaAnterior ? nombreAgendaAnterior : ""
+        }</p>
+        <p>NUEVA:<br>Horas: ${format(new Date(start), "hh:mm a")}   Estilista: ${
+          nombreAgendaNuevo ? nombreAgendaNuevo : ""
+        }</p>
         <p>Quiere confirmar el cambio?</p>
       `,
-      showCancelButton: true,
-      confirmButtonText: "Sí",
-      cancelButtonText: "No",
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        const result = await validarContraseña("MODIFICAR_CITA", "AGENDA");
-        if (result.validado) {
-          // Usar el usuario validado
-          const usuarioValidado = result.usuario;
-          setDatosParametrosFechaCitaTemp({
-            fecha: start,
-            usuarioEstilista: slotId,
-          });
-          setDatosParametrosCitaTemp(event);
+        showCancelButton: true,
+        confirmButtonText: "Sí",
+        cancelButtonText: "No",
+      }).then(async (result) => {
+        if (result.isConfirmed) {
+          const result = await validarContraseña("MODIFICAR_CITA", "AGENDA");
+          if (result.validado) {
+            // Usar el usuario validado
+            const usuarioValidado = result.usuario;
+            setDatosParametrosFechaCitaTemp({
+              fecha: start,
+              usuarioEstilista: slotId,
+            });
+            setDatosParametrosCitaTemp(event);
+          }
         }
-      }
-    });
-  }, [Swal, arreglo, setDatosParametrosFechaCitaTemp, setDatosParametrosCitaTemp, validarContraseña]);
+      });
+    },
+    [Swal, arreglo, setDatosParametrosFechaCitaTemp, setDatosParametrosCitaTemp, validarContraseña],
+  );
 
   const newEvent = useCallback((schedulerData, slotId, slotName, start, end, type, item) => {
     console.log(schedulerData);
@@ -1146,7 +1226,7 @@ function Basic() {
       schedulerContent.scrollLeft = 10;
     }
   }, []);
-  
+
   const onScrollRight = useCallback((schedulerData, schedulerContent, maxScrollLeft) => {
     if (schedulerData.ViewTypes === ViewType.Day) {
       schedulerData.next();
@@ -1173,164 +1253,191 @@ function Basic() {
       align: "center",
       sortable: false,
       renderCell: (params) => (
-        <div style={{ fontSize: "16px", display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {isLoading && <AiOutlineLoading3Quarters className="loading-spinner" />} 
+        <div style={{ fontSize: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
+          {isLoading && <AiOutlineLoading3Quarters className="loading-spinner" />}
           {params.row.cantidad !== 0 && params.row.tiempo !== "0" ? (
             <>
-            <FaMoneyBillAlt
-            size={23}
+              <FaMoneyBillAlt
+                size={23}
+                onClick={() => {
+                  // Convert both dates to YYYY-MM-DD format for comparison
+                  const formatDateForComparison = (dateValue) => {
+                    if (!dateValue) return "";
+                    // If it's a Date object
+                    if (dateValue instanceof Date) {
+                      return format(dateValue, "yyyy-MM-dd");
+                    }
+                    // If it's a string in ISO format (like '2025-05-09T00:00:00')
+                    if (typeof dateValue === "string" && dateValue.includes("T")) {
+                      return dateValue.split("T")[0]; // Extract just the date part
+                    }
+                    return dateValue;
+                  };
 
-            onClick={() => {
-              // Convert both dates to YYYY-MM-DD format for comparison
-              const formatDateForComparison = (dateValue) => {
-                if (!dateValue) return "";
-                // If it's a Date object
-                if (dateValue instanceof Date) {
-                  return format(dateValue, "yyyy-MM-dd");
-                }
-                // If it's a string in ISO format (like '2025-05-09T00:00:00')
-                if (typeof dateValue === 'string' && dateValue.includes('T')) {
-                  return dateValue.split('T')[0]; // Extract just the date part
-                }
-                return dateValue;
-              };
+                  const fecha1 = formatDateForComparison(datosParametros.fecha);
+                  const fecha2 = formatDateForComparison(params.row.fecha);
 
-              const fecha1 = formatDateForComparison(datosParametros.fecha);
-              const fecha2 = formatDateForComparison(params.row.fecha);
+                  console.log("Comparing dates:", fecha1, fecha2);
 
-              console.log('Comparing dates:', fecha1, fecha2);
+                  if (fecha1 !== fecha2) {
+                    Swal.fire({
+                      icon: "error",
+                      title: "Error",
+                      text: `No puede dar de alta un servicio de otra fecha`,
+                    });
+                    return;
+                  }
+                  if (params.row.idVenta > 1) {
+                    Swal.fire({
+                      icon: "error",
+                      title: "Error",
+                      text: `Cita ya está en venta, no se puede pasar a venta`,
+                    });
+                    return;
+                  }
+                  setEvent({
+                    fecha: params.row.fecha,
+                    no_cliente: params.row.no_cliente2,
+                    estadoCita: params.row.estatusCita,
+                    hora1: params.row.hora_cita,
+                    tiempo: params.row.tiempo,
+                    idCita: params.row.id,
+                    no_estilista: params.row.idEstilista,
+                    verificacion: true,
+                    hora1Verifica: params.row.hora_cita,
+                  });
+                  setFormCitaServicio({
+                    ...formCitaServicio,
+                    idCita: params.row.id,
+                  });
+                  setFormCita({
+                    ...formCita,
+                    no_cliente: params.row.no_cliente2,
+                    fecha: params.row.hora_cita,
+                    no_estilista: params.row.idEstilista,
+                    estatusCita: 100,
+                  });
+                  setModalServicioUso(true);
+                }}
+              >
+                AS
+              </FaMoneyBillAlt>
+              <AiFillEdit
+                diabled={params.row.cantidad == 0 && params.row.tiempo == 0}
+                size={23}
+                onClick={() => {
+                  setEvent({
+                    fecha: params.row.fecha,
+                    no_cliente: params.row.no_cliente2,
+                    estadoCita: params.row.estatusCita,
+                    hora1: params.row.hora_cita,
+                    tiempo: params.row.tiempo,
+                    idCita: params.row.id,
+                    no_estilista: params.row.idEstilista,
+                    idVenta: params.row.idVenta,
+                  });
+                  setFormCitaServicio({
+                    ...formCitaServicio,
+                    idCita: params.row.id,
+                  });
+                  setFormDetalleCitasServicios({
+                    fecha: params.row.dia_cita,
+                    fechaFinal: params.row.horafinal,
+                    idEstilista: params.row.idEstilista,
+                    d_clave_prod: params.row.descripcion,
+                    cantidad: params.row.cantidad,
+                    idServicio: params.row.idServicio,
+                    precio: params.row.importe,
+                    id: params.row.no_cliente,
+                    tiempo: params.row.tiempo,
+                    idCita: params.row.id,
+                    estatusCita: params.row.estatusCita,
+                  });
+                  if (params.row.idVenta > 1) {
+                    setModalCitas(false);
+                    setModalEdicionVenta(true);
+                    return;
+                  }
+                  setModalEdicionServicios2(true);
+                }}
+              ></AiFillEdit>
+              <FaTrash
+                disabled
+                size={23}
+                onClick={() => {
+                  if (params.row.id == 1) {
+                    Swal.fire({
+                      icon: "error",
+                      title: "Error",
+                      text: `Cita ya está en venta, para eliminar debe de ser en ventas`,
+                    });
+                    return;
+                  }
 
-              if (fecha1 !== fecha2) {
-                Swal.fire({
-                  icon: "error",
-                  title: "Error",
-                  text: `No puede dar de alta un servicio de otra fecha`,
-                });
-                return;
-              }
-              if (params.row.idVenta > 1) {
-                Swal.fire({
-                  icon: "error",
-                  title: "Error",
-                  text: `Cita ya está en venta, no se puede pasar a venta`,
-                });
-                return;
-              }
-              setEvent({
-                fecha: params.row.fecha,
-                no_cliente: params.row.no_cliente2,
-                estadoCita: params.row.estatusCita,
-                hora1: params.row.hora_cita,
-                tiempo: params.row.tiempo,
-                idCita: params.row.id,
-                no_estilista: params.row.idEstilista,
-                verificacion: true,
-                hora1Verifica: params.row.hora_cita,
-              });
-              setFormCitaServicio({
-                ...formCitaServicio,
-                idCita: params.row.id,
-              });
-              setFormCita({
-                ...formCita,
-                no_cliente: params.row.no_cliente2,
-                fecha: params.row.hora_cita,
-                no_estilista: params.row.idEstilista,
-                estatusCita: 100,
-              });
-              setModalServicioUso(true);
-            }}
-          >
-            AS
-          </FaMoneyBillAlt>
-          <AiFillEdit
-          diabled ={params.row.cantidad == 0 && params.row.tiempo == 0}
-            size={23}
-            onClick={() => {
-              setEvent({
-                fecha: params.row.fecha,
-                no_cliente: params.row.no_cliente2,
-                estadoCita: params.row.estatusCita,
-                hora1: params.row.hora_cita,
-                tiempo: params.row.tiempo,
-                idCita: params.row.id,
-                no_estilista: params.row.idEstilista,
-                idVenta: params.row.idVenta,
-              });
-              setFormCitaServicio({
-                ...formCitaServicio,
-                idCita: params.row.id,
-              });
-              setFormDetalleCitasServicios({
-                fecha: params.row.dia_cita,
-                fechaFinal: params.row.horafinal,
-                idEstilista: params.row.idEstilista,
-                d_clave_prod: params.row.descripcion,
-                cantidad: params.row.cantidad,
-                idServicio: params.row.idServicio,
-                precio: params.row.importe,
-                id: params.row.no_cliente,
-                tiempo: params.row.tiempo,
-                idCita: params.row.id,
-                estatusCita: params.row.estatusCita,
-              });
-              if (params.row.idVenta > 1) {
-                setModalCitas(false);
-                setModalEdicionVenta(true);
-                return;
-              }
-              setModalEdicionServicios2(true);
-            }}
-          ></AiFillEdit>
-          <FaTrash
-            disabled
-            size={23}
-            onClick={() => {
-              if (params.row.id == 1) {
-                Swal.fire({
-                  icon: "error",
-                  title: "Error",
-                  text: `Cita ya está en venta, para eliminar debe de ser en ventas`,
-                });
-                return;
-              }
-
-              putDetalleCitasServiciosUpd4(0, params.row.sucursal, params.row.id, 0, params.row.idEstilista, 0, 0, idUser, 0, 0, new Date());
-            }}
-          >
-            Cancelar
-          </FaTrash>
-          </>
-
+                  putDetalleCitasServiciosUpd4(
+                    0,
+                    params.row.sucursal,
+                    params.row.id,
+                    0,
+                    params.row.idEstilista,
+                    0,
+                    0,
+                    idUser,
+                    0,
+                    0,
+                    new Date(),
+                  );
+                }}
+              >
+                Cancelar
+              </FaTrash>
+            </>
           ) : (
-          <></>)
-          }
-          
+            <></>
+          )}
+
           <FaEye
             size={23}
             onClick={async () => {
-              console.log(params.row)
-              if(params.row.idCita == 0){
+              console.log(params.row);
+              if (params.row.idCita == 0) {
                 Swal.fire({
                   icon: "info",
                   title: "Información",
                   text: "Cita ya en venta",
-                })
+                });
                 return;
               }
               await getBitacoraCitas(params.row.id);
               setModalBitacora(true);
             }}
-          >
-
-          </FaEye>
+          ></FaEye>
         </div>
       ),
     },
 
     // Esta es la columna del ID único
-    { field: "dia_cita", headerName: "Fecha", width: 85, align: "center", sortable: false, style: { fontSize: "16px" }, renderCell: (params) => <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0, fontSize: "16px" }}>{format(new Date(params.row.dia_cita), "dd/MM/yyyy")}</p> }, // Esta es la columna del ID único
-    { field: "d_stilista", headerName: "Estilista", width: 85, align: "center", sortable: false, style: { fontSize: "16px" } }, // Esta es la columna del ID único
+    {
+      field: "dia_cita",
+      headerName: "Fecha",
+      width: 85,
+      align: "center",
+      sortable: false,
+      style: { fontSize: "16px" },
+      renderCell: (params) => (
+        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0, fontSize: "16px" }}>
+          {format(new Date(params.row.dia_cita), "dd/MM/yyyy")}
+        </p>
+      ),
+    }, // Esta es la columna del ID único
+    {
+      field: "d_stilista",
+      headerName: "Estilista",
+      width: 85,
+      align: "center",
+      sortable: false,
+      style: { fontSize: "16px" },
+    }, // Esta es la columna del ID único
     {
       field: "stao_estilista",
       headerName: "M/Folio",
@@ -1343,22 +1450,22 @@ function Basic() {
           {params.row.stao_estilista == 4 && params.row.estatusCita == 2
             ? "RD"
             : params.row.stao_estilista == 4 && params.row.estatusCita == 3
-              ? "AD"
-              : params.row.stao_estilista == 5 && params.row.estatusCita == 2
-                ? "RD"
-                : params.row.stao_estilista == 5 && params.row.estatusCita == 3
-                  ? "AD"
-                  : params.row.estatusCita == 2
-                    ? "R"
-                    : params.row.estatusCita == 3
-                      ? "A"
-                      : params.row.estatusCita == 4
-                        ? "S"
-                        : params.row.estatusCita == 5
-                          ? "D"
-                          : params.row.estatusCita == 1
-                            ? "N/A"
-                            : ""}
+            ? "AD"
+            : params.row.stao_estilista == 5 && params.row.estatusCita == 2
+            ? "RD"
+            : params.row.stao_estilista == 5 && params.row.estatusCita == 3
+            ? "AD"
+            : params.row.estatusCita == 2
+            ? "R"
+            : params.row.estatusCita == 3
+            ? "A"
+            : params.row.estatusCita == 4
+            ? "S"
+            : params.row.estatusCita == 5
+            ? "D"
+            : params.row.estatusCita == 1
+            ? "N/A"
+            : ""}
         </p>
       ),
     },
@@ -1370,7 +1477,9 @@ function Basic() {
       headerName: "T",
       width: 40,
       renderCell: (params) => (
-        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0, fontSize: "16px" }}>{params.row.tiempo}</p>
+        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0, fontSize: "16px" }}>
+          {params.row.tiempo}
+        </p>
       ),
     },
 
@@ -1488,7 +1597,19 @@ function Basic() {
             disabled
             size={23}
             onClick={() =>
-              putDetalleCitasServiciosUpd4(0, params.row.sucursal, params.row.id, 0, params.row.idEstilista, 0, 0, idUser, 0, 0, new Date())
+              putDetalleCitasServiciosUpd4(
+                0,
+                params.row.sucursal,
+                params.row.id,
+                0,
+                params.row.idEstilista,
+                0,
+                0,
+                idUser,
+                0,
+                0,
+                new Date(),
+              )
             }
           >
             Cancelar
@@ -1511,16 +1632,16 @@ function Basic() {
           {params.row.estatusCita == 4
             ? params.row.stao_estilista
             : params.row.estatusCita == 2
-              ? "R"
-              : params.row.estatusCita == 3
-                ? "A"
-                : params.row.estatusCita == 4
-                  ? "S"
-                  : params.row.estatusCita == 5
-                    ? "D"
-                    : params.row.estatusCita == 1
-                      ? "N/A"
-                      : ""}
+            ? "R"
+            : params.row.estatusCita == 3
+            ? "A"
+            : params.row.estatusCita == 4
+            ? "S"
+            : params.row.estatusCita == 5
+            ? "D"
+            : params.row.estatusCita == 1
+            ? "N/A"
+            : ""}
         </p>
       ),
     },
@@ -1536,7 +1657,9 @@ function Basic() {
       field: "tiempo",
       headerName: "T",
       width: 40,
-      renderCell: (params) => <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>{params.row.tiempo}</p>,
+      renderCell: (params) => (
+        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>{params.row.tiempo}</p>
+      ),
     },
 
     {
@@ -1544,7 +1667,9 @@ function Basic() {
       headerName: "HI",
       width: 60,
       renderCell: (params) => (
-        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>{format(new Date(params.row.hora_cita), "HH:mm")}</p>
+        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>
+          {format(new Date(params.row.hora_cita), "HH:mm")}
+        </p>
       ),
     },
     {
@@ -1552,7 +1677,9 @@ function Basic() {
       headerName: "HF",
       width: 60,
       renderCell: (params) => (
-        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>{format(new Date(params.row.horafinal), "HH:mm")}</p>
+        <p style={{ textAlign: "center", lineHeight: "28px", height: "28px", margin: 0 }}>
+          {format(new Date(params.row.horafinal), "HH:mm")}
+        </p>
       ),
     },
     {
@@ -1575,8 +1702,8 @@ function Basic() {
     // },
   ];
 
-  //const ligaPruebas = "http://localhost:5173/";
-   const ligaPruebas = "http://217.216.95.62:9019/";
+  // const ligaPruebas = "http://localhost:5173/";
+  const ligaPruebas = "http://217.216.95.62:9019/";
   const handleOpenNewWindow = ({ idCita, idUser, idCliente, fecha, flag }) => {
     const url = `${ligaPruebas}miliga/crearcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idSuc=${1}&idRec=${1}&flag=${flag}`; // Reemplaza esto con la URL que desees abrir
     const width = 390;
@@ -1586,7 +1713,17 @@ function Basic() {
     const features = `width=${width},height=${height},left=${left},top=${top},toolbar=0,location=0,menubar=0,scrollbars=1,resizable=1`;
     window.open(url, "_blank", features);
   };
-  const handleOpenNewWindowEdit = ({ idCita, idUser, idCliente, fecha, flag, estadoCita, tiempo, nombreCliente, idSuc }) => {
+  const handleOpenNewWindowEdit = ({
+    idCita,
+    idUser,
+    idCliente,
+    fecha,
+    flag,
+    estadoCita,
+    tiempo,
+    nombreCliente,
+    idSuc,
+  }) => {
     const url = `${ligaPruebas}miliga/editarcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idRec=${idRec}&flag=${flag}&estadoCita=${estadoCita}&tiempo=${tiempo}&nombreCliente=${nombreCliente}&idSuc=${idSuc}&password_chk=${password_chk}`; // Reemplaza esto con la URL que desees abrir
     const width = 600;
     const height = 800;
@@ -1640,7 +1777,7 @@ function Basic() {
           id: 0, // idCitaServicio
         },
       })
-      .then((response) => { });
+      .then((response) => {});
   };
   const felicitarCliente = async (id, sucursal) => {
     await peinadosApi.put("/sp_clientesFelicitarUpd", null, {
@@ -1654,17 +1791,17 @@ function Basic() {
     // Validar permisos antes de editar la cita
     const result = await validarContraseña("MODIFICAR_CITA", "AGENDA");
     if (!result.validado) return;
-    
+
     // Usar el usuario validado
     const usuarioValidado = result.usuario;
-    
+
     let fechaActual = new Date();
     // Extrae el año, mes y día
     let año = fechaActual.getFullYear();
     let mes = fechaActual.getMonth(); // Nota: getMonth() devuelve un valor de 0 a 11, donde 0 es enero y 11 es diciembre
     let día = fechaActual.getDate();
     let fechaSinHora = new Date(año, mes, día);
-    
+
     peinadosApi
       .put("/DetalleCitas", null, {
         params: {
@@ -1694,7 +1831,7 @@ function Basic() {
       })
       .then((response) => {
         Swal.fire("Saved!", "", "success");
-        
+
         setTimeout(() => {
           window.location.reload();
         }, 1000);
@@ -2041,8 +2178,8 @@ function Basic() {
     // Formatear la fecha en formato YYYY-MM-DD usando la fecha local
     const formatearFecha = (fecha) => {
       const año = fecha.getFullYear();
-      const mes = String(fecha.getMonth() + 1).padStart(2, '0');
-      const dia = String(fecha.getDate()).padStart(2, '0');
+      const mes = String(fecha.getMonth() + 1).padStart(2, "0");
+      const dia = String(fecha.getDate()).padStart(2, "0");
       return `${año}-${mes}-${dia}`;
     };
 
@@ -2050,13 +2187,11 @@ function Basic() {
     const fechaFormateada = datosParametros.fecha ? formatearFecha(datosParametros.fecha) : formatearFecha(fechaActual);
 
     // Verificar la fecha que se está usando (para depuración)
-    console.log('Fecha utilizada:', fechaFormateada);
+    console.log("Fecha utilizada:", fechaFormateada);
 
-    await peinadosApi
-      .get(`/estilistas5?id=0&sucursal=${idSuc}&fecha=${fechaFormateada}`)
-      .then((response) => {
-        setDataEstilistas(response.data);
-      });
+    await peinadosApi.get(`/estilistas5?id=0&sucursal=${idSuc}&fecha=${fechaFormateada}`).then((response) => {
+      setDataEstilistas(response.data);
+    });
   };
   const getClientes = () => {
     peinadosApi.get(`/clientesZonas?id=0&idSuc=${idSuc ? idSuc : 0}`).then((response) => {
@@ -2073,7 +2208,9 @@ function Basic() {
 
   const getProductos = () => {
     peinadosApi
-      .get("/sp_cPSEAC?id=0&cia=1&sucursal=2&almacen=1&marca=%&descripcion=%&verinventariable=0&esServicio=2&esInsumo=0&obsoleto=0")
+      .get(
+        "/sp_cPSEAC?id=0&cia=1&sucursal=2&almacen=1&marca=%&descripcion=%&verinventariable=0&esServicio=2&esInsumo=0&obsoleto=0",
+      )
       .then((response) => {
         setDataProductos(response.data);
       });
@@ -2081,7 +2218,7 @@ function Basic() {
   const getOperaciones = () => {
     peinadosApi
       .get(
-        `/sp_detalleOperaciones7?noCliente=${formCita.no_cliente}&sucursal=${formPuntosObservaciones.sucursal}&noMovto=${formPuntosObservaciones.idMovto}`
+        `/sp_detalleOperaciones7?noCliente=${formCita.no_cliente}&sucursal=${formPuntosObservaciones.sucursal}&noMovto=${formPuntosObservaciones.idMovto}`,
       )
       .then((response) => {
         setDataOperaciones(response.data);
@@ -2107,7 +2244,9 @@ function Basic() {
   });
   const { dataCuentasPendientes } = useDetalleCuentaPendietes({ no_cliente: formCita.no_cliente });
   const { dataObservaciones, fetchObservaciones } = useObservaciones({ idCliente: formCita.no_cliente });
-  const { dataCitasObservaciones, fetchDetalleCitasObservaciones } = useDetalleCitasObservaciones({ idCliente: formCita.no_cliente });
+  const { dataCitasObservaciones, fetchDetalleCitasObservaciones } = useDetalleCitasObservaciones({
+    idCliente: formCita.no_cliente,
+  });
   const { dataClientesSaldosPendientes } = useDetalleSaldosPendientes({ no_cliente: formCita.no_cliente });
   const { dataTrabajadores } = useNominaTrabajadores();
   const { DataVentasOperaciones } = useVentasOperaciones({
@@ -2117,7 +2256,7 @@ function Basic() {
   });
   const { dataClasificacion } = usesp_ClasificacionSel({ idCliente: formCita.no_cliente });
   useEffect(() => {
-    console.log('Estructura de dataSucursales:', dataSucursales);
+    console.log("Estructura de dataSucursales:", dataSucursales);
   }, [dataSucursales]);
   const { dataVentasHistoriales, fetchVentasHistoriales } = useVentasHistoriales({
     claveProd: formVentaHistoriales.claveProd,
@@ -2160,10 +2299,14 @@ function Basic() {
 
   const { dataPromocionesZonas } = usePromocionesZonas();
   const { dataPromocionesGrupos } = usePromocionesGrupos({ idPromocion: formPromocion.id });
-  const { dataVentasOperacionesMediosPagos2 } = useVentasOperacionesMediosPagos2({ sucursal: idSuc, folioVenta: formVentaOperaciones.no_venta });
+  const { dataVentasOperacionesMediosPagos2 } = useVentasOperacionesMediosPagos2({
+    sucursal: idSuc,
+    folioVenta: formVentaOperaciones.no_venta,
+  });
 
   const { dataPrepagos, fetchPrepagos } = usePrepagos();
-  const { fetchProductosAreaDeptoSub, dataProductosAreaDeptoSub, setDataProductosAreaDeptoSub } = useProductosAreaDeptoSub();
+  const { fetchProductosAreaDeptoSub, dataProductosAreaDeptoSub, setDataProductosAreaDeptoSub } =
+    useProductosAreaDeptoSub();
   const putCitasObservaciones = (estado, idCita) => {
     setModalCitasObservaciones(false);
     if (estado == 1) {
@@ -2176,7 +2319,7 @@ function Basic() {
           peinadosApi
             .put(
               `/sp_DetalleCitasObservacionesput?id=${idCita}&observaciones=${observaciones}
-          `
+          `,
             )
             .then((response) => {
               Swal.fire({
@@ -2275,10 +2418,10 @@ function Basic() {
             size={33}
             onClick={() => {
               setDataVentaTemporal({ ...dataVentaTemporal, id: cell.row.id });
-              
+
               // Usar el parámetro skipValidation en lugar del flag
-              console.log('Eliminando servicio con skipValidation=true');
-              
+              console.log("Eliminando servicio con skipValidation=true");
+
               putDetalleCitasServiciosUpd4(
                 cell.row.id,
                 idSuc, //sucursal: 2 sucursal: 1
@@ -2290,8 +2433,8 @@ function Basic() {
                 idUser,
                 0,
                 cell.row.precio,
-                null,  // fechaCita
-                true   // skipValidation
+                null, // fechaCita
+                true, // skipValidation
               );
             }}
           >
@@ -2362,10 +2505,10 @@ function Basic() {
             size={35}
             onClick={() => {
               setDataVentaTemporal({ ...dataVentaTemporal, id: cell.row.id });
-              
+
               // Usar el parámetro skipValidation
-              console.log('Actualizando servicio con skipValidation=true');
-              
+              console.log("Actualizando servicio con skipValidation=true");
+
               putDetalleCitasServiciosUpd4(
                 cell.row.id,
                 idSuc, //sucursal: 2 sucursal: 1
@@ -2377,8 +2520,8 @@ function Basic() {
                 idUser,
                 0,
                 cell.row.precio,
-                null,  // fechaCita
-                true   // skipValidation
+                null, // fechaCita
+                true, // skipValidation
               );
             }}
           >
@@ -2569,7 +2712,9 @@ function Basic() {
     let minutosDesdeMedianocheSalida = horaSalida * 60 + minutoSalida;
     let minutosDesdeMedianocheCita = horaCita * 60 + minutoCita;
 
-    let esValida = minutosDesdeMedianocheCita >= minutosDesdeMedianocheEntrada && minutosDesdeMedianocheCita <= minutosDesdeMedianocheSalida;
+    let esValida =
+      minutosDesdeMedianocheCita >= minutosDesdeMedianocheEntrada &&
+      minutosDesdeMedianocheCita <= minutosDesdeMedianocheSalida;
     return esValida;
   };
 
@@ -2583,7 +2728,7 @@ function Basic() {
       formCita.tiempo,
       formCita.fecha,
       formCita.no_estilista,
-      formCita.idCita
+      formCita.idCita,
     );
 
     if (!disponibilidad.disponible) {
@@ -2620,19 +2765,19 @@ function Basic() {
     ) {
       // Construir un mensaje descriptivo que indique exactamente qué falta
       let mensajeError = "Faltan por ingresar los siguientes datos: ";
-      
+
       if (formCita.no_estilista == 0 || !formCita.no_estilista) {
         mensajeError += "\n- Estilista";
       }
-      
+
       if (formCita.no_cliente == 0) {
         mensajeError += "\n- Cliente";
       }
-      
+
       if (formCita.estatusAsignado == false && formCita.estatusRequerido == false) {
         mensajeError += "\n- Estatus de la cita (Asignado o Requerido)";
       }
-      
+
       Swal.fire({
         icon: "error",
         title: "Error",
@@ -2656,12 +2801,12 @@ function Basic() {
                 const usuarioValidado = result.usuario;
                 try {
                   let citaId;
-                  
+
                   // Verificar si ya existe formCitaServicio.idCita
                   if (formCitaServicio.idCita && formCitaServicio.idCita > 0) {
                     // Si ya existe, usar ese ID
                     citaId = formCitaServicio.idCita;
-                    
+
                     // Ejecutar directamente putDetalleCitasServiciosUpd7
                     await putDetalleCitasServiciosUpd7(
                       0, // id
@@ -2675,7 +2820,7 @@ function Basic() {
                       formCitaServicio.cantidad || 1, // cantidad
                       formCitaServicio.precio || 0, // precio
                       citaDateTime, // fechaCita
-                      formCita.estatusAsignado ? 3 : formCita.estatusRequerido ? 2 : 1 // estatusCita
+                      formCita.estatusAsignado ? 3 : formCita.estatusRequerido ? 2 : 1, // estatusCita
                     );
                   } else {
                     // Si no existe, crear nueva cita
@@ -2701,11 +2846,11 @@ function Basic() {
                         servDomicilio: formCita.esServicioDomicilio == false ? 0 : 1,
                       },
                     });
-                    
+
                     citaId = response.data.mensaje2;
                     setProductosModal(true);
                     setFormCitaServicio({ ...formCitaServicio, idCita: citaId });
-                    
+
                     // Ejecutar putDetalleCitasServiciosUpd7 si se creó correctamente la cita
                     if (citaId > 0) {
                       await putDetalleCitasServiciosUpd7(
@@ -2720,11 +2865,11 @@ function Basic() {
                         formCitaServicio.cantidad || 1, // cantidad
                         formCitaServicio.precio || 0, // precio
                         citaDateTime, // fechaCita
-                        formCita.estatusAsignado ? 3 : formCita.estatusRequerido ? 2 : 1 // estatusCita
+                        formCita.estatusAsignado ? 3 : formCita.estatusRequerido ? 2 : 1, // estatusCita
                       );
                     }
                   }
-                  
+
                   return citaId;
                 } catch (error) {
                   alert(`Hubo un error, ${error}`);
@@ -2743,11 +2888,11 @@ function Basic() {
       } else {
         // Validar permisos antes de crear la cita
         // const result = await validarContraseña("AGENDAR_CITA", "AGENDA");
-        if (1==1) {
+        if (1 == 1) {
           try {
             // Usar el usuario validado
             const usuarioValidado = 1146;
-            
+
             const response = await peinadosApi.post("/DetalleCitas", null, {
               params: {
                 cia: 1,
@@ -2772,12 +2917,12 @@ function Basic() {
             });
             setProductosModal(true);
             setFormCitaServicio({ ...formCitaServicio, idCita: response.data.mensaje2 });
-            
+
             // Si hay servicio a domicilio, también usar el usuario validado
             if (formCita.esServicioDomicilio) {
               await postCitasServicios(11948, 0, 1, response.data.mensaje2, usuarioValidado);
             }
-            
+
             return response.data.mensaje2;
           } catch (error) {
             alert(`Hubo un error, ${error}`);
@@ -2900,7 +3045,10 @@ function Basic() {
                 return;
               }
               if (formVentaHistoriales.botonConsultar) {
-                setFormVentaHistoriales({ claveProd: cell.row.original.id, claveProdDescripcion: cell.row.original.descripcion });
+                setFormVentaHistoriales({
+                  claveProd: cell.row.original.id,
+                  claveProdDescripcion: cell.row.original.descripcion,
+                });
               } else {
                 setDataVentaTemporal({
                   clave: cell.row.original.id,
@@ -3014,7 +3162,10 @@ function Basic() {
                 return;
               }
               if (formVentaHistoriales.botonConsultar) {
-                setFormVentaHistoriales({ claveProd: cell.row.original.id, claveProdDescripcion: cell.row.original.descripcion });
+                setFormVentaHistoriales({
+                  claveProd: cell.row.original.id,
+                  claveProdDescripcion: cell.row.original.descripcion,
+                });
               } else {
                 setFormDetalleCitasServicios({
                   ...formDetalleCitasServicios,
@@ -3062,7 +3213,9 @@ function Basic() {
       header: "Precio",
       size: 50,
       Cell: ({ cell }) => (
-        <p className="centered-cell">{Number(cell.row.original.precioPromocion).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}</p>
+        <p className="centered-cell">
+          {Number(cell.row.original.precioPromocion).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}
+        </p>
       ),
       className: "centered-cell", // Agrega esta línea para aplicar la clase CSS
     },
@@ -3114,7 +3267,9 @@ function Basic() {
       header: "Precio",
       size: 100,
       Cell: ({ cell }) => (
-        <p className="centered-cell">{Number(cell.row.original.precio).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}</p>
+        <p className="centered-cell">
+          {Number(cell.row.original.precio).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}
+        </p>
       ),
       className: "centered-cell", // Agrega esta línea para aplicar la clase CSS
     },
@@ -3123,7 +3278,9 @@ function Basic() {
       header: "Precio",
       size: 100,
       Cell: ({ cell }) => (
-        <p className="centered-cell">{Number(cell.row.original.precioPromocion).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}</p>
+        <p className="centered-cell">
+          {Number(cell.row.original.precioPromocion).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}
+        </p>
       ),
       className: "centered-cell", // Agrega esta línea para aplicar la clase CSS
     },
@@ -3133,8 +3290,18 @@ function Basic() {
     { field: "x", headerName: "Seleccion", renderCell: renderButtonProduct, width: 130 },
     { field: "clave_prod", headerName: "Clave prod", width: 130 },
     { field: "descripcion", headerName: "Descripción", width: 250 },
-    { field: "precio_lista", headerName: "Precio", width: 130, renderCell: (params) => <p>{params.row.precio_lista.toFixed(2)}</p> },
-    { field: "tiempox", headerName: "Tiempo", width: 130, renderCell: (params) => <p>{params.row.tiempox + " Min"}</p> },
+    {
+      field: "precio_lista",
+      headerName: "Precio",
+      width: 130,
+      renderCell: (params) => <p>{params.row.precio_lista.toFixed(2)}</p>,
+    },
+    {
+      field: "tiempox",
+      headerName: "Tiempo",
+      width: 130,
+      renderCell: (params) => <p>{params.row.tiempox + " Min"}</p>,
+    },
   ];
   const columnsDataVentasHistoriales = [
     { field: "x", headerName: "Seleccion", renderCell: renderButtonVentaHistorial, width: 130 },
@@ -3210,7 +3377,7 @@ function Basic() {
                 params.row.usr_registro,
                 params.row.act_sucursal,
                 params.row.visualizar,
-                params.row.sucursal
+                params.row.sucursal,
               )
             }
           />
@@ -3237,7 +3404,10 @@ function Basic() {
       width: 90,
       renderCell: (params) => (
         <p className="centered-cell">
-          {Number(params.row.precio * params.row.cant_producto).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}
+          {Number(params.row.precio * params.row.cant_producto).toLocaleString("es-MX", {
+            style: "currency",
+            currency: "MXN",
+          })}
         </p>
       ),
     },
@@ -3309,20 +3479,19 @@ function Basic() {
     cantidad,
     precio,
     fechaCita,
-    skipValidation = false // Nuevo parámetro para omitir validación
+    skipValidation = false, // Nuevo parámetro para omitir validación
   ) => {
     // Guardar el estado actual del flag para usarlo después
     const shouldReload = skipValidation || isUpdatingService;
 
-    
     // Si no se debe omitir la validación, validar contraseña y permisos
     const result = await validarContraseña("MODIFICAR_CITA", "AGENDA");
-  
+
     if (!result.validado) {
-      Swal.fire({ icon: "error", title: "Error", text: "Permiso denegado o contraseña incorrecta" }); 
-      return
+      Swal.fire({ icon: "error", title: "Error", text: "Permiso denegado o contraseña incorrecta" });
+      return;
     }
-    
+
     // Usar el usuario validado
     const usuarioValidado = result.usuario;
     usuario = usuarioValidado; // Actualizar el parámetro usuario con el usuario validado
@@ -3343,17 +3512,17 @@ function Basic() {
           fechaCita: fechaCita ? fechaCita : formCita.fecha,
         },
       });
-      
+
       fetchDetalleCitasServicios();
       setModalEdicionServicios(false);
       getCitasDia();
-      
+
       // Recargar la página si el flag estaba activo al inicio de la función
       if (shouldReload) {
         console.log("Recargando página después de actualizar servicio");
         window.location.reload();
       }
-      
+
       return response;
     } catch (error) {
       console.error("Error al actualizar el servicio:", error);
@@ -3372,11 +3541,11 @@ function Basic() {
     cantidad,
     precio,
     fechaCita,
-    estatusCita
+    estatusCita,
   ) => {
     const result = await validarContraseña("MODIFICAR_CITA", "AGENDA");
     if (!result.validado) return;
-    
+
     // Usar el usuario validado en lugar del parámetro usuario
     const usuarioValidado = result.usuario;
     usuario = usuarioValidado; // Actualizar el parámetro usuario con el usuario validado
@@ -3644,36 +3813,47 @@ function Basic() {
   //   });
   // };
   const postCitasServicios = async (clave, tiempo, precio, idCita, usuarioValidado = null) => {
-    const disponibilidad = await verificarDisponibilidad(tiempo, formCita.fecha, formCita.no_estilista, formCitaServicio.idCita);
+    const disponibilidad = await verificarDisponibilidad(
+      tiempo,
+      formCita.fecha,
+      formCita.no_estilista,
+      formCitaServicio.idCita,
+    );
 
     if (disponibilidad.disponible) {
-        peinadosApi
-          .post(`/sp_detalleCitasServiciosAdd7`, null, {
-            params: {
-              id_Cita: idCita ? idCita : formCitaServicio.idCita,
-              id_servicio: clave,
-              cantidad: formCitaServicio.cantidad ? formCitaServicio.cantidad : 1,
-              tiempo: tiempo,
-              precio: precio,
-              observaciones: formCitasObservaciones2 ? formCitasObservaciones2 : "",
-              usuarioAlta: 0, // Usar el usuario validado si está disponible
-              usuarioCambio: 0,
-              sucursal: idSuc,
-              fecha: new Date(),
-              idCliente: formCita.no_cliente,
-              idEstilista: formCita.no_estilista,
-              fechaCita: formCita.fecha,
-              esDomicilio: formCita.esServicioDomicilio == false ? 0 : 1,
-              estatusCita: formCita.estatusAsignado ? 3 : formCita.estatusRequerido ? 2 : formCita.estatusCita == 100 ? 100 : 1,
-            },
-          })
-          .then((response) => {
-            setTimeout(() => {
-              fetchDetalleCitasServicios();
-              if (event?.verificacion == true) putCitasServiciosTerminadoFunction(usuarioValidado || idUser);
-            }, 1000);
-          });
-      }
+      peinadosApi
+        .post(`/sp_detalleCitasServiciosAdd7`, null, {
+          params: {
+            id_Cita: idCita ? idCita : formCitaServicio.idCita,
+            id_servicio: clave,
+            cantidad: formCitaServicio.cantidad ? formCitaServicio.cantidad : 1,
+            tiempo: tiempo,
+            precio: precio,
+            observaciones: formCitasObservaciones2 ? formCitasObservaciones2 : "",
+            usuarioAlta: 0, // Usar el usuario validado si está disponible
+            usuarioCambio: 0,
+            sucursal: idSuc,
+            fecha: new Date(),
+            idCliente: formCita.no_cliente,
+            idEstilista: formCita.no_estilista,
+            fechaCita: formCita.fecha,
+            esDomicilio: formCita.esServicioDomicilio == false ? 0 : 1,
+            estatusCita: formCita.estatusAsignado
+              ? 3
+              : formCita.estatusRequerido
+              ? 2
+              : formCita.estatusCita == 100
+              ? 100
+              : 1,
+          },
+        })
+        .then((response) => {
+          setTimeout(() => {
+            fetchDetalleCitasServicios();
+            if (event?.verificacion == true) putCitasServiciosTerminadoFunction(usuarioValidado || idUser);
+          }, 1000);
+        });
+    }
   };
   const handleChangeFecha = (type, value) => {
     let newDateTime;
@@ -3720,7 +3900,9 @@ function Basic() {
         newDateTime = new Date(`${value.toDateString()} ${time}`);
       }
     } else {
-      newDateTime = formCitaServioActualizacion?.hora_cita ? new Date(formCitaServioActualizacion?.hora_cita) : new Date();
+      newDateTime = formCitaServioActualizacion?.hora_cita
+        ? new Date(formCitaServioActualizacion?.hora_cita)
+        : new Date();
       newDateTime.setHours(value.getHours());
       newDateTime.setMinutes(value.getMinutes());
     }
@@ -3768,7 +3950,7 @@ function Basic() {
   const updateCita = async () => {
     const result = await validarContraseña("MODIFICAR_CITA", "AGENDA");
     if (!result.validado) return;
-    
+
     // Usar el usuario validado
     const usuarioValidado = result.usuario;
     let fechaActual = new Date(event?.fecha);
@@ -3776,8 +3958,8 @@ function Basic() {
     let mes = fechaActual.getMonth(); // Nota: getMonth() devuelve un valor de 0 a 11, donde 0 es enero y 11 es diciembre
     let día = fechaActual.getDate();
     let fechaSinHora = new Date(año, mes, día);
-    console.log((event?.hora1))
-   
+    console.log(event?.hora1);
+
     peinadosApi
       .put("/DetalleCitasReducido", null, {
         params: {
@@ -3809,10 +3991,10 @@ function Basic() {
       });
   };
 
-    async function verificarDisponibilidad(tiempo, fecha, estilista, idCita) {
+  async function verificarDisponibilidad(tiempo, fecha, estilista, idCita) {
     const res = await fetchCitaEmpalme5(tiempo, new Date(fecha), estilista, idCita);
     const resHorario = await fetchHorarioDisponibleEstilistas(new Date(fecha), estilista, tiempo);
-    let observacion = '';
+    let observacion = "";
 
     if (res && res.data[0].id > 0) {
       const isConfirmed = await Swal.fire({
@@ -3845,7 +4027,7 @@ function Basic() {
       claveEmpleado === "Esta sucursal tiene restricciones en esta fecha"
     ) {
       if (claveEmpleado === "Esta sucursal tiene restricciones en esta fecha") {
-        observacion = 'RESTRICCION';
+        observacion = "RESTRICCION";
       }
       const isConfirmed2 = await Swal.fire({
         icon: "error",
@@ -3865,7 +4047,10 @@ function Basic() {
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: `El estilista no tiene horario disponible desde temprano, no se podria poner a las: ${format(fecha, "HH:mm")}`,
+        text: `El estilista no tiene horario disponible desde temprano, no se podria poner a las: ${format(
+          fecha,
+          "HH:mm",
+        )}`,
         confirmButtonColor: "#3085d6",
       });
       return { disponible: false };
@@ -3903,9 +4088,9 @@ function Basic() {
     try {
       // Handle both ISO strings and simple date strings like "2000-09-23"
       let fecha;
-      if (typeof fechaCompleta1 === 'string') {
+      if (typeof fechaCompleta1 === "string") {
         // If it's a simple date string without time (like "2000-09-23")
-        if (fechaCompleta1.length === 10 && fechaCompleta1.includes('-')) {
+        if (fechaCompleta1.length === 10 && fechaCompleta1.includes("-")) {
           fecha = new Date(fechaCompleta1);
         } else {
           // Otherwise use parseISO for ISO format strings
@@ -3914,7 +4099,7 @@ function Basic() {
       } else if (fechaCompleta1 instanceof Date) {
         fecha = fechaCompleta1;
       }
-      
+
       if (isValid(fecha)) {
         return format(fecha, "dd/MM");
       }
@@ -3972,7 +4157,7 @@ function Basic() {
         ),
       },
     ],
-    []
+    [],
   );
   const columnsPromo = useMemo(
     () => [
@@ -4030,7 +4215,7 @@ function Basic() {
       //   ),
       // },
     ],
-    [dataPromocionesZonas]
+    [dataPromocionesZonas],
   );
   const columnsPrepagos = useMemo(
     () => [
@@ -4060,7 +4245,7 @@ function Basic() {
         size: 100,
       },
     ],
-    []
+    [],
   );
 
   const columnsPromoDias = useMemo(
@@ -4150,7 +4335,7 @@ function Basic() {
         },
       },
     ],
-    []
+    [],
   );
   const putVentaAgenda = async (idVenta, horaInicio, horafinal, estilista, tiempo) => {
     peinadosApi
@@ -4199,11 +4384,16 @@ function Basic() {
         </div>
       </div>
 
-      <div style={{ flex: 1, justifyContent: "right", alignContent: "right", alignItems: "right", display: "flex" }}></div>
+      <div
+        style={{ flex: 1, justifyContent: "right", alignContent: "right", alignItems: "right", display: "flex" }}
+      ></div>
 
       <div className="container">
         <div className="nBarra">
-          <div className="botones-barra" style={{ justifyContent: "space-between", alignItems: "center", display: "flex", paddingTop: 10 }}>
+          <div
+            className="botones-barra"
+            style={{ justifyContent: "space-between", alignItems: "center", display: "flex", paddingTop: 10 }}
+          >
             <ButtonGroup variant="contained" aria-label="outlined primary button group">
               <Button size="sm" href="http://217.216.95.62:9020/Ventas" color="success">
                 <FaMoneyBillAlt size={20}></FaMoneyBillAlt>
@@ -4251,7 +4441,7 @@ function Basic() {
               <Button
                 size="sm"
                 color={"primary"}
-                className={dataListaEspera && dataListaEspera.length > 0 ? 'blinking-button' : ''}
+                className={dataListaEspera && dataListaEspera.length > 0 ? "blinking-button" : ""}
                 onClick={() => {
                   setIsModalActualizarOpen(true);
                   // setIsModalOpen(true);
@@ -4259,7 +4449,7 @@ function Basic() {
                 }}
               >
                 <IoListCircle size={20}></IoListCircle>
-                Lista de espera {dataListaEspera && dataListaEspera.length > 0 ? `(${dataListaEspera.length})` : ''}
+                Lista de espera {dataListaEspera && dataListaEspera.length > 0 ? `(${dataListaEspera.length})` : ""}
               </Button>
               <Button
                 size="sm"
@@ -4310,7 +4500,14 @@ function Basic() {
       </div>
       <div className="cardEstatus">
         <div
-          style={{ marginBottom: "10px", marginTop: "2%", display: "flex", justifyItems: "center", alignItems: "center", flexDirection: "column" }}
+          style={{
+            marginBottom: "10px",
+            marginTop: "2%",
+            display: "flex",
+            justifyItems: "center",
+            alignItems: "center",
+            flexDirection: "column",
+          }}
         >
           <div style={statusBoxStyle}>
             <div style={boxStyles.noDisponible}>NO DISPONIBLE</div>
@@ -4332,7 +4529,6 @@ function Basic() {
             <Button
               color="danger"
               disabled={event.idCita == 0}
-
               style={{ marginBottom: "10px" }}
               onClick={async () => {
                 if (event.hora1 < new Date()) {
@@ -4343,13 +4539,26 @@ function Basic() {
                   });
                   return;
                 }
-                
+
                 // Ya no necesitamos cambiar el estado, usamos el parámetro directamente
-                console.log('Cancelando cita con skipValidation=true');
-                
+                console.log("Cancelando cita con skipValidation=true");
+
                 try {
                   // Pasamos true como último parámetro para omitir la validación
-                  await putDetalleCitasServiciosUpd4(0, event.sucursal, event.idCita, 0, event.no_estilista, 0, 0, idUser, 0, 0, new Date(), true);
+                  await putDetalleCitasServiciosUpd4(
+                    0,
+                    event.sucursal,
+                    event.idCita,
+                    0,
+                    event.no_estilista,
+                    0,
+                    0,
+                    idUser,
+                    0,
+                    0,
+                    new Date(),
+                    true,
+                  );
                 } finally {
                   setIsModalOpen(false);
                 }
@@ -4357,15 +4566,13 @@ function Basic() {
             >
               Cancelar cita
             </Button>
-            <Button               disabled={event.idCita == 0}
-                onClick={() => setIsModalOpen(false)} style={{ marginBottom: "10px" }}>
+            <Button disabled={event.idCita == 0} onClick={() => setIsModalOpen(false)} style={{ marginBottom: "10px" }}>
               Liberar servicio
             </Button>
             <Button
               color="success"
               disabled={event.idCita == 0}
               onClick={() => {
-             
                 setFormCitaServicio({
                   ...formCitaServicio,
                   idCita: event.idCita,
@@ -4389,7 +4596,6 @@ function Basic() {
             <Button
               color="primary"
               disabled={event.idCita == 0}
-
               onClick={() => {
                 setIsModalOpen(false);
                 handleOpenNewWindowEdit({
@@ -4480,7 +4686,13 @@ function Basic() {
                   <Label className="label-fixed-width" style={{ fontSize: "1.2rem" }}>
                     Tipo de cita:{" "}
                   </Label>
-                  <Input style={{ fontSize: "1.2rem" }} type="select" size={"sm"} value={tipoCita} onChange={(e) => setTipoCita(e.target.value)}>
+                  <Input
+                    style={{ fontSize: "1.2rem" }}
+                    type="select"
+                    size={"sm"}
+                    value={tipoCita}
+                    onChange={(e) => setTipoCita(e.target.value)}
+                  >
                     <option value={"%"}>Todos</option>
                     <option value={"1"}>Cita</option>
                     <option value={"2"}>Servicio</option>
@@ -4508,7 +4720,11 @@ function Basic() {
                       style={{ fontSize: "1.2rem" }}
                       onChange={(v) => setDatosParametros({ ...datosParametros, fecha1: v.target.value })}
                       size={"sm"}
-                      value={datosParametros.fecha1 instanceof Date ? format(datosParametros.fecha1, "yyyy-MM-dd") : datosParametros.fecha1}
+                      value={
+                        datosParametros.fecha1 instanceof Date
+                          ? format(datosParametros.fecha1, "yyyy-MM-dd")
+                          : datosParametros.fecha1
+                      }
                       type="date"
                     ></Input>
                   </InputGroup>
@@ -4520,7 +4736,11 @@ function Basic() {
                       style={{ fontSize: "1.2rem" }}
                       onChange={(v) => setDatosParametros({ ...datosParametros, fecha2: v.target.value })}
                       size={"sm"}
-                      value={datosParametros.fecha2 instanceof Date ? format(datosParametros.fecha2, "yyyy-MM-dd") : datosParametros.fecha2}
+                      value={
+                        datosParametros.fecha2 instanceof Date
+                          ? format(datosParametros.fecha2, "yyyy-MM-dd")
+                          : datosParametros.fecha2
+                      }
                       type="date"
                     ></Input>
                   </InputGroup>
@@ -4580,7 +4800,13 @@ function Basic() {
         </Modal>
       </Draggable>
 
-      <Modal open={modalServicioUso} onClose={() => setModalServicioUso(false)} disableAutoFocus disableRestoreFocus disableEnforceFocus>
+      <Modal
+        open={modalServicioUso}
+        onClose={() => setModalServicioUso(false)}
+        disableAutoFocus
+        disableRestoreFocus
+        disableEnforceFocus
+      >
         <Box sx={styleAltaServicio}>
           <h3>Alta de servicio</h3>
 
@@ -4614,7 +4840,9 @@ function Basic() {
                   style={{ fontSize: "1.2rem" }}
                   bsSize="sm"
                   disabled
-                  value={event?.no_cliente ? dataClientes.find((cliente) => cliente.id == event?.no_cliente)?.nombre : ""}
+                  value={
+                    event?.no_cliente ? dataClientes.find((cliente) => cliente.id == event?.no_cliente)?.nombre : ""
+                  }
                   type="text"
                   name="cliente"
                   id="cliente"
@@ -4637,7 +4865,10 @@ function Basic() {
                     disabled
                     value={
                       dataCitasServicios.length > 0
-                        ? dataCitasServicios.reduce((acc, service) => acc + Number(service.tiempo) * Number(service.cantidad), 0)
+                        ? dataCitasServicios.reduce(
+                            (acc, service) => acc + Number(service.tiempo) * Number(service.cantidad),
+                            0,
+                          )
                         : ""
                     }
                   ></Input>
@@ -4709,7 +4940,7 @@ function Basic() {
           </Container>
           <br />
           <Button color="primary" onClick={() => setProductosModal(true)}>
-             Ingresar servicios
+            Ingresar servicios
           </Button>
           <ThemeProvider theme={theme}>
             <DataGrid autoHeight rows={dataCitasServicios} columns={columnsCitasServiciosAltaServicio}></DataGrid>
@@ -4728,14 +4959,15 @@ function Basic() {
                   let hora1 = diferenciaEnMinutos > 5 || diferenciaEnMinutos < -5 ? event.hora1 : new Date();
                   verificarDisponibilidad(
                     dataCitasServicios.length > 0
-                      ? dataCitasServicios.reduce((acc, service) => acc + Number(service.tiempo) * Number(service.cantidad), 0)
+                      ? dataCitasServicios.reduce(
+                          (acc, service) => acc + Number(service.tiempo) * Number(service.cantidad),
+                          0,
+                        )
                       : "",
                     hora1,
                     event?.no_estilista,
-                    formCitaServicio.idCita
+                    formCitaServicio.idCita,
                   ).then((isVerified) => {
-                 
-                    
                     if (isVerified) {
                       updateCita();
                     } else {
@@ -4840,52 +5072,59 @@ function Basic() {
         </Box>
       </Modal>
 
-      <Modal open={ModalClientesPuntos} onClose={() => {
-        setFormCitaServicio({
-          ...formCitaServicio,
-          idCita: null,
-          estatusAsignado: false,
-          estatusRequerido: false,
-        });
-        setFormCita({
-          ...formCita,
-          cia: null,
-          sucursal: idSuc,
-          no_estilista: 0,
-        });
+      <Modal
+        open={ModalClientesPuntos}
+        onClose={() => {
+          setFormCitaServicio({
+            ...formCitaServicio,
+            idCita: null,
+            estatusAsignado: false,
+            estatusRequerido: false,
+          });
+          setFormCita({
+            ...formCita,
+            cia: null,
+            sucursal: idSuc,
+            no_estilista: 0,
+          });
 
-        setFormCitaDescripciones({
-          ...formCitaDescripciones,
-          descripcion_no_cancelacion: "",
-          descripcion_no_estilista: "",
-        });
-        setDataPuntosporCliente([]);
-        setdataCitasServicios([]);
-        setModalClientesPuntos(false)}}>
+          setFormCitaDescripciones({
+            ...formCitaDescripciones,
+            descripcion_no_cancelacion: "",
+            descripcion_no_estilista: "",
+          });
+          setDataPuntosporCliente([]);
+          setdataCitasServicios([]);
+          setModalClientesPuntos(false);
+        }}
+      >
         <Box sx={style}>
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <AiOutlineClose onClick={() => {
-              setFormCitaServicio({
-                ...formCitaServicio,
-                idCita: null,
-                estatusAsignado: false,
-                estatusRequerido: false,
-              });
-              setFormCita({
-                ...formCita,
-                cia: null,
-                sucursal: idSuc,
-                no_estilista: 0,
-              });
+            <AiOutlineClose
+              onClick={() => {
+                setFormCitaServicio({
+                  ...formCitaServicio,
+                  idCita: null,
+                  estatusAsignado: false,
+                  estatusRequerido: false,
+                });
+                setFormCita({
+                  ...formCita,
+                  cia: null,
+                  sucursal: idSuc,
+                  no_estilista: 0,
+                });
 
-              setFormCitaDescripciones({
-                ...formCitaDescripciones,
-                descripcion_no_cancelacion: "",
-                descripcion_no_estilista: "",
-              });
-              setDataPuntosporCliente([]);
-              setdataCitasServicios([]);
-              setModalClientesPuntos(false)}} />
+                setFormCitaDescripciones({
+                  ...formCitaDescripciones,
+                  descripcion_no_cancelacion: "",
+                  descripcion_no_estilista: "",
+                });
+                setDataPuntosporCliente([]);
+                setdataCitasServicios([]);
+                setModalClientesPuntos(false);
+              }}
+            />
           </div>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
             <Typography variant="h4">Historial de puntos</Typography>
@@ -4910,8 +5149,13 @@ function Basic() {
           <Input style={{ marginBottom: "10px" }} disabled value={formCitaDescripciones.descripcion_no_cliente}></Input>
           <div style={{ display: "flex", justifyContent: "space-evenly" }}>
             <Label>Suc: {formPuntosObservaciones.sucursal ? formPuntosObservaciones.sucursal : ""}</Label>
-            <Label>Fecha: {formPuntosObservaciones.fecha ? format(new Date(formPuntosObservaciones.fecha), "dd/MM/yyyy HH:mm") : ""} </Label>
-            <Label>Hora: {formPuntosObservaciones.fecha ? format(new Date(formPuntosObservaciones.fecha), "HH:mm") : ""}</Label>
+            <Label>
+              Fecha:{" "}
+              {formPuntosObservaciones.fecha ? format(new Date(formPuntosObservaciones.fecha), "dd/MM/yyyy HH:mm") : ""}{" "}
+            </Label>
+            <Label>
+              Hora: {formPuntosObservaciones.fecha ? format(new Date(formPuntosObservaciones.fecha), "HH:mm") : ""}
+            </Label>
           </div>
           <ThemeProvider theme={theme}>
             <DataGrid autoHeight rows={dataOperaciones} columns={columnsConultaPuntos} />
@@ -5100,7 +5344,9 @@ function Basic() {
                 <Input
                   disabled
                   placeholder="nombreCliente"
-                  value={formCitaDescripciones.descripcion_no_cliente ? formCitaDescripciones.descripcion_no_cliente : ""}
+                  value={
+                    formCitaDescripciones.descripcion_no_cliente ? formCitaDescripciones.descripcion_no_cliente : ""
+                  }
                 ></Input>
               </FormGroup>
             </Col>
@@ -5110,7 +5356,11 @@ function Basic() {
               <Label>Sucursal:</Label>
             </Col>
             <Col md={3}>
-              <Input disabled value={DataVentasOperaciones.length > 0 ? DataVentasOperaciones[0]?.d_sucursal : ""} placeholder="Sucursal"></Input>
+              <Input
+                disabled
+                value={DataVentasOperaciones.length > 0 ? DataVentasOperaciones[0]?.d_sucursal : ""}
+                placeholder="Sucursal"
+              ></Input>
             </Col>
             <Col md={1}>
               <Label>Fecha:</Label>
@@ -5118,7 +5368,10 @@ function Basic() {
             <Col md={3}>
               <Input
                 disabled
-                value={format(formVentaOperaciones.fecha ? new Date(formVentaOperaciones.fecha) : new Date(), "yyyy-MM-dd HH:mm")}
+                value={format(
+                  formVentaOperaciones.fecha ? new Date(formVentaOperaciones.fecha) : new Date(),
+                  "yyyy-MM-dd HH:mm",
+                )}
                 placeholder="Fecha"
               ></Input>
             </Col>
@@ -5132,7 +5385,11 @@ function Basic() {
           <div style={{ display: "flex", justifyContent: "jusify-between" }}>
             <h5>Operaciones</h5>
             <h5>
-              Total de la venta: {DataVentasOperaciones.reduce((acc, service) => acc + Number(service.precio) * Number(service.cant_producto), 0)}
+              Total de la venta:{" "}
+              {DataVentasOperaciones.reduce(
+                (acc, service) => acc + Number(service.precio) * Number(service.cant_producto),
+                0,
+              )}
             </h5>
           </div>
           <ThemeProvider theme={theme}>
@@ -5258,7 +5515,15 @@ function Basic() {
                   Producto
                 </Label>
                 <InputGroup addonType="append">
-                  <Input bsSize="sm" disabled value={formDetalleCitasServicios.d_clave_prod} type="text" name="cliente" id="cliente" size={"small"} />
+                  <Input
+                    bsSize="sm"
+                    disabled
+                    value={formDetalleCitasServicios.d_clave_prod}
+                    type="text"
+                    name="cliente"
+                    id="cliente"
+                    size={"small"}
+                  />
                   <Button size="sm" onClick={() => setProductosModalEdicion(true)}>
                     Buscar
                   </Button>
@@ -5350,7 +5615,11 @@ function Basic() {
                   <TimePicker
                     timeSteps={{ minutes: 15 }}
                     slotProps={{ textField: { size: "small" } }}
-                    value={formDetalleCitasServicios.fecha ? new Date(decodeURIComponent(formDetalleCitasServicios.fecha)) : null}
+                    value={
+                      formDetalleCitasServicios.fecha
+                        ? new Date(decodeURIComponent(formDetalleCitasServicios.fecha))
+                        : null
+                    }
                     // value={formCita.fecha ? new Date(formCita.fecha).toTimeString().substring(0, 5) : null}
                     onChange={(hora) => handleChangeFechaServicio("hora", hora)}
                     sx={{
@@ -5385,7 +5654,9 @@ function Basic() {
                 <Input
                   style={{ fontSize: "1.2rem" }}
                   value={formDetalleCitasServicios.tiempo}
-                  onChange={(e) => setFormDetalleCitasServicios({ ...formDetalleCitasServicios, tiempo: e.target.value })}
+                  onChange={(e) =>
+                    setFormDetalleCitasServicios({ ...formDetalleCitasServicios, tiempo: e.target.value })
+                  }
                 ></Input>
               </FormGroup>
             </Col>
@@ -5406,7 +5677,7 @@ function Basic() {
                       idUser,
                       formDetalleCitasServicios.cantidad,
                       formDetalleCitasServicios.precio,
-                      formDetalleCitasServicios.fecha
+                      formDetalleCitasServicios.fecha,
                     );
                   }}
                 >
@@ -5439,7 +5710,7 @@ function Basic() {
             descripcion_no_estilista: "",
           });
           setdataCitasServicios([]);
-          setModalEdicionServicios2(false)
+          setModalEdicionServicios2(false);
         }}
         disableAutoFocus
         disableEnforceFocus
@@ -5605,7 +5876,11 @@ function Basic() {
                   <TimePicker
                     timeSteps={{ minutes: 15 }}
                     slotProps={{ textField: { size: "small" } }}
-                    value={formDetalleCitasServicios.fecha ? new Date(decodeURIComponent(formDetalleCitasServicios.fecha)) : null}
+                    value={
+                      formDetalleCitasServicios.fecha
+                        ? new Date(decodeURIComponent(formDetalleCitasServicios.fecha))
+                        : null
+                    }
                     // value={formCita.fecha ? new Date(formCita.fecha).toTimeString().substring(0, 5) : null}
                     onChange={(hora) => handleChangeFechaServicio("hora", hora)}
                     sx={{
@@ -5637,10 +5912,17 @@ function Basic() {
             <Col md="3">
               <Label style={{ fontSize: "1.2rem" }}>Estatus Cita</Label>
               <ButtonGroup>
-                <Input style={{ fontSize: "1.2rem" }} disabled value={formDetalleCitasServicios.estatusCita == 2 ? "A" : "R"}></Input>
+                <Input
+                  style={{ fontSize: "1.2rem" }}
+                  disabled
+                  value={formDetalleCitasServicios.estatusCita == 2 ? "A" : "R"}
+                ></Input>
                 <Button
                   onClick={() =>
-                    setFormDetalleCitasServicios({ ...formDetalleCitasServicios, estatusCita: formDetalleCitasServicios.estatusCita == 2 ? 3 : 2 })
+                    setFormDetalleCitasServicios({
+                      ...formDetalleCitasServicios,
+                      estatusCita: formDetalleCitasServicios.estatusCita == 2 ? 3 : 2,
+                    })
                   }
                 >
                   Editar
@@ -5666,7 +5948,7 @@ function Basic() {
                         formDetalleCitasServicios.cantidad,
                         formDetalleCitasServicios.precio,
                         formDetalleCitasServicios.fecha,
-                        formDetalleCitasServicios.estatusCita
+                        formDetalleCitasServicios.estatusCita,
                       );
                     }}
                   >
@@ -5693,7 +5975,12 @@ function Basic() {
                   name="atiende"
                   id="atiende"
                   value={formDetalleCitasServicios.idEstilista}
-                  onChange={(e) => setFormDetalleCitasServicios({ ...formDetalleCitasServicios, idEstilista: parseInt(e.target.value) })}
+                  onChange={(e) =>
+                    setFormDetalleCitasServicios({
+                      ...formDetalleCitasServicios,
+                      idEstilista: parseInt(e.target.value),
+                    })
+                  }
                   style={{ marginBottom: "10px", fontSize: "1.2rem" }}
                 >
                   <option value="0">Seleccione</option>
@@ -5713,7 +6000,11 @@ function Basic() {
                       const fechaInicio = new Date(formDetalleCitasServicios.fecha);
                       const minutos = parseInt(v.target.value);
                       const fechaFinal = new Date(fechaInicio.getTime() + minutos * 60000);
-                      setFormDetalleCitasServicios({ ...formDetalleCitasServicios, tiempo: v.target.value, fechaFinal });
+                      setFormDetalleCitasServicios({
+                        ...formDetalleCitasServicios,
+                        tiempo: v.target.value,
+                        fechaFinal,
+                      });
                     }}
                   ></Input>
                 </FormGroup>
@@ -5730,7 +6021,11 @@ function Basic() {
                     <TimePicker
                       timeSteps={15}
                       slotProps={{ textField: { size: "small" } }}
-                      value={formDetalleCitasServicios.fecha ? new Date(decodeURIComponent(formDetalleCitasServicios.fecha)) : null}
+                      value={
+                        formDetalleCitasServicios.fecha
+                          ? new Date(decodeURIComponent(formDetalleCitasServicios.fecha))
+                          : null
+                      }
                       onChange={(hora) => handleChangeFechaServicio("hora", hora)}
                       sx={{
                         "& .MuiPickersDay-dayWithMargin": {
@@ -5763,7 +6058,11 @@ function Basic() {
                       disabled
                       timeSteps={15}
                       slotProps={{ textField: { size: "small" } }}
-                      value={formDetalleCitasServicios.fechaFinal ? new Date(decodeURIComponent(formDetalleCitasServicios.fechaFinal)) : null}
+                      value={
+                        formDetalleCitasServicios.fechaFinal
+                          ? new Date(decodeURIComponent(formDetalleCitasServicios.fechaFinal))
+                          : null
+                      }
                       onChange={(hora) => handleChangeFechaFinalServicio("hora", hora)}
                       sx={{
                         "& .MuiPickersDay-dayWithMargin": {
@@ -5796,7 +6095,7 @@ function Basic() {
                     formDetalleCitasServicios.fecha,
                     formDetalleCitasServicios.fechaFinal,
                     formDetalleCitasServicios.idEstilista,
-                    formDetalleCitasServicios.tiempo
+                    formDetalleCitasServicios.tiempo,
                   );
                 }}
               >
@@ -5807,7 +6106,12 @@ function Basic() {
         </Modal>
       </Draggable>
 
-      <Modal open={ModalCitaEditEstilista} onClose={() => setModalCitaEditEstilista(false)} size={"sm"} disableEnforceFocus>
+      <Modal
+        open={ModalCitaEditEstilista}
+        onClose={() => setModalCitaEditEstilista(false)}
+        size={"sm"}
+        disableEnforceFocus
+      >
         <Box sx={styleCantidad}>
           {colummEdit == "d_stilista" ? (
             <>
@@ -5820,7 +6124,9 @@ function Basic() {
                 name="atiende"
                 id="atiende"
                 value={formCitaServioActualizacion?.idEstilista}
-                onChange={(e) => setFormCitaServioActualizacion({ ...formCitaServioActualizacion, idEstilista: e.target.value })}
+                onChange={(e) =>
+                  setFormCitaServioActualizacion({ ...formCitaServioActualizacion, idEstilista: e.target.value })
+                }
                 style={{ fontSize: "1.2rem" }}
               >
                 <option value="0">Seleccione un estilista</option>
@@ -5835,7 +6141,11 @@ function Basic() {
 
           {colummEdit == "stao_estilista" ? (
             <>
-              <Input disabled style={{ fontSize: "1.2rem" }} value={formCitaServioActualizacion?.estatusCita == 2 ? "Requerido" : "Asignado"}></Input>
+              <Input
+                disabled
+                style={{ fontSize: "1.2rem" }}
+                value={formCitaServioActualizacion?.estatusCita == 2 ? "Requerido" : "Asignado"}
+              ></Input>
               <Button
                 color="info"
                 onClick={() =>
@@ -5855,7 +6165,11 @@ function Basic() {
               <TimePicker
                 timeSteps={{ minutes: 15 }}
                 slotProps={{ textField: { size: "small" } }}
-                value={formCitaServioActualizacion?.hora_cita ? new Date(decodeURIComponent(formCitaServioActualizacion?.hora_cita)) : null}
+                value={
+                  formCitaServioActualizacion?.hora_cita
+                    ? new Date(decodeURIComponent(formCitaServioActualizacion?.hora_cita))
+                    : null
+                }
                 // value={formCitaServioActualizacion?.hora_cita ? new Date(formCita.fecha).toTimeString().substring(0, 5) : null}
                 onChange={(hora) => handleChangeFechaEdicionServicio("hora", hora)}
                 sx={{
@@ -5890,7 +6204,10 @@ function Basic() {
                 <Label style={{ marginRight: "4px", fontSize: "1.2rem" }}>Producto</Label>
               </Col>
               <Col>
-                <Input style={{ fontSize: "1.2rem", marginBottom: "4px" }} value={formCitaServioActualizacion?.descripcion}></Input>
+                <Input
+                  style={{ fontSize: "1.2rem", marginBottom: "4px" }}
+                  value={formCitaServioActualizacion?.descripcion}
+                ></Input>
               </Col>
               <Col>
                 <Button onClick={() => setProductosModalEdicionServicios(true)}>Cambio</Button>
@@ -5902,7 +6219,9 @@ function Basic() {
                 <Input
                   style={{ fontSize: "1.2rem" }}
                   value={formCitaServioActualizacion?.tiempo}
-                  onChange={(e) => setFormCitaServioActualizacion({ ...formCitaServioActualizacion, tiempo: e.target.value })}
+                  onChange={(e) =>
+                    setFormCitaServioActualizacion({ ...formCitaServioActualizacion, tiempo: e.target.value })
+                  }
                 ></Input>
               </Col>
             </>
@@ -5913,7 +6232,9 @@ function Basic() {
               <Input
                 style={{ fontSize: "1.2rem" }}
                 value={formCitaServioActualizacion?.tiempo}
-                onChange={(e) => setFormCitaServioActualizacion({ ...formCitaServioActualizacion, tiempo: e.target.value })}
+                onChange={(e) =>
+                  setFormCitaServioActualizacion({ ...formCitaServioActualizacion, tiempo: e.target.value })
+                }
               ></Input>
             </>
           ) : null}
@@ -5939,7 +6260,7 @@ function Basic() {
                   formCitaServioActualizacion.cantidad,
                   formCitaServioActualizacion.importe / formCitaServioActualizacion.cantidad,
                   formCitaServioActualizacion.hora_cita,
-                  formCitaServioActualizacion.estatusCita
+                  formCitaServioActualizacion.estatusCita,
                 );
               }}
             >
@@ -5961,7 +6282,9 @@ function Basic() {
                 name="atiende"
                 id="atiende"
                 value={formCitaServioActualizacion?.idEstilista}
-                onChange={(e) => setFormCitaServioActualizacion({ ...formCitaServioActualizacion, idEstilista: e.target.value })}
+                onChange={(e) =>
+                  setFormCitaServioActualizacion({ ...formCitaServioActualizacion, idEstilista: e.target.value })
+                }
                 style={{ fontSize: "0.8rem" }}
               >
                 <option value="0">Seleccione un estilista</option>
@@ -5997,7 +6320,11 @@ function Basic() {
                 <TimePicker
                   timeSteps={{ minutes: 15 }}
                   slotProps={{ textField: { size: "small" } }}
-                  value={formCitaServioActualizacion?.hora_cita ? new Date(decodeURIComponent(formCitaServioActualizacion?.hora_cita)) : null}
+                  value={
+                    formCitaServioActualizacion?.hora_cita
+                      ? new Date(decodeURIComponent(formCitaServioActualizacion?.hora_cita))
+                      : null
+                  }
                   // value={formCitaServioActualizacion?.hora_cita ? new Date(formCita.fecha).toTimeString().substring(0, 5) : null}
                   onChange={(hora) => handleChangeFechaEdicionServicio("hora", hora)}
                   sx={{
@@ -6034,7 +6361,11 @@ function Basic() {
                 <TimePicker
                   timeSteps={{ minutes: 15 }}
                   slotProps={{ textField: { size: "small" } }}
-                  value={formCitaServioActualizacion?.horafinal ? new Date(decodeURIComponent(formCitaServioActualizacion?.horafinal)) : null}
+                  value={
+                    formCitaServioActualizacion?.horafinal
+                      ? new Date(decodeURIComponent(formCitaServioActualizacion?.horafinal))
+                      : null
+                  }
                   // value={formCitaServioActualizacion?.hora_cita ? new Date(formCita.fecha).toTimeString().substring(0, 5) : null}
                   onChange={(hora) => handleChangeFechaEdicionServicio("hora", hora)}
                   sx={{
@@ -6071,7 +6402,9 @@ function Basic() {
               <Label>Tiempo Venta</Label>
               <Input
                 value={formCitaServioActualizacion?.tiempo}
-                onChange={(e) => setFormCitaServioActualizacion({ ...formCitaServioActualizacion, tiempo: e.target.value })}
+                onChange={(e) =>
+                  setFormCitaServioActualizacion({ ...formCitaServioActualizacion, tiempo: e.target.value })
+                }
               ></Input>
             </>
           ) : null}
@@ -6080,7 +6413,9 @@ function Basic() {
               <Label>Tiempo Venta</Label>
               <Input
                 value={formCitaServioActualizacion?.tiempo}
-                onChange={(e) => setFormCitaServioActualizacion({ ...formCitaServioActualizacion, tiempo: e.target.value })}
+                onChange={(e) =>
+                  setFormCitaServioActualizacion({ ...formCitaServioActualizacion, tiempo: e.target.value })
+                }
               ></Input>
             </>
           ) : null}
@@ -6095,7 +6430,7 @@ function Basic() {
                   formCitaServioActualizacion.hora_cita,
                   formCitaServioActualizacion.horafinal,
                   formCitaServioActualizacion.idEstilista,
-                  formCitaServioActualizacion.tiempo
+                  formCitaServioActualizacion.tiempo,
                 );
               }}
             >
@@ -6105,7 +6440,13 @@ function Basic() {
         </Box>
       </Modal>
 
-      <Modal open={ModalCantidad} onClose={() => setModalCantidad(false)} size={"sm"} disableAutoFocus disableEnforceFocus>
+      <Modal
+        open={ModalCantidad}
+        onClose={() => setModalCantidad(false)}
+        size={"sm"}
+        disableAutoFocus
+        disableEnforceFocus
+      >
         <Box sx={{ ...styleCantidad, backgroundColor: "white" }}>
           <Typography variant="h5">Agregue la cantidad</Typography>
           <Input
@@ -6234,12 +6575,19 @@ function Basic() {
           </div>
         </Box>
       </Modal>
-      <Modal open={modalPromocionesFechas} onClose={() => setModalPromocionesFechas(false)} disableAutoFocus disableEnforceFocus>
+      <Modal
+        open={modalPromocionesFechas}
+        onClose={() => setModalPromocionesFechas(false)}
+        disableAutoFocus
+        disableEnforceFocus
+      >
         <Box sx={{ ...styleAltaServicio }}>
           <h3>Fechas de la promoción: </h3>
           <MaterialReactTable
             columns={columnsPromoDias}
-            data={dataPromocionesZonas.length > 0 ? dataPromocionesZonas.filter((item) => item.id == formPromocion.id) : []}
+            data={
+              dataPromocionesZonas.length > 0 ? dataPromocionesZonas.filter((item) => item.id == formPromocion.id) : []
+            }
             initialState={{ density: "compact" }}
             muiTableBodyProps={{ sx: { fontSize: "16px" } }}
             muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
@@ -6257,7 +6605,12 @@ function Basic() {
           </div>
         </Box>
       </Modal>
-      <Modal open={modalPromocionesGrupos} onClose={() => setModalPromocionesGrupos(false)} disableAutoFocus disableEnforceFocus>
+      <Modal
+        open={modalPromocionesGrupos}
+        onClose={() => setModalPromocionesGrupos(false)}
+        disableAutoFocus
+        disableEnforceFocus
+      >
         <Box sx={{ ...styleAltaServicio }}>
           <h3>Promociones Grupos</h3>
           <Table>
@@ -6282,7 +6635,21 @@ function Basic() {
                       disabled={dato.d_producto != "Todos"}
                       onClick={() => {
                         setDataProductosAreaDeptoSub([]);
-                        fetchProductosAreaDeptoSub(0, 0, 1, "1", "%", "%", 2, 2, 2, 0, dato.idArea, dato.idDepto, dato.idSubdepto);
+                        fetchProductosAreaDeptoSub(
+                          0,
+                          0,
+                          1,
+                          "1",
+                          "%",
+                          "%",
+                          2,
+                          2,
+                          2,
+                          0,
+                          dato.idArea,
+                          dato.idDepto,
+                          dato.idSubdepto,
+                        );
                         setproductosModalGrupos(true);
                       }}
                     >
@@ -6313,7 +6680,6 @@ function Basic() {
           <MaterialReactTable
             columns={columnsCumple}
             data={dataCumpleañosProximos.filter((cliente) => formatFecha(cliente.cumpleaños) !== "Fecha inválida")}
-
             enableRowSelection={false}
             enableRowExport={false}
             muiTableBodyProps={{ sx: { fontSize: "16px" } }}
@@ -6351,7 +6717,7 @@ function Basic() {
           open={ModalCrear}
           style={{ maxWidth: "48%", maxHeight: "95%", overflow: "auto" }}
           onClose={() => {
-            setModalCrear(false)
+            setModalCrear(false);
             setFormCitaServicio({
               ...formCitaServicio,
               idCita: null,
@@ -6373,15 +6739,14 @@ function Basic() {
             });
             setFormCitasObservaciones2("");
             setdataCitasServicios([]);
-          setModalEdicionServicios2(false)
-
+            setModalEdicionServicios2(false);
           }}
           disableEnforceFocus
         >
           <Box sx={styleCrearCita}>
             <div
               onClick={() => {
-                setModalCrear(false)
+                setModalCrear(false);
                 setFormCitaServicio({
                   ...formCitaServicio,
                   idCita: null,
@@ -6403,8 +6768,7 @@ function Basic() {
                 });
                 setFormCitasObservaciones2("");
                 setdataCitasServicios([]);
-          setModalEdicionServicios2(false)
-
+                setModalEdicionServicios2(false);
               }}
               style={{
                 cursor: "pointer",
@@ -6426,7 +6790,15 @@ function Basic() {
             >
               X
             </div>
-            <div style={{ flex: 1, justifyContent: "space-between", alignContent: "right", alignItems: "right", display: "flex" }}>
+            <div
+              style={{
+                flex: 1,
+                justifyContent: "space-between",
+                alignContent: "right",
+                alignItems: "right",
+                display: "flex",
+              }}
+            >
               <h1>Creación de cita</h1>
               <div>
                 <Button
@@ -6493,7 +6865,6 @@ function Basic() {
                       // }}
                       onChange={handleChangeObservaciones}
                       type="text"
-
                       value={formCitasObservaciones2}
                       style={{ fontSize: "1.1rem" }}
                     />
@@ -6614,7 +6985,11 @@ function Basic() {
                 </Col>
                 <Col xs="6">
                   <FormGroup style={{ display: "flex", alignItems: "center", marginBottom: "0px" }}>
-                    <Label onClick={() => console.log(datosParametros.fecha)} for="cliente" style={{ width: 55, fontSize: "1.1rem" }}>
+                    <Label
+                      onClick={() => console.log(datosParametros.fecha)}
+                      for="cliente"
+                      style={{ width: 55, fontSize: "1.1rem" }}
+                    >
                       Hora:
                     </Label>
                     <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -6713,24 +7088,32 @@ function Basic() {
                 variant="contained"
               >
                 {formCitaServicio.idCita > 0 ? "Modificar cita" : "Ingresar servicios..."}
-                
               </Button>
               <hr />
               <ThemeProvider theme={theme}>
-                <DataGrid
-          
-                  rows={dataCitasServicios}
-                  columns={columnsCitasServicios}
-                />
+                <DataGrid rows={dataCitasServicios} columns={columnsCitasServicios} />
               </ThemeProvider>
 
-              <Box marginTop={2} sx={{ width: '100%' }}>
+              <Box marginTop={2} sx={{ width: "100%" }}>
                 <Row className="d-flex justify-content-center align-items-start g-3">
                   <Col xs={12} sm={6} md={4} lg={4} className="mb-3">
-                    <div style={{ border: "1px solid black", padding: "15px", borderRadius: "5px", height: "100%", textAlign: "center", fontWeight: "bold" }}>
+                    <div
+                      style={{
+                        border: "1px solid black",
+                        padding: "15px",
+                        borderRadius: "5px",
+                        height: "100%",
+                        textAlign: "center",
+                        fontWeight: "bold",
+                      }}
+                    >
                       <Label className="mb-2">Clave de reservación</Label>
                       <Input
-                        value={formCitaServicio.idCita ? formCitaServicio.idCita + "-" + 1 + "-" + format(new Date(formCita.fecha), "ddM") : ""}
+                        value={
+                          formCitaServicio.idCita
+                            ? formCitaServicio.idCita + "-" + 1 + "-" + format(new Date(formCita.fecha), "ddM")
+                            : ""
+                        }
                         className="text-center"
                         style={{ fontSize: "1.1rem", fontWeight: "bold" }}
                       />
@@ -6741,7 +7124,13 @@ function Basic() {
                     <div style={{ height: "100%" }}>
                       <FormGroup className="mb-2">
                         <Label for="total2">Total</Label>
-                        <Input type="text" name="total2" id="total2" placeholder={"$" + formVentaTemporal.precioTotal.toFixed(2)} disabled />
+                        <Input
+                          type="text"
+                          name="total2"
+                          id="total2"
+                          placeholder={"$" + formVentaTemporal.precioTotal.toFixed(2)}
+                          disabled
+                        />
                       </FormGroup>
 
                       <FormGroup className="mb-2">
@@ -6751,7 +7140,13 @@ function Basic() {
 
                       <FormGroup>
                         <Label for="total">Total</Label>
-                        <Input type="text" name="total" id="total" placeholder={"$" + formVentaTemporal.precioTotalyOtros.toFixed(2)} disabled />
+                        <Input
+                          type="text"
+                          name="total"
+                          id="total"
+                          placeholder={"$" + formVentaTemporal.precioTotalyOtros.toFixed(2)}
+                          disabled
+                        />
                       </FormGroup>
                     </div>
                   </Col>
@@ -6760,12 +7155,24 @@ function Basic() {
                     <div style={{ height: "100%" }}>
                       <FormGroup className="mb-2">
                         <Label for="minutos">Minutos</Label>
-                        <Input type="text" name="minutos" id="minutos" placeholder={formVentaTemporal.tiempo + " Min"} disabled />
+                        <Input
+                          type="text"
+                          name="minutos"
+                          id="minutos"
+                          placeholder={formVentaTemporal.tiempo + " Min"}
+                          disabled
+                        />
                       </FormGroup>
 
                       <FormGroup className="mb-3">
                         <Label for="horas">Horas</Label>
-                        <Input type="text" name="horas" id="horas" placeholder={convertirMinutosAHorasYMinutos(formVentaTemporal.tiempo)} disabled />
+                        <Input
+                          type="text"
+                          name="horas"
+                          id="horas"
+                          placeholder={convertirMinutosAHorasYMinutos(formVentaTemporal.tiempo)}
+                          disabled
+                        />
                       </FormGroup>
 
                       <div className="d-grid gap-2">
@@ -6774,36 +7181,38 @@ function Basic() {
                           onClick={() => {
                             putCitasServiciosTerminado();
                           }}
-                        // disabled={!agregarServicios}
+                          // disabled={!agregarServicios}
                         >
                           Guardar
                         </Button>
-                        <Button color="danger" onClick={() => {
-                           setModalCrear(false)
-                           setFormCitaServicio({
-                             ...formCitaServicio,
-                             idCita: null,
-                             estatusAsignado: false,
-                             estatusRequerido: false,
-                           });
-                           setFormCita({
-                             ...formCita,
-                             cia: null,
-                             sucursal: idSuc,
-                             no_estilista: 0,
-                           });
-           
-                           setFormCitaDescripciones({
-                             ...formCitaDescripciones,
-                             descripcion_no_cancelacion: "",
-                             descripcion_no_estilista: "",
-                             descripcion_no_cliente: "",
-                           });
-                           setFormCitasObservaciones2("");
-                           setdataCitasServicios([]);
-                     setModalEdicionServicios2(false)
-           
-                        }}>
+                        <Button
+                          color="danger"
+                          onClick={() => {
+                            setModalCrear(false);
+                            setFormCitaServicio({
+                              ...formCitaServicio,
+                              idCita: null,
+                              estatusAsignado: false,
+                              estatusRequerido: false,
+                            });
+                            setFormCita({
+                              ...formCita,
+                              cia: null,
+                              sucursal: idSuc,
+                              no_estilista: 0,
+                            });
+
+                            setFormCitaDescripciones({
+                              ...formCitaDescripciones,
+                              descripcion_no_cancelacion: "",
+                              descripcion_no_estilista: "",
+                              descripcion_no_cliente: "",
+                            });
+                            setFormCitasObservaciones2("");
+                            setdataCitasServicios([]);
+                            setModalEdicionServicios2(false);
+                          }}
+                        >
                           Salir
                         </Button>
                       </div>
@@ -6820,7 +7229,9 @@ function Basic() {
       <Modal open={modalBitacora} onClose={() => setModalBitacora(false)} disableAutoFocus disableEnforceFocus>
         <Box sx={style}>
           <div style={{ height: "2%", display: "table", tableLayout: "fixed", width: "100%" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+            <div
+              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}
+            >
               <Typography variant="h4">Bitácora de Cita</Typography>
               <AiOutlineClose onClick={() => setModalBitacora(false)} style={{ cursor: "pointer" }} />
             </div>
@@ -6828,66 +7239,85 @@ function Basic() {
             <ThemeProvider theme={theme}>
               <DataGrid
                 rows={bitacoraCitas.length > 0 ? bitacoraCitas : []}
-                getRowId={(row) => 
-// no tengo id: 
+                getRowId={(row) =>
+                  // no tengo id:
                   row.servicio
                 }
                 columns={[
-                  { field: 'nombreUsuario', headerName: 'Usuario', width: 200 },
-                  { field: 'fechaCambio', headerName: 'Fecha cambio', width: 220, valueFormatter: (params) => (params.value).replace('T', ' '), },
-                  { field: 'nombreServicio', headerName: 'Servicio', width: 250 },
-                  { field: 'movimiento', headerName: 'Movimiento', width: 250 },
+                  { field: "nombreUsuario", headerName: "Usuario", width: 200 },
                   {
-                    field: 'estatus',
-                    headerName: 'Modo',
+                    field: "fechaCambio",
+                    headerName: "Fecha cambio",
+                    width: 220,
+                    valueFormatter: (params) => params.value.replace("T", " "),
+                  },
+                  { field: "nombreServicio", headerName: "Servicio", width: 250 },
+                  { field: "movimiento", headerName: "Movimiento", width: 250 },
+                  {
+                    field: "estatus",
+                    headerName: "Modo",
                     width: 120,
                     renderCell: (params) => {
-                      let color = '';
-                      if (params.value === 2) color = '#4CAF50';
-                      else if (params.value === 3) color = '#FFA500';
-                      else if (params.value === 4) color = '#F44336';
-                      else color = '#2196F3';
+                      let color = "";
+                      if (params.value === 2) color = "#4CAF50";
+                      else if (params.value === 3) color = "#FFA500";
+                      else if (params.value === 4) color = "#F44336";
+                      else color = "#2196F3";
 
                       return (
-                        <div style={{
-                          backgroundColor: color,
-                          padding: '4px 8px',
-                          borderRadius: '4px',
-                          color: 'white',
-                          fontSize: '0.8rem',
-                          fontWeight: 'bold'
-                        }}>
-                          {params.value === 2 ? 'Requerido' : params.value === 3 ? 'Confirmado' : params.value === 4 ? 'Cancelado' : 'Asignado'}
+                        <div
+                          style={{
+                            backgroundColor: color,
+                            padding: "4px 8px",
+                            borderRadius: "4px",
+                            color: "white",
+                            fontSize: "0.8rem",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          {params.value === 2
+                            ? "Requerido"
+                            : params.value === 3
+                            ? "Confirmado"
+                            : params.value === 4
+                            ? "Cancelado"
+                            : "Asignado"}
                         </div>
                       );
-                    }
+                    },
                   },
-                  { field: 'nombreEstilista', headerName: 'Estilista', width: 150 },
-                  { field: 'fechaCita', headerName: 'Fecha', width: 120, valueFormatter: (params) => (params.value) },
-                  { field: 'fechaCita1', headerName: 'Hora', width: 200, valueGetter: (params) => params.row.fechaCita, valueFormatter: (params) => {
-                    if (!params.value) return '';
-                    const timeStr = (params.value).split('T')[1];
-                    if (!timeStr) return '';
-                    const [hours, minutes] = timeStr.split(':');
-                    const hour = parseInt(hours, 10);
-                    const ampm = hour >= 12 ? 'PM' : 'AM';
-                    const displayHour = hour % 12 || 12;
-                    return `${displayHour}:${minutes} ${ampm}`;
-                  } },
+                  { field: "nombreEstilista", headerName: "Estilista", width: 150 },
+                  { field: "fechaCita", headerName: "Fecha", width: 120, valueFormatter: (params) => params.value },
+                  {
+                    field: "fechaCita1",
+                    headerName: "Hora",
+                    width: 200,
+                    valueGetter: (params) => params.row.fechaCita,
+                    valueFormatter: (params) => {
+                      if (!params.value) return "";
+                      const timeStr = params.value.split("T")[1];
+                      if (!timeStr) return "";
+                      const [hours, minutes] = timeStr.split(":");
+                      const hour = parseInt(hours, 10);
+                      const ampm = hour >= 12 ? "PM" : "AM";
+                      const displayHour = hour % 12 || 12;
+                      return `${displayHour}:${minutes} ${ampm}`;
+                    },
+                  },
                 ]}
                 rowHeight={35}
                 columnHeaderHeight={40}
                 autoHeight
                 pageSize={10}
                 sx={{
-                  '& .MuiDataGrid-cell': {
-                    fontSize: '1rem'
+                  "& .MuiDataGrid-cell": {
+                    fontSize: "1rem",
                   },
-                  '& .MuiDataGrid-columnHeader': {
-                    backgroundColor: '#f5f5f5',
-                    fontWeight: 'bold',
-                    fontSize: '1rem'
-                  }
+                  "& .MuiDataGrid-columnHeader": {
+                    backgroundColor: "#f5f5f5",
+                    fontWeight: "bold",
+                    fontSize: "1rem",
+                  },
                 }}
               />
             </ThemeProvider>
@@ -6933,7 +7363,10 @@ function CustomNoRowsOverlay() {
               className="ant-empty-img-1"
               d="M122.034 69.674L98.109 40.229c-1.148-1.386-2.826-2.225-4.593-2.225h-51.44c-1.766 0-3.444.839-4.592 2.225L13.56 69.674v15.383h108.475V69.674z"
             />
-            <path className="ant-empty-img-2" d="M33.83 0h67.933a4 4 0 0 1 4 4v93.344a4 4 0 0 1-4 4H33.83a4 4 0 0 1-4-4V4a4 4 0 0 1 4-4z" />
+            <path
+              className="ant-empty-img-2"
+              d="M33.83 0h67.933a4 4 0 0 1 4 4v93.344a4 4 0 0 1-4 4H33.83a4 4 0 0 1-4-4V4a4 4 0 0 1 4-4z"
+            />
             <path
               className="ant-empty-img-3"
               d="M42.678 9.953h50.237a2 2 0 0 1 2 2V36.91a2 2 0 0 1-2 2H42.678a2 2 0 0 1-2-2V11.953a2 2 0 0 1 2-2zM42.94 49.767h49.713a2.262 2.262 0 1 1 0 4.524H42.94a2.262 2.262 0 0 1 0-4.524zM42.94 61.53h49.713a2.262 2.262 0 1 1 0 4.525H42.94a2.262 2.262 0 0 1 0-4.525zM121.813 105.032c-.775 3.071-3.497 5.36-6.735 5.36H20.515c-3.238 0-5.96-2.29-6.734-5.36a7.309 7.309 0 0 1-.222-1.79V69.675h26.318c2.907 0 5.25 2.448 5.25 5.42v.04c0 2.971 2.37 5.37 5.277 5.37h34.785c2.907 0 5.277-2.421 5.277-5.393V75.1c0-2.972 2.343-5.426 5.25-5.426h26.318v33.569c0 .617-.077 1.216-.221 1.789z"

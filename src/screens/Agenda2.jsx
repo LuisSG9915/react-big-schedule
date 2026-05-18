@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useReducer, useState } from "react";
 import * as dayjsLocale from "dayjs/locale/es-mx";
 import * as antdLocale from "antd/locale/es_ES";
 import { Scheduler, SchedulerData, ViewType, wrapperFun, DemoData } from "../index";
-import { jezaApi } from "../api/jezaApi2";
 import { peinadosApi } from "../api/peinadosApi";
 // import Modal from "../components/Modal";
 import { format } from "date-fns-tz";
