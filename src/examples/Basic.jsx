@@ -631,7 +631,7 @@ function Basic() {
           response.data.map((item) => {
             const newItem = {
               ...item,
-              name: item.clave + " - " + item.estilista,
+              name: item.estilista + " - " + item.clave,
               // name: item.estilista,
               id: item.clave,
             };
@@ -862,7 +862,30 @@ function Basic() {
       schedulerContentHeight: "100%",
       dayStartFrom: horaEntrada, // Hora de entrada dinámica
       dayStopTo: horaSalida, // Hora de salida dinámica
+      dayResourceTableWidth: 90, // 📐 Ancho fijo de la columna Estilistas
     });
+
+    // 🔧 Evitar que la lib estire la columna "Estilistas" para llenar el
+    // espacio sobrante en pantallas grandes (ver SchedulerData.getResourceTableWidth
+    // líneas 299-300). Forzamos que devuelva siempre el ancho configurado.
+    schedulerData.getResourceTableWidth = function () {
+      const cfg = this.getResourceTableConfigWidth();
+      if (this.isResourceViewResponsive()) {
+        return parseInt((this.getSchedulerWidth() * Number(cfg.slice(0, -1))) / 100, 10);
+      }
+      return cfg;
+    };
+
+    // 🔧 Estirar las celdas horarias para que el contenido llene exactamente
+    // el contenedor central (schedulerWidth - resourceTableWidth) y no quede
+    // un hueco asimétrico entre la última hora y la columna derecha "Estilistas".
+    schedulerData.getContentCellWidth = function () {
+      const numHeaders = this.headers ? this.headers.length : 0;
+      if (numHeaders <= 0) return this.getContentCellConfigWidth();
+      const containerWidth = this.getSchedulerWidth() - this.getResourceTableWidth();
+      const cellWidth = Math.floor(containerWidth / numHeaders);
+      return Math.max(20, cellWidth);
+    };
     // 🐛 DEBUGGING y CORRECCIÓN: Configuración de zona horaria local
     console.log("🔧 CONFIGURANDO SCHEDULER CON ZONA HORARIA LOCAL");
     console.log("Zona horaria del navegador:", Intl.DateTimeFormat().resolvedOptions().timeZone);
