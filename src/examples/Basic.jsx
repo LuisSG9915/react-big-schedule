@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useReducer, useState, useCallback, memo, Suspense, lazy } from "react";
+import React, { useEffect, useMemo, useReducer, useRef, useState, useCallback, memo, Suspense, lazy } from "react";
 import * as dayjsLocale from "dayjs/locale/es-mx";
 import * as antdLocale from "antd/locale/es_ES";
 import { Scheduler, SchedulerData, ViewType, wrapperFun, DemoData } from "../index";
@@ -779,7 +779,16 @@ function Basic() {
   const [inicializarAgenda, setinicializarAgenda] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isNavigatingDate, setIsNavigatingDate] = useState(false);
+  // 🔒 Lock para evitar que el useEffect reconstruya el SchedulerData justo después
+  // de una navegación (prev/next/onSelectDate), lo que sobrescribía las citas ya pintadas.
+  const navigationLockRef = useRef(0);
   useEffect(() => {
+    // Si acabamos de navegar (últimos ~2s), no recrear el SchedulerData:
+    // actualizarAgenda ya despachó UPDATE_SCHEDULER con los datos correctos.
+    if (Date.now() - navigationLockRef.current < 2000) {
+      console.log("⏳ Saltando reconstrucción - navegación reciente");
+      return;
+    }
     // Obtener las horas de entrada y salida de la agenda para la fecha actual
     const horaEntradaDefault = 10; // Valor por defecto: 10:00 AM
     const horaSalidaDefault = 23; // Valor por defecto: 11:00 PM (23:00)
@@ -888,8 +897,12 @@ function Basic() {
     schedulerData.setResources(arreglo);
     schedulerData.setEvents(arregloCita);
     // if (arreglo.length > 0 && arregloCita.length > 0) {
-    setTimeout(() => {
+    const timerId = setTimeout(() => {
       // 🚫 PREVENIR CONFLICTO: No actualizar durante navegación de fechas
+      if (Date.now() - navigationLockRef.current < 2000) {
+        console.log("⏳ Saltando actualización - navegación reciente");
+        return;
+      }
       if (arreglo.length > 0 && arregloCita.length > 0 && !isLoading && !isNavigatingDate) {
         if (inicializarAgenda == false) {
           setinicializarAgenda(true);
@@ -905,6 +918,7 @@ function Basic() {
         console.log("⏳ Saltando actualización - navegando fechas o loading");
       }
     }, 800); // 🚀 Reducido de 1500ms a 800ms para mejor responsive
+    return () => clearTimeout(timerId);
     // }
   }, [arregloCita, arreglo, dataSucursales, isLoading, isNavigatingDate]);
   const actualizarAgenda = (response, schedulerData) => {
@@ -916,6 +930,9 @@ function Basic() {
 
   const actualizarFechayCitas = useCallback(
     async (schedulerData, dias, fecha) => {
+      // 🔒 Activar lock para que el useEffect reconstructor no sobrescriba
+      // el SchedulerData mientras navegamos.
+      navigationLockRef.current = Date.now();
       setIsLoading(true);
       setIsNavigatingDate(true);
       setDatosParametros((datosParametrosPrevios) => {
@@ -962,6 +979,10 @@ function Basic() {
 
             // Actualizar la agenda con los nuevos datos
             actualizarAgenda(response, schedulerData);
+
+            // 🔒 Refrescar el lock justo después de pintar para que la ventana
+            // de protección de 2s cuente desde aquí.
+            navigationLockRef.current = Date.now();
 
             // Terminar loading y navegación inmediatamente para evitar conflictos de timing
             setIsLoading(false);
