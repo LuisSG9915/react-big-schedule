@@ -1442,6 +1442,7 @@ function Agenda2() {
   const [dataOperaciones, setDataOperaciones] = useState([]);
   const [dataPuntosporCliente, setDataPuntosPorCliente] = useState({});
   const [dataEstilistaDisponibilidadHorario, setdataEstilistaDisponibilidadHorario] = useState({});
+  const [horariosAgenda, setHorariosAgenda] = useState(null);
   const [dataEstilistas, setDataEstilistas] = useState([]);
   const [contraseña, setContraseña] = useState("");
   const contraseñaEstática = "1234";
@@ -1484,6 +1485,7 @@ function Agenda2() {
     getEstilistas();
     getProductos();
     getEstilistasDisponibilidadHorario();
+    fetchHorariosAgenda();
   }, []);
 
   useEffect(() => {
@@ -1559,6 +1561,23 @@ function Agenda2() {
     peinadosApi.get("/CatEstilistasDisponiblidad?sucursal=1").then((response) => {
       setdataEstilistaDisponibilidadHorario(response.data);
     });
+  };
+
+  const fetchHorariosAgenda = async () => {
+    try {
+      const fechaFormateada =
+        datosParametros.fecha instanceof Date
+          ? datosParametros.fecha.toISOString().split("T")[0]
+          : String(datosParametros.fecha).split("T")[0];
+      const response = await peinadosApi.get(`/sp_catHorariosGetAgenda2?sucursal=${idSuc}&fecha=${fechaFormateada}`);
+      if (response.data && response.data.length > 0) {
+        setHorariosAgenda(response.data[0]);
+      } else {
+        setHorariosAgenda(null);
+      }
+    } catch (error) {
+      setHorariosAgenda(null);
+    }
   };
 
   const { dataCitasServicios, fetchDetalleCitasServicios, setdataCitasServicios } = useDetalleCitasServicios({
@@ -2007,13 +2026,18 @@ function Agenda2() {
     });
   };
   const verificaDisponibilidadSucursal = () => {
-    let entradaSucursal = dataEstilistaDisponibilidadHorario[0].hora_entrada;
-    let salidaSucursal = dataEstilistaDisponibilidadHorario[0].hora_salida;
-
-    let horaEntrada = new Date(entradaSucursal).getHours();
-    let minutoEntrada = new Date(entradaSucursal).getMinutes();
-    let horaSalida = new Date(salidaSucursal).getHours();
-    let minutoSalida = new Date(salidaSucursal).getMinutes();
+    let horaEntrada, minutoEntrada, horaSalida, minutoSalida;
+    if (horariosAgenda && horariosAgenda.hora_inicio && horariosAgenda.hora_final) {
+      [horaEntrada, minutoEntrada] = horariosAgenda.hora_inicio.split(":").map(Number);
+      [horaSalida, minutoSalida] = horariosAgenda.hora_final.split(":").map(Number);
+    } else {
+      let entradaSucursal = dataEstilistaDisponibilidadHorario[0].hora_entrada;
+      let salidaSucursal = dataEstilistaDisponibilidadHorario[0].hora_salida;
+      horaEntrada = new Date(entradaSucursal).getHours();
+      minutoEntrada = new Date(entradaSucursal).getMinutes();
+      horaSalida = new Date(salidaSucursal).getHours();
+      minutoSalida = new Date(salidaSucursal).getMinutes();
+    }
 
     // Obtener la hora y minutos de la cita a verificar
     let horaCita = new Date(formCita.fecha).getHours();
@@ -2023,10 +2047,6 @@ function Agenda2() {
     let minutosDesdeMedianocheEntrada = horaEntrada * 60 + minutoEntrada;
     let minutosDesdeMedianocheSalida = horaSalida * 60 + minutoSalida;
     let minutosDesdeMedianocheCita = horaCita * 60 + minutoCita;
-
-    console.log(minutosDesdeMedianocheEntrada);
-    console.log(minutosDesdeMedianocheSalida);
-    console.log(minutosDesdeMedianocheCita);
 
     let esValida =
       minutosDesdeMedianocheCita >= minutosDesdeMedianocheEntrada &&

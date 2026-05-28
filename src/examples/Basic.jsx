@@ -2739,13 +2739,21 @@ function Basic() {
     });
   };
   const verificaDisponibilidadSucursal = () => {
-    let entradaSucursal = dataEstilistaDisponibilidadHorario[0].hora_entrada;
-    let salidaSucursal = dataEstilistaDisponibilidadHorario[0].hora_salida;
-
-    let horaEntrada = new Date(entradaSucursal).getHours();
-    let minutoEntrada = new Date(entradaSucursal).getMinutes();
-    let horaSalida = new Date(salidaSucursal).getHours();
-    let minutoSalida = new Date(salidaSucursal).getMinutes();
+    // Usar horariosAgenda (sp_catHorariosGetAgenda2) que tiene el horario real
+    // configurado por día (hora_inicio/hora_final en formato "HH:mm:ss").
+    // Fallback a CatEstilistasDisponiblidad si horariosAgenda no está disponible.
+    let horaEntrada, minutoEntrada, horaSalida, minutoSalida;
+    if (horariosAgenda && horariosAgenda.hora_inicio && horariosAgenda.hora_final) {
+      [horaEntrada, minutoEntrada] = horariosAgenda.hora_inicio.split(":").map(Number);
+      [horaSalida, minutoSalida] = horariosAgenda.hora_final.split(":").map(Number);
+    } else {
+      let entradaSucursal = dataEstilistaDisponibilidadHorario[0].hora_entrada;
+      let salidaSucursal = dataEstilistaDisponibilidadHorario[0].hora_salida;
+      horaEntrada = new Date(entradaSucursal).getHours();
+      minutoEntrada = new Date(entradaSucursal).getMinutes();
+      horaSalida = new Date(salidaSucursal).getHours();
+      minutoSalida = new Date(salidaSucursal).getMinutes();
+    }
 
     // Obtener la hora y minutos de la cita a verificar
     let horaCita = new Date(formCita.fecha).getHours();

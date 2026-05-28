@@ -152,6 +152,7 @@ function CrearCita() {
   const [dataOperaciones, setDataOperaciones] = useState([]);
   const [dataPuntosporCliente, setDataPuntosPorCliente] = useState({});
   const [dataEstilistaDisponibilidadHorario, setdataEstilistaDisponibilidadHorario] = useState({});
+  const [horariosAgenda, setHorariosAgenda] = useState(null);
   const [dataEstilistas, setDataEstilistas] = useState([]);
   const [contraseña, setContraseña] = useState("");
   const contraseñaEstática = "1234";
@@ -249,6 +250,7 @@ function CrearCita() {
     getEstilistas();
     getProductos();
     getEstilistasDisponibilidadHorario();
+    fetchHorariosAgenda();
   }, []);
 
   useEffect(() => {
@@ -284,7 +286,9 @@ function CrearCita() {
 
   const getProductos = () => {
     peinadosApi
-      .get("/sp_cPSEAC?id=0&cia=1&sucursal=2&almacen=1&marca=%&descripcion=%&verinventariable=0&esServicio=2&esInsumo=0&obsoleto=0")
+      .get(
+        "/sp_cPSEAC?id=0&cia=1&sucursal=2&almacen=1&marca=%&descripcion=%&verinventariable=0&esServicio=2&esInsumo=0&obsoleto=0",
+      )
       .then((response) => {
         setDataProductos(response.data);
       });
@@ -292,7 +296,7 @@ function CrearCita() {
   const getOperaciones = () => {
     peinadosApi
       .get(
-        `/sp_detalleOperaciones7?noCliente=${formCita.no_cliente}&sucursal=${formPuntosObservaciones.sucursal}&noMovto=${formPuntosObservaciones.idMovto}`
+        `/sp_detalleOperaciones7?noCliente=${formCita.no_cliente}&sucursal=${formPuntosObservaciones.sucursal}&noMovto=${formPuntosObservaciones.idMovto}`,
       )
       .then((response) => {
         setDataOperaciones(response.data);
@@ -309,6 +313,20 @@ function CrearCita() {
       setdataEstilistaDisponibilidadHorario(response.data);
     });
   };
+
+  const fetchHorariosAgenda = async () => {
+    try {
+      const fechaBase = fecha ? String(fecha).split("T")[0] : new Date().toISOString().split("T")[0];
+      const response = await peinadosApi.get(`/sp_catHorariosGetAgenda2?sucursal=${idSuc}&fecha=${fechaBase}`);
+      if (response.data && response.data.length > 0) {
+        setHorariosAgenda(response.data[0]);
+      } else {
+        setHorariosAgenda(null);
+      }
+    } catch (error) {
+      setHorariosAgenda(null);
+    }
+  };
   const { dataCitasServicios, fetchDetalleCitasServicios } = useDetalleCitasServicios({
     noCliente: formCita.no_cliente,
     sucursal: 2,
@@ -317,7 +335,9 @@ function CrearCita() {
   });
   const { dataCuentasPendientes } = useDetalleCuentaPendietes({ no_cliente: formCita.no_cliente });
   const { dataObservaciones, fetchObservaciones } = useObservaciones({ idCliente: formCita.no_cliente });
-  const { dataCitasObservaciones, fetchDetalleCitasObservaciones } = useDetalleCitasObservaciones({ idCliente: formCita.no_cliente });
+  const { dataCitasObservaciones, fetchDetalleCitasObservaciones } = useDetalleCitasObservaciones({
+    idCliente: formCita.no_cliente,
+  });
   const { dataClientesSaldosPendientes } = useDetalleSaldosPendientes({ no_cliente: formCita.no_cliente });
   const { dataTrabajadores } = useNominaTrabajadores();
   const { DataVentasOperaciones } = useVentasOperaciones({
@@ -361,7 +381,7 @@ function CrearCita() {
           peinadosApi
             .put(
               `/sp_DetalleCitasObservacionesput?id=${idCita}&observaciones=${observaciones}
-          `
+          `,
             )
             .then((response) => {
               Swal.fire({
@@ -471,7 +491,7 @@ function CrearCita() {
                 cell.row.id_servicio,
                 0,
                 0,
-                cell.row.precio
+                cell.row.precio,
               );
             }}
           >
@@ -640,13 +660,18 @@ function CrearCita() {
     let mes = fechaActual.getMonth(); // Nota: getMonth() devuelve un valor de 0 a 11, donde 0 es enero y 11 es diciembre
     let día = fechaActual.getDate();
     let fechaSinHora = new Date(año, mes, día);
-    let entradaSucursal = dataEstilistaDisponibilidadHorario[0].hora_entrada;
-    let salidaSucursal = dataEstilistaDisponibilidadHorario[0].hora_salida;
-
-    let horaEntrada = new Date(entradaSucursal).getHours();
-    let minutoEntrada = new Date(entradaSucursal).getMinutes();
-    let horaSalida = new Date(salidaSucursal).getHours();
-    let minutoSalida = new Date(salidaSucursal).getMinutes();
+    let horaEntrada, minutoEntrada, horaSalida, minutoSalida;
+    if (horariosAgenda && horariosAgenda.hora_inicio && horariosAgenda.hora_final) {
+      [horaEntrada, minutoEntrada] = horariosAgenda.hora_inicio.split(":").map(Number);
+      [horaSalida, minutoSalida] = horariosAgenda.hora_final.split(":").map(Number);
+    } else {
+      let entradaSucursal = dataEstilistaDisponibilidadHorario[0].hora_entrada;
+      let salidaSucursal = dataEstilistaDisponibilidadHorario[0].hora_salida;
+      horaEntrada = new Date(entradaSucursal).getHours();
+      minutoEntrada = new Date(entradaSucursal).getMinutes();
+      horaSalida = new Date(salidaSucursal).getHours();
+      minutoSalida = new Date(salidaSucursal).getMinutes();
+    }
 
     // Obtener la hora y minutos de la cita a verificar
     let horaCita = new Date(formCita.fecha).getHours();
@@ -657,7 +682,9 @@ function CrearCita() {
     let minutosDesdeMedianocheSalida = horaSalida * 60 + minutoSalida;
     let minutosDesdeMedianocheCita = horaCita * 60 + minutoCita;
 
-    let esValida = minutosDesdeMedianocheCita >= minutosDesdeMedianocheEntrada && minutosDesdeMedianocheCita <= minutosDesdeMedianocheSalida;
+    let esValida =
+      minutosDesdeMedianocheCita >= minutosDesdeMedianocheEntrada &&
+      minutosDesdeMedianocheCita <= minutosDesdeMedianocheSalida;
 
     if (new Date(formCita.fecha) < new Date()) {
       Swal.fire({
@@ -874,7 +901,10 @@ function CrearCita() {
                 return;
               }
               if (formVentaHistoriales.botonConsultar) {
-                setFormVentaHistoriales({ claveProd: cell.row.original.id, claveProdDescripcion: cell.row.original.descripcion });
+                setFormVentaHistoriales({
+                  claveProd: cell.row.original.id,
+                  claveProdDescripcion: cell.row.original.descripcion,
+                });
               } else {
                 setDataVentaTemporal({
                   clave: cell.row.original.id,
@@ -915,7 +945,9 @@ function CrearCita() {
       header: "Precio",
       size: 100,
       Cell: ({ cell }) => (
-        <p className="centered-cell">{Number(cell.row.original.precio).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}</p>
+        <p className="centered-cell">
+          {Number(cell.row.original.precio).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}
+        </p>
       ),
       className: "centered-cell", // Agrega esta línea para aplicar la clase CSS
     },
@@ -924,7 +956,9 @@ function CrearCita() {
       header: "Precio",
       size: 100,
       Cell: ({ cell }) => (
-        <p className="centered-cell">{Number(cell.row.original.precioPromocion).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}</p>
+        <p className="centered-cell">
+          {Number(cell.row.original.precioPromocion).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}
+        </p>
       ),
       className: "centered-cell", // Agrega esta línea para aplicar la clase CSS
     },
@@ -952,7 +986,10 @@ function CrearCita() {
                 return;
               }
               if (formVentaHistoriales.botonConsultar) {
-                setFormVentaHistoriales({ claveProd: cell.row.original.id, claveProdDescripcion: cell.row.original.descripcion });
+                setFormVentaHistoriales({
+                  claveProd: cell.row.original.id,
+                  claveProdDescripcion: cell.row.original.descripcion,
+                });
               } else {
                 setFormDetalleCitasServicios({
                   ...formDetalleCitasServicios,
@@ -992,7 +1029,9 @@ function CrearCita() {
       header: "Precio",
       size: 100,
       Cell: ({ cell }) => (
-        <p className="centered-cell">{Number(cell.row.original.precio).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}</p>
+        <p className="centered-cell">
+          {Number(cell.row.original.precio).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}
+        </p>
       ),
       className: "centered-cell", // Agrega esta línea para aplicar la clase CSS
     },
@@ -1001,7 +1040,9 @@ function CrearCita() {
       header: "Precio",
       size: 100,
       Cell: ({ cell }) => (
-        <p className="centered-cell">{Number(cell.row.original.precioPromocion).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}</p>
+        <p className="centered-cell">
+          {Number(cell.row.original.precioPromocion).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}
+        </p>
       ),
       className: "centered-cell", // Agrega esta línea para aplicar la clase CSS
     },
@@ -1011,8 +1052,18 @@ function CrearCita() {
     { field: "x", headerName: "Seleccion", renderCell: renderButtonProduct, width: 130 },
     { field: "clave_prod", headerName: "Clave prod", width: 130 },
     { field: "descripcion", headerName: "Descripción", width: 250 },
-    { field: "precio_lista", headerName: "Precio", width: 130, renderCell: (params) => <p>{params.row.precio_lista.toFixed(2)}</p> },
-    { field: "tiempox", headerName: "Tiempo", width: 130, renderCell: (params) => <p>{params.row.tiempox + " Min"}</p> },
+    {
+      field: "precio_lista",
+      headerName: "Precio",
+      width: 130,
+      renderCell: (params) => <p>{params.row.precio_lista.toFixed(2)}</p>,
+    },
+    {
+      field: "tiempox",
+      headerName: "Tiempo",
+      width: 130,
+      renderCell: (params) => <p>{params.row.tiempox + " Min"}</p>,
+    },
   ];
   const columnsDataVentasHistoriales = [
     { field: "x", headerName: "Seleccion", renderCell: renderButtonVentaHistorial, width: 130 },
@@ -1078,7 +1129,7 @@ function CrearCita() {
                 params.row.usr_registro,
                 params.row.act_sucursal,
                 params.row.visualizar,
-                params.row.sucursal
+                params.row.sucursal,
               )
             }
           />
@@ -1105,7 +1156,10 @@ function CrearCita() {
       width: 90,
       renderCell: (params) => (
         <p className="centered-cell">
-          {Number(params.row.precio * params.row.cant_producto).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}
+          {Number(params.row.precio * params.row.cant_producto).toLocaleString("es-MX", {
+            style: "currency",
+            currency: "MXN",
+          })}
         </p>
       ),
     },
@@ -1165,7 +1219,18 @@ function CrearCita() {
     d_clave_prod: null,
     tiempo: null,
   });
-  const putDetalleCitasServiciosUpd4 = (id, sucursal, idCita, tiempo, idEstilista, mostrar, idServicio, usuario, cantidad, precio) => {
+  const putDetalleCitasServiciosUpd4 = (
+    id,
+    sucursal,
+    idCita,
+    tiempo,
+    idEstilista,
+    mostrar,
+    idServicio,
+    usuario,
+    cantidad,
+    precio,
+  ) => {
     peinadosApi
       .put(`/sp_DetalleCitasServiciosUpd4`, null, {
         params: {
@@ -1358,7 +1423,15 @@ function CrearCita() {
   return (
     <div>
       <Container>
-        <div style={{ flex: 1, justifyContent: "space-between", alignContent: "right", alignItems: "right", display: "flex" }}>
+        <div
+          style={{
+            flex: 1,
+            justifyContent: "space-between",
+            alignContent: "right",
+            alignItems: "right",
+            display: "flex",
+          }}
+        >
           <h1>Creación de cita</h1>
           <div>
             <Button
@@ -1452,7 +1525,12 @@ function CrearCita() {
             <Col xs="6">
               <FormGroup check style={{ display: "flex", alignItems: "center", marginBottom: "1px" }}>
                 <Label check>
-                  <Input name="esServicioDomicilio" type="checkbox" checked={formCita.esServicioDomicilio} onChange={handleCheckboxChangeDomicilio} />
+                  <Input
+                    name="esServicioDomicilio"
+                    type="checkbox"
+                    checked={formCita.esServicioDomicilio}
+                    onChange={handleCheckboxChangeDomicilio}
+                  />
                   <strong style={{ fontSize: "0.8rem" }}>Servicio a domicilio</strong>
                 </Label>
               </FormGroup>
@@ -1603,11 +1681,34 @@ function CrearCita() {
             rows={dataCitasServicios}
             columns={columns}
           />
-          <Box marginLeft={0} marginRight={0} marginTop={1} gap={2} display="flex" justifyContent={"center"} alignItems={"center"}>
-            <Col style={{ border: "1px solid black", padding: "10px", margin: "10px", width: "300px", textAlign: "center", fontWeight: "bold" }}>
+          <Box
+            marginLeft={0}
+            marginRight={0}
+            marginTop={1}
+            gap={2}
+            display="flex"
+            justifyContent={"center"}
+            alignItems={"center"}
+          >
+            <Col
+              style={{
+                border: "1px solid black",
+                padding: "10px",
+                margin: "10px",
+                width: "300px",
+                textAlign: "center",
+                fontWeight: "bold",
+              }}
+            >
               <Label>Clave de reservación</Label>
               {/* <Input value={"100-2-75"}> </Input> */}
-              <Input value={formCitaServicio.idCita ? formCitaServicio.idCita + "-" + 1 + "-" + format(new Date(formCita.fecha), "ddM") : ""}>
+              <Input
+                value={
+                  formCitaServicio.idCita
+                    ? formCitaServicio.idCita + "-" + 1 + "-" + format(new Date(formCita.fecha), "ddM")
+                    : ""
+                }
+              >
                 {" "}
               </Input>
             </Col>
@@ -1623,18 +1724,36 @@ function CrearCita() {
               </FormGroup>
               <FormGroup>
                 <Label for="total">Total</Label>
-                <Input type="text" name="total" id="total" placeholder={"$" + formVentaTemporal.precioTotal.toFixed(2)} disabled />
+                <Input
+                  type="text"
+                  name="total"
+                  id="total"
+                  placeholder={"$" + formVentaTemporal.precioTotal.toFixed(2)}
+                  disabled
+                />
               </FormGroup>
             </Col>
             <Col>
               <FormGroup>
                 <Label for="minutos">Minutos</Label>
-                <Input type="text" name="minutos" id="minutos" placeholder={formVentaTemporal.tiempo + " Min"} disabled />
+                <Input
+                  type="text"
+                  name="minutos"
+                  id="minutos"
+                  placeholder={formVentaTemporal.tiempo + " Min"}
+                  disabled
+                />
               </FormGroup>
 
               <FormGroup>
                 <Label for="horas">Horas</Label>
-                <Input type="text" name="horas" id="horas" placeholder={(formVentaTemporal.tiempo / 60).toFixed(2) + " Hrs"} disabled />
+                <Input
+                  type="text"
+                  name="horas"
+                  id="horas"
+                  placeholder={(formVentaTemporal.tiempo / 60).toFixed(2) + " Hrs"}
+                  disabled
+                />
               </FormGroup>
 
               <ButtonGroup style={{ marginBottom: "10%" }}>
@@ -1728,8 +1847,13 @@ function CrearCita() {
           <Input style={{ marginBottom: "10px" }} disabled value={formCitaDescripciones.descripcion_no_cliente}></Input>
           <div style={{ display: "flex", justifyContent: "space-evenly" }}>
             <Label>Suc: {formPuntosObservaciones.sucursal ? formPuntosObservaciones.sucursal : ""}</Label>
-            <Label>Fecha: {formPuntosObservaciones.fecha ? format(new Date(formPuntosObservaciones.fecha), "dd/MM/yyyy") : ""} </Label>
-            <Label>Hora: {formPuntosObservaciones.fecha ? format(new Date(formPuntosObservaciones.fecha), "HH:mm") : ""}</Label>
+            <Label>
+              Fecha:{" "}
+              {formPuntosObservaciones.fecha ? format(new Date(formPuntosObservaciones.fecha), "dd/MM/yyyy") : ""}{" "}
+            </Label>
+            <Label>
+              Hora: {formPuntosObservaciones.fecha ? format(new Date(formPuntosObservaciones.fecha), "HH:mm") : ""}
+            </Label>
           </div>
           <DataGrid autoHeight rows={dataOperaciones} columns={columnsConultaPuntos} />
 
@@ -1937,7 +2061,10 @@ function CrearCita() {
             <Col md={3}>
               <Input
                 disabled
-                value={format(formVentaOperaciones.fecha ? new Date(formVentaOperaciones.fecha) : new Date(), "yyyy-MM-dd")}
+                value={format(
+                  formVentaOperaciones.fecha ? new Date(formVentaOperaciones.fecha) : new Date(),
+                  "yyyy-MM-dd",
+                )}
                 placeholder="Fecha"
               ></Input>
             </Col>
@@ -2011,7 +2138,15 @@ function CrearCita() {
           <FormGroup>
             <Label for="cliente">Producto</Label>
             <InputGroup addonType="append">
-              <Input bsSize="sm" disabled value={formDetalleCitasServicios.d_clave_prod} type="text" name="cliente" id="cliente" size={"small"} />
+              <Input
+                bsSize="sm"
+                disabled
+                value={formDetalleCitasServicios.d_clave_prod}
+                type="text"
+                name="cliente"
+                id="cliente"
+                size={"small"}
+              />
               <Button size="sm" onClick={() => setProductosModalEdicion(true)}>
                 Buscar
               </Button>
@@ -2036,7 +2171,7 @@ function CrearCita() {
                 formDetalleCitasServicios.idServicio,
                 0,
                 formDetalleCitasServicios.cantidad,
-                formDetalleCitasServicios.precio
+                formDetalleCitasServicios.precio,
               );
             }}
           >
@@ -2135,7 +2270,10 @@ function CustomNoRowsOverlay() {
               className="ant-empty-img-1"
               d="M122.034 69.674L98.109 40.229c-1.148-1.386-2.826-2.225-4.593-2.225h-51.44c-1.766 0-3.444.839-4.592 2.225L13.56 69.674v15.383h108.475V69.674z"
             />
-            <path className="ant-empty-img-2" d="M33.83 0h67.933a4 4 0 0 1 4 4v93.344a4 4 0 0 1-4 4H33.83a4 4 0 0 1-4-4V4a4 4 0 0 1 4-4z" />
+            <path
+              className="ant-empty-img-2"
+              d="M33.83 0h67.933a4 4 0 0 1 4 4v93.344a4 4 0 0 1-4 4H33.83a4 4 0 0 1-4-4V4a4 4 0 0 1 4-4z"
+            />
             <path
               className="ant-empty-img-3"
               d="M42.678 9.953h50.237a2 2 0 0 1 2 2V36.91a2 2 0 0 1-2 2H42.678a2 2 0 0 1-2-2V11.953a2 2 0 0 1 2-2zM42.94 49.767h49.713a2.262 2.262 0 1 1 0 4.524H42.94a2.262 2.262 0 0 1 0-4.524zM42.94 61.53h49.713a2.262 2.262 0 1 1 0 4.525H42.94a2.262 2.262 0 0 1 0-4.525zM121.813 105.032c-.775 3.071-3.497 5.36-6.735 5.36H20.515c-3.238 0-5.96-2.29-6.734-5.36a7.309 7.309 0 0 1-.222-1.79V69.675h26.318c2.907 0 5.25 2.448 5.25 5.42v.04c0 2.971 2.37 5.37 5.277 5.37h34.785c2.907 0 5.277-2.421 5.277-5.393V75.1c0-2.972 2.343-5.426 5.25-5.426h26.318v33.569c0 .617-.077 1.216-.221 1.789z"
