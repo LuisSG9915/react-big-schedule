@@ -59,7 +59,10 @@ class Scheduler extends Component {
     this.scrollLeft = 0;
     this.scrollTop = 0;
 
-    if ((schedulerData.isSchedulerResponsive() && !schedulerData.config.responsiveByParent) || parentRef === undefined) {
+    if (
+      (schedulerData.isSchedulerResponsive() && !schedulerData.config.responsiveByParent) ||
+      parentRef === undefined
+    ) {
       schedulerData._setDocumentWidth(document.documentElement.clientWidth);
       window.onresize = this.onWindowResize;
     }
@@ -68,7 +71,10 @@ class Scheduler extends Component {
   onWindowResize = (e) => {
     const { schedulerData } = this.props;
     schedulerData._setDocumentWidth(document.documentElement.clientWidth);
-    this.setState({ documentWidth: document.documentElement.clientWidth, documentHeight: document.documentElement.clientHeight });
+    this.setState({
+      documentWidth: document.documentElement.clientWidth,
+      documentHeight: document.documentElement.clientHeight,
+    });
   };
 
   static propTypes = {
@@ -161,15 +167,15 @@ class Scheduler extends Component {
     const width = schedulerData.getSchedulerWidth();
 
     const overlayStyle = {
-      position: 'absolute',
+      position: "absolute",
       top: 0,
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(240, 240, 240, 0.4)',
+      backgroundColor: "rgba(240, 240, 240, 0.4)",
       zIndex: 1000,
-      display: isLoading ? 'block' : 'none',
-      cursor: 'not-allowed'
+      display: isLoading ? "block" : "none",
+      cursor: "not-allowed",
     };
 
     let tbodyContent = <tr />;
@@ -177,7 +183,9 @@ class Scheduler extends Component {
       tbodyContent = <AgendaView {...this.props} />;
     } else {
       const resourceTableWidth = schedulerData.getResourceTableWidth();
-      const schedulerContainerWidth = width - (config.resourceViewEnabled ? resourceTableWidth : 0);
+      // Hay columna Estilistas izquierda Y derecha: descontar ambas para que
+      // el scheduler-view tenga el ancho correcto y el scroll no se desalinee.
+      const schedulerContainerWidth = width - (config.resourceViewEnabled ? 2 * resourceTableWidth : 0);
       const schedulerWidth = schedulerData.getContentTableWidth() - 1;
       const DndResourceEvents = this.state.dndContext.getDropTarget(config.dragAndDropEnabled);
       const eventDndSource = this.state.dndContext.getDndSource();
@@ -223,10 +231,18 @@ class Scheduler extends Component {
       const resourceName = schedulerData.isEventPerspective ? config.taskName : config.resourceName;
       tbodyContent = (
         <tr>
-          <td style={{ display: config.resourceViewEnabled ? undefined : "none", width: resourceTableWidth, verticalAlign: "top" }}>
+          <td
+            style={{
+              display: config.resourceViewEnabled ? undefined : "none",
+              width: resourceTableWidth,
+              verticalAlign: "top",
+            }}
+          >
             <div className="resource-view">
               <div style={{ overflow: "hidden", borderBottom: "1px solid #e9e9e9", height: config.tableHeaderHeight }}>
-                <div style={{ overflowX: "scroll", overflowY: "hidden", margin: `0px 0px -${contentScrollbarHeight}px` }}>
+                <div
+                  style={{ overflowX: "scroll", overflowY: "hidden", margin: `0px 0px -${contentScrollbarHeight}px` }}
+                >
                   <table className="resource-table">
                     <thead>
                       <tr style={{ height: config.tableHeaderHeight }}>
@@ -257,7 +273,12 @@ class Scheduler extends Component {
                   onMouseOut={this.onSchedulerHeadMouseOut}
                   onScroll={this.onSchedulerHeadScroll}
                 >
-                  <div style={{ paddingRight: `${contentScrollbarWidth}px`, width: schedulerWidth + contentScrollbarWidth }}>
+                  <div
+                    style={{
+                      paddingRight: `${contentScrollbarWidth}px`,
+                      width: schedulerWidth + contentScrollbarWidth,
+                    }}
+                  >
                     <table className="scheduler-bg-table">
                       <HeaderView {...this.props} />
                     </table>
@@ -278,7 +299,11 @@ class Scheduler extends Component {
                     </table>
                   </div>
                   <div className="scheduler-bg">
-                    <table className="scheduler-bg-table" style={{ width: schedulerWidth }} ref={this.schedulerContentBgTableRef}>
+                    <table
+                      className="scheduler-bg-table"
+                      style={{ width: schedulerWidth }}
+                      ref={this.schedulerContentBgTableRef}
+                    >
                       <BodyView {...this.props} />
                     </table>
                   </div>
@@ -286,10 +311,18 @@ class Scheduler extends Component {
               </div>
             </div>
           </td>
-          <td style={{ display: config.resourceViewEnabled ? undefined : "none", width: resourceTableWidth, verticalAlign: "top" }}>
+          <td
+            style={{
+              display: config.resourceViewEnabled ? undefined : "none",
+              width: resourceTableWidth,
+              verticalAlign: "top",
+            }}
+          >
             <div className="resource-view">
               <div style={{ overflow: "hidden", borderBottom: "1px solid #e9e9e9", height: config.tableHeaderHeight }}>
-                <div style={{ overflowX: "scroll", overflowY: "hidden", margin: `0px 0px -${contentScrollbarHeight}px` }}>
+                <div
+                  style={{ overflowX: "scroll", overflowY: "hidden", margin: `0px 0px -${contentScrollbarHeight}px` }}
+                >
                   <table className="resource-table">
                     <thead>
                       <tr style={{ height: config.tableHeaderHeight }}>
@@ -331,7 +364,7 @@ class Scheduler extends Component {
     }
 
     return (
-      <div style={{ position: 'relative' }}>
+      <div style={{ position: "relative" }}>
         <div style={overlayStyle} />
         <table id="RBS-Scheduler-root" className="scheduler" style={{ width: `${width}px` }}>
           <thead>
@@ -394,7 +427,10 @@ class Scheduler extends Component {
   };
 
   onSchedulerHeadScroll = (proxy, event) => {
-    if ((this.currentArea === 2 || this.currentArea === -1) && this.schedulerContent.scrollLeft !== this.schedulerHead.scrollLeft) {
+    if (
+      (this.currentArea === 2 || this.currentArea === -1) &&
+      this.schedulerContent.scrollLeft !== this.schedulerHead.scrollLeft
+    ) {
       this.schedulerContent.scrollLeft = this.schedulerHead.scrollLeft;
     }
   };
@@ -413,7 +449,10 @@ class Scheduler extends Component {
 
   onSchedulerResourceScroll = (proxy, event) => {
     if (this.schedulerResource) {
-      if ((this.currentArea === 1 || this.currentArea === -1) && this.schedulerContent.scrollTop !== this.schedulerResource.scrollTop) {
+      if (
+        (this.currentArea === 1 || this.currentArea === -1) &&
+        this.schedulerContent.scrollTop !== this.schedulerResource.scrollTop
+      ) {
         this.schedulerContent.scrollTop = this.schedulerResource.scrollTop;
       }
     }
@@ -438,31 +477,51 @@ class Scheduler extends Component {
   onSchedulerContentScroll = (proxy, event) => {
     if (this.schedulerResource) {
       if (this.currentArea === 0 || this.currentArea === -1) {
-        if (this.schedulerHead.scrollLeft !== this.schedulerContent.scrollLeft) this.schedulerHead.scrollLeft = this.schedulerContent.scrollLeft;
-        if (this.schedulerResource.scrollTop !== this.schedulerContent.scrollTop) this.schedulerResource.scrollTop = this.schedulerContent.scrollTop;
+        if (this.schedulerHead.scrollLeft !== this.schedulerContent.scrollLeft)
+          this.schedulerHead.scrollLeft = this.schedulerContent.scrollLeft;
+        if (this.schedulerResource.scrollTop !== this.schedulerContent.scrollTop)
+          this.schedulerResource.scrollTop = this.schedulerContent.scrollTop;
       }
     }
 
     const { schedulerData, onScrollLeft, onScrollRight, onScrollTop, onScrollBottom } = this.props;
     if (this.schedulerContent.scrollLeft !== this.scrollLeft) {
       if (this.schedulerContent.scrollLeft === 0 && onScrollLeft !== undefined) {
-        onScrollLeft(schedulerData, this.schedulerContent, this.schedulerContent.scrollWidth - this.schedulerContent.clientWidth);
+        onScrollLeft(
+          schedulerData,
+          this.schedulerContent,
+          this.schedulerContent.scrollWidth - this.schedulerContent.clientWidth,
+        );
       }
       if (
-        Math.round(this.schedulerContent.scrollLeft) === this.schedulerContent.scrollWidth - this.schedulerContent.clientWidth &&
+        Math.round(this.schedulerContent.scrollLeft) ===
+          this.schedulerContent.scrollWidth - this.schedulerContent.clientWidth &&
         onScrollRight !== undefined
       ) {
-        onScrollRight(schedulerData, this.schedulerContent, this.schedulerContent.scrollWidth - this.schedulerContent.clientWidth);
+        onScrollRight(
+          schedulerData,
+          this.schedulerContent,
+          this.schedulerContent.scrollWidth - this.schedulerContent.clientWidth,
+        );
       }
     } else if (this.schedulerContent.scrollTop !== this.scrollTop) {
       if (this.schedulerContent.scrollTop === 0 && onScrollTop !== undefined) {
-        onScrollTop(schedulerData, this.schedulerContent, this.schedulerContent.scrollHeight - this.schedulerContent.clientHeight);
+        onScrollTop(
+          schedulerData,
+          this.schedulerContent,
+          this.schedulerContent.scrollHeight - this.schedulerContent.clientHeight,
+        );
       }
       if (
-        Math.round(this.schedulerContent.scrollTop) === this.schedulerContent.scrollHeight - this.schedulerContent.clientHeight &&
+        Math.round(this.schedulerContent.scrollTop) ===
+          this.schedulerContent.scrollHeight - this.schedulerContent.clientHeight &&
         onScrollBottom !== undefined
       ) {
-        onScrollBottom(schedulerData, this.schedulerContent, this.schedulerContent.scrollHeight - this.schedulerContent.clientHeight);
+        onScrollBottom(
+          schedulerData,
+          this.schedulerContent,
+          this.schedulerContent.scrollHeight - this.schedulerContent.clientHeight,
+        );
       }
     }
     this.scrollLeft = this.schedulerContent.scrollLeft;

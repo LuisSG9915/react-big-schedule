@@ -463,11 +463,19 @@ function Basic() {
 
   const getCitas = async (fecha) => {
     try {
+      // Formatear fecha en local (no UTC) para evitar corrimiento de día en México (UTC-6)
+      const toLocalDate = (d) => {
+        if (!d) return datosParametros.fecha instanceof Date ? datosParametros.fecha : new Date(datosParametros.fecha);
+        if (typeof d === "string") return new Date(d.includes("T") ? d.split("T")[0] : d);
+        return d;
+      };
+      const fechaLocal = toLocalDate(fecha);
+      const fechaFormateadaCitas = `${fechaLocal.getFullYear()}${String(fechaLocal.getMonth() + 1).padStart(
+        2,
+        "0",
+      )}${String(fechaLocal.getDate()).padStart(2, "0")}`;
       const response = await peinadosApi.get(
-        `/DetalleAgendaSelv20?fecha=${format(
-          fecha ? fecha : datosParametros.fecha,
-          "yyyyMMdd",
-        )}&suc=${idSuc}&nomberEstilista=${"%"}&nombreCliente=${"%"}`,
+        `/DetalleAgendaSelv20?fecha=${fechaFormateadaCitas}&suc=${idSuc}&nomberEstilista=${"%"}&nombreCliente=${"%"}`,
       );
 
       // Filtrar solo las citas del estilista 37 para análisis
@@ -580,10 +588,16 @@ function Basic() {
         hora1.setHours(hora1Original.getHours(), hora1Original.getMinutes(), 0, 0);
         hora2.setHours(hora2Original.getHours(), hora2Original.getMinutes(), 0, 0);
 
+        // Usar formato local (no toISOString que convierte a UTC y desplaza 6h en México)
+        const toLocalStr = (d) =>
+          `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(
+            2,
+            "0",
+          )} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:00`;
         return {
           ...item,
-          start: hora1.toISOString(),
-          end: hora2.toISOString(),
+          start: toLocalStr(hora1),
+          end: toLocalStr(hora2),
           resourceId: item.no_estilista,
           title: "",
           type: 2,
@@ -722,8 +736,16 @@ function Basic() {
     const handleMessage = (event) => {
       if (event.data && event.data.type === "CITA_ACTUALIZADA") {
         console.log("Cita actualizada desde ventana externa:", event.data.idCita);
-        // Refrescar el scheduler sin recargar la página
-        getCitas();
+        // Refrescar el scheduler: obtener citas y actualizar schedulerData activo
+        getCitas(datosParametros.fecha).then((response) => {
+          if (response && schedulerData) {
+            schedulerData.setEvents(response);
+            dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
+            // Evitar que el useEffect reconstructor descuadre el visual
+            navigationLockRef.current = Date.now();
+            setArregloCita(response);
+          }
+        });
         // Swal.fire({
         //   title: "Agenda actualizada",
         //   icon: "info",
@@ -946,9 +968,12 @@ function Basic() {
   }, [arregloCita, arreglo, dataSucursales, isLoading, isNavigatingDate]);
   const actualizarAgenda = (response, schedulerData) => {
     schedulerData.setEvents(response);
-    // 🎯 SOLUCIÓN DEFINITIVA: Actualizar arregloCita para sincronizar con useEffect
-    setArregloCita(response);
     dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
+    // Activar lock ANTES de setArregloCita para que el useEffect reconstructor
+    // no reconstruya SchedulerData (lo que descuadra el visual) cuando solo
+    // se actualizan los eventos de la agenda.
+    navigationLockRef.current = Date.now();
+    setArregloCita(response);
   };
 
   const actualizarFechayCitas = useCallback(
@@ -964,8 +989,12 @@ function Basic() {
         if (fecha) {
           fechaBase = fecha;
         } else if (typeof datosParametrosPrevios.fecha === "object") {
-          // Si es un objeto Date
-          fechaBase = datosParametrosPrevios.fecha.toISOString().split("T")[0];
+          // Usar fecha LOCAL (no toISOString que convierte a UTC y puede cambiar el día en UTC-6)
+          const d = datosParametrosPrevios.fecha;
+          fechaBase = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(
+            2,
+            "0",
+          )}`;
         } else if (typeof datosParametrosPrevios.fecha === "string") {
           // Si es string con formato ISO
           fechaBase = datosParametrosPrevios.fecha.split("T")[0];
@@ -995,7 +1024,12 @@ function Basic() {
             if (dias < 0) {
               schedulerData.prev();
             } else if (dias === 0) {
-              schedulerData.setDate(tempFecha.toISOString().split("T")[0]);
+              // Usar fecha local para evitar corrimiento de día por conversión UTC
+              schedulerData.setDate(
+                `${tempFecha.getFullYear()}-${String(tempFecha.getMonth() + 1).padStart(2, "0")}-${String(
+                  tempFecha.getDate(),
+                ).padStart(2, "0")}`,
+              );
             } else {
               schedulerData.next();
             }
@@ -1746,8 +1780,8 @@ function Basic() {
     // },
   ];
 
-  // const ligaPruebas = "http://localhost:5173/";
-  const ligaPruebas = "http://217.216.95.62:9019/";
+  const ligaPruebas = "http://localhost:5173/";
+  // const ligaPruebas = "http://217.216.95.62:9019/";
   const handleOpenNewWindow = ({ idCita, idUser, idCliente, fecha, flag }) => {
     const url = `${ligaPruebas}miliga/crearcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idSuc=${1}&idRec=${1}&flag=${flag}`; // Reemplaza esto con la URL que desees abrir
     const width = 390;
