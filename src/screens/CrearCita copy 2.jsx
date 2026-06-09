@@ -287,7 +287,7 @@ function CrearCita() {
   const getProductos = () => {
     peinadosApi
       .get(
-        "/sp_cPSEAC?id=0&cia=1&sucursal=2&almacen=1&marca=%&descripcion=%&verinventariable=0&esServicio=2&esInsumo=0&obsoleto=0",
+        "/sp_cPSEAC?id=0&cia=1&sucursal=2&almacen=1&marca=%&descripcion=%&verinventariable=2&esServicio=2&esInsumo=0&obsoleto=0",
       )
       .then((response) => {
         setDataProductos(response.data);

@@ -1780,8 +1780,8 @@ function Basic() {
     // },
   ];
 
-  const ligaPruebas = "http://localhost:5173/";
-  // const ligaPruebas = "http://217.216.95.62:9019/";
+  // const ligaPruebas = "http://localhost:5173/";
+  const ligaPruebas = "http://217.216.95.62:9019/";
   const handleOpenNewWindow = ({ idCita, idUser, idCliente, fecha, flag }) => {
     const url = `${ligaPruebas}miliga/crearcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idSuc=${1}&idRec=${1}&flag=${flag}`; // Reemplaza esto con la URL que desees abrir
     const width = 390;
@@ -2287,7 +2287,7 @@ function Basic() {
   const getProductos = () => {
     peinadosApi
       .get(
-        "/sp_cPSEAC?id=0&cia=1&sucursal=2&almacen=1&marca=%&descripcion=%&verinventariable=0&esServicio=2&esInsumo=0&obsoleto=0",
+        `/sp_cPSEAC?id=0&cia=1&sucursal=${idSuc}&almacen=0&marca=%&descripcion=%&verinventariable=2&esServicio=2&esInsumo=0&obsoleto=0`,
       )
       .then((response) => {
         setDataProductos(response.data);
