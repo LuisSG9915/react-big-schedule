@@ -12,7 +12,8 @@ module.exports = {
   entry: "./src/examples/index.jsx",
   output: {
     path: path.resolve(__dirname, "..", "dist"),
-    filename: "bundle.js",
+    filename: isProduction ? "bundle.[contenthash:8].js" : "bundle.js",
+    clean: true,
   },
   module: {
     rules: [
@@ -37,6 +38,7 @@ module.exports = {
     new HtmlWebpackPlugin({
       template: "./src/index.html",
       title: "React Big Schedule",
+      hash: true,
     }),
     ...(isProduction
       ? [new CompressionWebpackPlugin(), new TerserPlugin()]

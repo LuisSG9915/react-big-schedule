@@ -52,7 +52,7 @@
     "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
-    "build": "webpack --mode production --config ./webpack/webpack.dev.config.js",
+    "build": "NODE_ENV=production webpack --mode production --config ./webpack/webpack.dev.config.js",
     "start": "webpack serve --mode development --config ./webpack/webpack.dev.config.js",
     "clean": "rimraf ./dist && mkdir dist",
     "lint": "eslint ./src",
