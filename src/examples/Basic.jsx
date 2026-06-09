@@ -300,6 +300,7 @@ function Basic() {
   });
   const [datosParametrosCitaTemp, setDatosParametrosCitaTemp] = useState({});
   const [datosParametrosFechaCitaTemp, setDatosParametrosFechaCitaTemp] = useState({});
+  const usuarioValidadoMoveRef = useRef(null);
   const handleChangeObservaciones = (e) => {
     setFormCitasObservaciones2(e.target.value);
   };
@@ -787,6 +788,12 @@ function Basic() {
         horaSalida += 1; // Añadir una hora más para incluir la hora parcial
       }
 
+      // Extender la vista si hay citas que terminan después del horario de cierre
+      if (arregloCita && arregloCita.length > 0) {
+        const maxCitaHora = Math.max(...arregloCita.map((c) => new Date(c.end).getHours()));
+        if (maxCitaHora >= horaSalida) horaSalida = maxCitaHora + 1;
+      }
+
       // Actualizar la configuración del scheduler
       const updatedSchedulerData = state.viewModel;
       updatedSchedulerData.config.dayStartFrom = horaEntrada;
@@ -870,6 +877,12 @@ function Basic() {
       }
     } else {
       console.log("No hay datos de horarios ni de sucursales. Usando valores por defecto.");
+    }
+
+    // Extender la vista si hay citas que terminan después del horario de cierre
+    if (arregloCita && arregloCita.length > 0) {
+      const maxCitaHora = Math.max(...arregloCita.map((c) => new Date(c.end).getHours()));
+      if (maxCitaHora >= horaSalida) horaSalida = maxCitaHora + 1;
     }
 
     schedulerData = new SchedulerData(datosParametros.fecha, ViewType.Day, false, false, {
@@ -968,6 +981,15 @@ function Basic() {
   }, [arregloCita, arreglo, dataSucursales, isLoading, isNavigatingDate]);
   const actualizarAgenda = (response, schedulerData) => {
     schedulerData.setEvents(response);
+    // Extender la vista si hay citas que terminan después del horario de cierre
+    if (response && response.length > 0) {
+      const maxCitaHora = Math.max(...response.map((c) => new Date(c.end).getHours()));
+      if (maxCitaHora >= schedulerData.config.dayStopTo) {
+        schedulerData.config.dayStopTo = maxCitaHora + 1;
+        schedulerData._createHeaders();
+        schedulerData._createRenderData();
+      }
+    }
     dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
     // Activar lock ANTES de setArregloCita para que el useEffect reconstructor
     // no reconstruya SchedulerData (lo que descuadra el visual) cuando solo
@@ -1216,7 +1238,7 @@ function Basic() {
         return;
       }
       const isVerified = await verificarDisponibilidad(event.tiempo, new Date(start), slotId, event.idCita);
-      if (!isVerified) return;
+      if (!isVerified || !isVerified.disponible) return;
 
       if (event.estadoCita == 2 && slotId != event.no_estilista) {
         Swal.fire({
@@ -1230,6 +1252,7 @@ function Basic() {
       const nombreAgendaNuevo = dataTrabajadores.find((item) => item.id === slotId).nombre_agenda;
       const nombreAgendaAnterior = dataTrabajadores.find((item) => item.id === event.no_estilista).nombre_agenda;
 
+      const passwordYaValidado = isVerified.passwordYaValidado;
       Swal.fire({
         title: "Cambio de Cita",
         html: `
@@ -1247,16 +1270,22 @@ function Basic() {
         cancelButtonText: "No",
       }).then(async (result) => {
         if (result.isConfirmed) {
-          const result = await validarContraseña("MODIFICAR_CITA", "AGENDA");
-          if (result.validado) {
-            // Usar el usuario validado
-            const usuarioValidado = result.usuario;
-            setDatosParametrosFechaCitaTemp({
-              fecha: start,
-              usuarioEstilista: slotId,
-            });
-            setDatosParametrosCitaTemp(event);
+          let usuarioValidado;
+          if (passwordYaValidado) {
+            // Contraseña ya fue validada en verificarDisponibilidad, no pedir de nuevo
+            usuarioValidado = null;
+          } else {
+            const pwResult = await validarContraseña("MODIFICAR_CITA", "AGENDA");
+            if (!pwResult.validado) return;
+            usuarioValidado = pwResult.usuario;
           }
+          // Guardar usuario en ref para que putEditarCita no pida contraseña de nuevo
+          usuarioValidadoMoveRef.current = usuarioValidado;
+          setDatosParametrosFechaCitaTemp({
+            fecha: start,
+            usuarioEstilista: slotId,
+          });
+          setDatosParametrosCitaTemp(event);
         }
       });
     },
@@ -1780,8 +1809,8 @@ function Basic() {
     // },
   ];
 
-  // const ligaPruebas = "http://localhost:5173/";
-  const ligaPruebas = "http://217.216.95.62:9019/";
+  //  const ligaPruebas = "http://localhost:5173/";
+   const ligaPruebas = "http://217.216.95.62:9019/";
   const handleOpenNewWindow = ({ idCita, idUser, idCliente, fecha, flag }) => {
     const url = `${ligaPruebas}miliga/crearcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idSuc=${1}&idRec=${1}&flag=${flag}`; // Reemplaza esto con la URL que desees abrir
     const width = 390;
@@ -1866,12 +1895,16 @@ function Basic() {
     });
   };
   const putEditarCita = async () => {
-    // Validar permisos antes de editar la cita
-    const result = await validarContraseña("MODIFICAR_CITA", "AGENDA");
-    if (!result.validado) return;
-
-    // Usar el usuario validado
-    const usuarioValidado = result.usuario;
+    let usuarioValidado;
+    // Si el flujo de moveEvent ya validó la contraseña, reutilizar ese usuario
+    if (usuarioValidadoMoveRef.current !== null) {
+      usuarioValidado = usuarioValidadoMoveRef.current;
+      usuarioValidadoMoveRef.current = null;
+    } else {
+      const result = await validarContraseña("MODIFICAR_CITA", "AGENDA");
+      if (!result.validado) return;
+      usuarioValidado = result.usuario;
+    }
 
     let fechaActual = new Date();
     // Extrae el año, mes y día
@@ -2805,11 +2838,13 @@ function Basic() {
   };
 
   const postCrearCita = async () => {
+    console.log("[postCrearCita] iniciando");
     if (formCitaServicio.idCita) {
       setProductosModal(true);
       return;
     }
 
+    console.log("[postCrearCita] llamando verificarDisponibilidad");
     const disponibilidad = await verificarDisponibilidad(
       formCita.tiempo,
       formCita.fecha,
@@ -2821,6 +2856,13 @@ function Basic() {
       return;
     }
 
+    console.log("=== DEBUG postCrearCita ===");
+    console.log("formCita.fecha:", formCita.fecha);
+    console.log("datosParametros.fecha:", datosParametros.fecha);
+    
+    const citaDateTime = formCita.fecha;
+    console.log("citaDateTime definido como:", citaDateTime);
+    
     let fechaActual = new Date(datosParametros.fecha);
     // Extrae el año, mes y día
     let año = fechaActual.getFullYear();
@@ -2838,7 +2880,7 @@ function Basic() {
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: `Imposible agregar una cita en el pasado ${citaDateTime.toLocaleString()}`,
+        text: `Imposible agregar una cita en el pasado ${new Date(fechaLimpia).toLocaleString()}`,
         confirmButtonColor: "#3085d6", // Cambiar el color del botón OK
       });
       return;
@@ -2952,6 +2994,7 @@ function Basic() {
                         formCitaServicio.precio || 0, // precio
                         citaDateTime, // fechaCita
                         formCita.estatusAsignado ? 3 : formCita.estatusRequerido ? 2 : 1, // estatusCita
+                        true, // skipValidation — ya validado antes
                       );
                     }
                   }
@@ -3006,7 +3049,7 @@ function Basic() {
 
             // Si hay servicio a domicilio, también usar el usuario validado
             if (formCita.esServicioDomicilio) {
-              await postCitasServicios(11948, 0, 1, response.data.mensaje2, usuarioValidado);
+              await postCitasServicios(11948, 0, 1, response.data.mensaje2, usuarioValidado, true);
             }
 
             return response.data.mensaje2;
@@ -3571,15 +3614,17 @@ function Basic() {
     const shouldReload = skipValidation || isUpdatingService;
 
     // Si no se debe omitir la validación, validar contraseña y permisos
-    const result = await validarContraseña("MODIFICAR_CITA", "AGENDA");
-
-    if (!result.validado) {
-      Swal.fire({ icon: "error", title: "Error", text: "Permiso denegado o contraseña incorrecta" });
-      return;
+    let usuarioValidado;
+    if (!skipValidation) {
+      const result = await validarContraseña("MODIFICAR_CITA", "AGENDA");
+      if (!result.validado) {
+        Swal.fire({ icon: "error", title: "Error", text: "Permiso denegado o contraseña incorrecta" });
+        return;
+      }
+      usuarioValidado = result.usuario;
+    } else {
+      usuarioValidado = usuario;
     }
-
-    // Usar el usuario validado
-    const usuarioValidado = result.usuario;
     usuario = usuarioValidado; // Actualizar el parámetro usuario con el usuario validado
 
     try {
@@ -3628,12 +3673,16 @@ function Basic() {
     precio,
     fechaCita,
     estatusCita,
+    skipValidation = false,
   ) => {
-    const result = await validarContraseña("MODIFICAR_CITA", "AGENDA");
-    if (!result.validado) return;
-
-    // Usar el usuario validado en lugar del parámetro usuario
-    const usuarioValidado = result.usuario;
+    let usuarioValidado;
+    if (!skipValidation) {
+      const result = await validarContraseña("MODIFICAR_CITA", "AGENDA");
+      if (!result.validado) return;
+      usuarioValidado = result.usuario;
+    } else {
+      usuarioValidado = usuario;
+    }
     usuario = usuarioValidado; // Actualizar el parámetro usuario con el usuario validado
 
     peinadosApi
@@ -3655,19 +3704,19 @@ function Basic() {
       })
       .then((response) => {
         fetchDetalleCitasServicios();
-        Swal.fire({
-          icon: "success",
-          text: "Registro Realizado ",
-          confirmButtonColor: "#3085d6",
-          confirmButtonText: "Recargar pagina",
-          cancelButtonText: "No",
-          showCancelButton: true,
-        }).then((result) => {
-          getCitasDia();
-          if (result.isConfirmed) {
-            window.location.reload();
-          }
-        });
+        // Swal.fire({
+        //   icon: "success",
+        //   text: "Registro Realizado ",
+        //   confirmButtonColor: "#3085d6",
+        //   confirmButtonText: "Recargar pagina",
+        //   cancelButtonText: "No",
+        //   showCancelButton: true,
+        // }).then((result) => {
+        //   getCitasDia();
+        //   if (result.isConfirmed) {
+        //     window.location.reload();
+        //   }
+        // });
         setModalEdicionServicios2(false);
       });
   };
@@ -3743,6 +3792,7 @@ function Basic() {
                 },
               })
               .then((response) => {
+                usuarioValidadoMoveRef.current = null;
                 Swal.fire({
                   icon: "success",
                   text: "Registro Realizado con éxito, desea registrar otro servicio con otro estilista? ",
@@ -3898,15 +3948,21 @@ function Basic() {
   //     // }
   //   });
   // };
-  const postCitasServicios = async (clave, tiempo, precio, idCita, usuarioValidado = null) => {
-    const disponibilidad = await verificarDisponibilidad(
-      tiempo,
-      formCita.fecha,
-      formCita.no_estilista,
-      formCitaServicio.idCita,
-    );
+  const postCitasServicios = async (clave, tiempo, precio, idCita, usuarioValidado = null, skipValidacion = false) => {
+    console.log("[postCitasServicios] iniciando, clave:", clave, "skipValidacion:", skipValidacion);
+    let disponible = true;
+    if (!skipValidacion) {
+      console.log("[postCitasServicios] llamando verificarDisponibilidad");
+      const disponibilidad = await verificarDisponibilidad(
+        tiempo,
+        formCita.fecha,
+        formCita.no_estilista,
+        formCitaServicio.idCita,
+      );
+      disponible = disponibilidad.disponible;
+    }
 
-    if (disponibilidad.disponible) {
+    if (disponible) {
       peinadosApi
         .post(`/sp_detalleCitasServiciosAdd7`, null, {
           params: {
@@ -4078,9 +4134,12 @@ function Basic() {
   };
 
   async function verificarDisponibilidad(tiempo, fecha, estilista, idCita) {
+    console.log("[verificarDisponibilidad] tiempo:", tiempo, "estilista:", estilista, "idCita:", idCita);
+    console.trace("[verificarDisponibilidad] llamado desde:");
     const res = await fetchCitaEmpalme5(tiempo, new Date(fecha), estilista, idCita);
     const resHorario = await fetchHorarioDisponibleEstilistas(new Date(fecha), estilista, tiempo);
     let observacion = "";
+    let passwordYaValidado = false;
 
     if (res && res.data[0].id > 0) {
       const isConfirmed = await Swal.fire({
@@ -4097,6 +4156,8 @@ function Basic() {
       } else {
         const result = await validarContraseña("MODIFICAR_CITA", "AGENDA");
         if (!result.validado) return { disponible: false };
+        // Contraseña ya validada en este bloque — no repetir en el caller
+        passwordYaValidado = true;
       }
     }
 
@@ -4129,6 +4190,8 @@ function Basic() {
 
       const result = await validarContraseña("MODIFICAR_CITA", "AGENDA");
       if (!result.validado) return { disponible: false };
+      // Contraseña ya validada en este bloque — no repetir en el caller
+      passwordYaValidado = true;
     } else if (res && res.data[0] && res.data[0].id > 0) {
       Swal.fire({
         icon: "error",
@@ -4142,7 +4205,7 @@ function Basic() {
       return { disponible: false };
     }
 
-    return { disponible: true, observacion: observacion };
+    return { disponible: true, observacion: observacion, passwordYaValidado };
   }
   const [colummEdit, setColummEdit] = useState("");
   const handleCellDoubleClick = (params) => {
@@ -4626,12 +4689,8 @@ function Basic() {
                   return;
                 }
 
-                // Ya no necesitamos cambiar el estado, usamos el parámetro directamente
-                console.log("Cancelando cita con skipValidation=true");
-
                 try {
-                  // Pasamos true como último parámetro para omitir la validación
-                  await putDetalleCitasServiciosUpd4(
+                  const res = await putDetalleCitasServiciosUpd4(
                     0,
                     event.sucursal,
                     event.idCita,
@@ -4643,10 +4702,13 @@ function Basic() {
                     0,
                     0,
                     new Date(),
-                    true,
                   );
-                } finally {
-                  setIsModalOpen(false);
+                  if (res) {
+                    setIsModalOpen(false);
+                    window.location.reload();
+                  }
+                } catch (error) {
+                  console.error("Error al cancelar cita:", error);
                 }
               }}
             >
@@ -7273,7 +7335,9 @@ function Basic() {
                         </Button>
                         <Button
                           color="danger"
-                          onClick={() => {
+                          onClick={async () => {
+                            const result = await validarContraseña("CANCELAR_CITA", "AGENDA");
+                            if (!result.validado) return;
                             setModalCrear(false);
                             setFormCitaServicio({
                               ...formCitaServicio,
@@ -7297,6 +7361,7 @@ function Basic() {
                             setFormCitasObservaciones2("");
                             setdataCitasServicios([]);
                             setModalEdicionServicios2(false);
+                            usuarioValidadoMoveRef.current = null;
                           }}
                         >
                           Salir

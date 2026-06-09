@@ -322,11 +322,12 @@ class ResourceEvents extends Component {
               realLeftIndex = index;
             }
 
-            // Clampear: no mostrar eventos fuera del horario visible (dayStartFrom / dayStopTo)
+            // Clampear solo el borde izquierdo para no salir del inicio del horario visible.
+            // No limitar el borde derecho: las citas fuera del horario de cierre deben mostrarse.
             const clampedLeft = Math.max(0, realLeftIndex);
-            const clampedRight = Math.min(totalHeaders, realLeftIndex + evt.span);
+            const clampedRight = realLeftIndex + evt.span;
             const clampedSpan = Math.max(0, clampedRight - clampedLeft);
-            if (clampedSpan === 0) return; // Totalmente fuera del rango visible
+            if (clampedSpan === 0) return; // Totalmente antes del inicio del horario visible
 
             const correctedLeft = clampedLeft * cellWidth + (clampedLeft > 0 ? 2 : 3);
             const left = correctedLeft;

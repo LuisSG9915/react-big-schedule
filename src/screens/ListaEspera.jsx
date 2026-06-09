@@ -83,6 +83,7 @@ function ListaEspera() {
     descripcion_clave_prod: "",
     hora_estimada: 0,
     atendido: 0,
+    tipoCita: false,
     estilista: "",
     estilista_descripcion: "",
     tiempo_servicio: 0,
@@ -434,14 +435,35 @@ function ListaEspera() {
     }
   };
   const [formListaEsperaVerificacion, setFormListaEsperaVerificacion] = useState();
+  const [pendingAction, setPendingAction] = useState(null); // 'post' | 'open'
   function renderDeleteListaEspera(params) {
     return (
       <div style={{ display: "flex" }}>
         <MdCalendarMonth
           onClick={() => {
-            console.log(params.row.hora_estimada)
-            
-            listaEsperaPost(params.row.id, 1, params.row.tiempo_servicio, params.row.estilista, new Date(params.row.hora_estimada));
+            setPendingAction({ type: 'post', row: params.row });
+            setOpenListaEspera(true);
+            setformClienteEspera({
+              id: params.row.id,
+              estilista: params.row.estilista,
+              estilista_descripcion: params.row.nombreEstilsta,
+              descripcion_no_cliente: params.row.nombreCompleto,
+              descripcion_clave_prod: params.row.descripcion,
+              hora_estimada: params.row.hora_estimada,
+              max_detalle_venta_id: params.row.max_detalle_venta_id,
+              tiempo_servicio: params.row.tiempo_servicio,
+              fecha: new Date(params.row.hora_estimada),
+              sucursal: params.row.sucursal,
+              sucursal_descripcion: params.row.sucursal_descripcion,
+              observacion: params.row.observacion,
+              no_cliente: params.row.no_cliente,
+              clave_prod: params.row.clave_prod,
+              usuario_registra: idUser,
+              usuario_servicio: idUser,
+              precio: params.row.precio ?? 0,
+              tipoCita: params.row.atendido === 1 || params.row.atendido === true,
+              esEdicion: true,
+            });
           }}
           title="C"
           size={25}
@@ -450,19 +472,42 @@ function ListaEspera() {
           title="S"
           size={25}
           onClick={() => {
-            setModalCitaServicio(true);
-            setFormListaEsperaVerificacion({
+            setPendingAction({
+              type: 'open',
+              verificacion: {
+                id: params.row.id,
+                fecha: params.row.fecha,
+                estilista: params.row.estilista,
+                estilista_descripcion: params.row.nombreEstilsta,
+                servicio_descripcion: params.row.descripcion,
+                cliente_descripcion: params.row.nombreCompleto,
+                hora_estimada: new Date(),
+                max_detalle_venta_id: params.row.max_detalle_venta_id,
+                tiempo: params.row.tiempo_servicio,
+              },
+            });
+            setOpenListaEspera(true);
+            setformClienteEspera({
               id: params.row.id,
-              fecha: params.row.fecha,
               estilista: params.row.estilista,
               estilista_descripcion: params.row.nombreEstilsta,
-              servicio_descripcion: params.row.descripcion,
-              cliente_descripcion: params.row.nombreCompleto,
-              hora_estimada: new Date(),
+              descripcion_no_cliente: params.row.nombreCompleto,
+              descripcion_clave_prod: params.row.descripcion,
+              hora_estimada: params.row.hora_estimada,
               max_detalle_venta_id: params.row.max_detalle_venta_id,
-              tiempo: params.row.tiempo_servicio,
+              tiempo_servicio: params.row.tiempo_servicio,
+              fecha: new Date(params.row.hora_estimada),
+              sucursal: params.row.sucursal,
+              sucursal_descripcion: params.row.sucursal_descripcion,
+              observacion: params.row.observacion,
+              no_cliente: params.row.no_cliente,
+              clave_prod: params.row.clave_prod,
+              usuario_registra: idUser,
+              usuario_servicio: idUser,
+              precio: params.row.precio ?? 0,
+              tipoCita: params.row.atendido === 1 || params.row.atendido === true,
+              esEdicion: true,
             });
-            // listaEsperaPost(params.row.id, 2);
           }}
         />
         <AiFillEdit
@@ -487,6 +532,7 @@ function ListaEspera() {
               usuario_registra: idUser,
               usuario_servicio: idUser,
               precio: params.row.max_detalle_venta_id,
+              tipoCita: params.row.atendido === 1 || params.row.atendido === true,
               esEdicion: true,
             });
           }}
@@ -616,6 +662,16 @@ function ListaEspera() {
       renderCell: (params) => <p className="centered-cell">{format(new Date(params.row.hora_estimada), "p")}</p>,
     },
     { field: "nombreEstilsta", headerName: "Estilista", width: 90 },
+    {
+      field: "atendido",
+      headerName: "Tipo Cita",
+      width: 100,
+      renderCell: (params) => (
+        <p className="centered-cell" style={{ color: (params.row.atendido === true || params.row.atendido === 1) ? "#d33" : "#3085d6", fontWeight: "bold" }}>
+          {(params.row.atendido === true || params.row.atendido === 1) ? "Asignado" : "Requerido"}
+        </p>
+      ),
+    },
     { field: "observacion", headerName: "Observacion", width: 500 },
   ];
   const putListaEspera = async (id) => {
@@ -646,6 +702,7 @@ function ListaEspera() {
           usuario_registra: idUser,
           usuario_servicio: idUser,
           precio: formClienteEspera.precio,
+          atendido: formClienteEspera.tipoCita ? true : false,
           observacion: formClienteEspera.observacion ? formClienteEspera.observacion : "",
         },
       });
@@ -703,7 +760,7 @@ function ListaEspera() {
           fecha: new Date(),
           clave_prod: formClienteEspera.clave_prod,
           hora_estimada: formClienteEspera.hora_estimada,
-          atendido: 1,
+          atendido: formClienteEspera.tipoCita ? true : false,
           estilista: formClienteEspera.estilista ? formClienteEspera.estilista : "",
           tiempo_servicio: formClienteEspera.tiempo_servicio,
           usuario_registra: usuarioValidado,
@@ -748,6 +805,7 @@ function ListaEspera() {
   const timeZone = "America/Mexico_City"; // Ajusta esto a tu zona horaria
   const closeOpenListaEspera = () => {
     setOpenListaEspera(false);
+    setPendingAction(null);
     if (!formClienteEspera.esEdicion) return;
     const defaultValues = {
       id: null,
@@ -759,6 +817,7 @@ function ListaEspera() {
       descripcion_clave_prod: null,
       hora_estimada: null,
       atendido: null,
+      tipoCita: false,
       estilista: null,
       estilista_descripcion: null,
       tiempo_servicio: null,
@@ -957,18 +1016,68 @@ function ListaEspera() {
                   }}
                 />
               </FormGroup>
+              <FormGroup>
+                <Label style={{ fontSize: "1.2rem" }}>
+                  Tipo de cita
+                </Label>
+                <div style={{ display: "flex", gap: "1rem", alignItems: "center", fontSize: "1.1rem" }}>
+                  <label style={{ cursor: "pointer" }}>
+                    <input
+                      type="radio"
+                      name="tipoCita"
+                      checked={!formClienteEspera.tipoCita}
+                      onChange={() => setformClienteEspera({ ...formClienteEspera, tipoCita: false })}
+                    />{" "}
+                    Requerido
+                  </label>
+                  <label style={{ cursor: "pointer" }}>
+                    <input
+                      type="radio"
+                      name="tipoCita"
+                      checked={!!formClienteEspera.tipoCita}
+                      onChange={() => setformClienteEspera({ ...formClienteEspera, tipoCita: true })}
+                    />{" "}
+                    Asignado
+                  </label>
+                </div>
+              </FormGroup>
             </Col>
           </Row>
         </ModalBody>
         <ModalFooter>
           <Button
             color="primary"
-            onClick={() => {
-              if (!formClienteEspera.esEdicion) postListaEspera();
-              else putListaEspera();
-
-              setOpenListaEspera(!openListaEspera);
-              setformClienteEspera([]);
+            onClick={async () => {
+              if (pendingAction?.type === 'post') {
+                // Capturar valores antes de limpiar el state
+                const snapId = formClienteEspera.id;
+                const snapTiempo = formClienteEspera.tiempo_servicio;
+                const snapEstilista = formClienteEspera.estilista;
+                const snapHora = new Date(formClienteEspera.hora_estimada);
+                await putListaEspera();
+                setOpenListaEspera(false);
+                setformClienteEspera([]);
+                setPendingAction(null);
+                await listaEsperaPost(snapId, 1, snapTiempo, snapEstilista, snapHora);
+              } else if (pendingAction?.type === 'open') {
+                // Guardar edición y luego abrir modalCitaServicio con datos actualizados
+                await putListaEspera();
+                setOpenListaEspera(false);
+                setFormListaEsperaVerificacion({
+                  ...pendingAction.verificacion,
+                  hora_estimada: formClienteEspera.hora_estimada,
+                  estilista: formClienteEspera.estilista,
+                  estilista_descripcion: formClienteEspera.estilista_descripcion,
+                });
+                setformClienteEspera([]);
+                setPendingAction(null);
+                setModalCitaServicio(true);
+              } else {
+                if (!formClienteEspera.esEdicion) postListaEspera();
+                else putListaEspera();
+                setOpenListaEspera(!openListaEspera);
+                setformClienteEspera([]);
+              }
             }}
           >
             Agregar
