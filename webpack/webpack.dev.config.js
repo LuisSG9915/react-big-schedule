@@ -12,7 +12,8 @@ module.exports = {
   entry: "./src/examples/index.jsx",
   output: {
     path: path.resolve(__dirname, "..", "dist"),
-    filename: isProduction ? "bundle.[contenthash:8].js" : "bundle.js",
+    filename: "bundle.js",
+    publicPath: "/",
     clean: true,
   },
   module: {
@@ -20,10 +21,7 @@ module.exports = {
       {
         test: /\.(js|jsx)$/,
         exclude: /node_modules/,
-        use: [
-          "thread-loader", // Habilita hilos para procesamiento paralelo
-          { loader: "babel-loader" },
-        ],
+        use: { loader: "babel-loader" },
       },
       {
         test: /\.css$/,
@@ -40,9 +38,6 @@ module.exports = {
       title: "React Big Schedule",
       hash: true,
     }),
-    ...(isProduction
-      ? [new CompressionWebpackPlugin(), new TerserPlugin()]
-      : []),
     ...(isProduction
       ? []
       : [new ESLintWebpackPlugin({ extensions: ["js", "jsx"] })]),
@@ -62,12 +57,9 @@ module.exports = {
       },
     ],
   },
-  devtool: isProduction ? "source-map" : "eval-cheap-module-source-map", // Rápido para desarrollo
-  cache: {
-    type: "filesystem", // Usa caché del sistema de archivos
-  },
+  devtool: false, // Disable source maps for faster build
+  cache: false,
   optimization: {
-    minimize: isProduction, // Solo minimizar en producción
-    minimizer: isProduction ? [new TerserPlugin()] : [],
+    minimize: false,
   },
 };  
