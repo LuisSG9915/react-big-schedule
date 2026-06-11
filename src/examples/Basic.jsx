@@ -2932,11 +2932,10 @@ function Basic() {
         Swal.fire({
           icon: "error",
           title: "Error",
-          text: "La hora de la cita está fuera del horario de esta sucursal, ¿desea asignar la cita?",
-          confirmButtonColor: "#3085d6", // Cambiar el color del botón OK
-          showCancelButton: true,
+          text: "La hora de la cita está fuera del horario de esta sucursal. No se puede agregar la cita.",
         }).then(async (result) => {
           if (result.isConfirmed) {
+            return
             // Si el usuario confirma, mostrar el modal de verificación de contraseña
             validarContraseña("AGENDAR_CITA", "AGENDA").then(async (result) => {
               if (result.validado) {
@@ -3781,7 +3780,10 @@ function Basic() {
       },
     });
   };
-  const putCitasServiciosTerminado = () => {
+  const putCitasServiciosTerminado = async () => {
+    const disponible = await verificarHorarioCierre(formVentaTemporal.tiempo, datosParametros.fecha, formCitaServicio.no_estilista, formCitaServicio.idCita);
+    if (!disponible.disponible) return;
+    
     setModalCrear(false);
     Swal.fire({
       title: "Confirmación de cita",
@@ -3819,7 +3821,6 @@ function Basic() {
                   showCancelButton: true,
                 }).then((result) => {
                   if (result.isConfirmed) {
-                    // setFormCitaServicio([]);
                     setFormCitaServicio({
                       ...formCitaServicio,
                       idCita: null,
@@ -3839,17 +3840,7 @@ function Basic() {
                       descripcion_no_estilista: "",
                     });
                     setdataCitasServicios([]);
-                    // setFormDetalleCitasServicios({
-                    //   cantidad: null,
-                    //   id: null,
-                    //   idEstilista: null,
-                    //   idServicio: null,
-                    //   d_clave_prod: null,
-                    //   tiempo: null,
-                    //   fecha: null,
-                    // });
-                    // setFormCita([]);
-                    // setFormCitaDescripciones([]);
+                 
                     setTimeout(() => {
                       setModalCrear(true);
                     }, 1000);
@@ -4148,9 +4139,24 @@ function Basic() {
       });
   };
 
+  async function verificarHorarioCierre(tiempo, fecha, estilista, idCita) {
+    const resHorario = await fetchHorarioDisponibleEstilistas(new Date(fecha), estilista, tiempo);
+    if (!resHorario || !resHorario.data || !resHorario.data[0]) return { disponible: false };
+    const claveEmpleado = resHorario.data[0].clave_empleado;
+    if (claveEmpleado === "Cita fuera del horario de cierre de la sucursal. Imposible agendar.") {
+      await Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: claveEmpleado,
+        confirmButtonColor: "#3085d6",
+      });
+      return { disponible: false };
+    }
+    return { disponible: true };
+  }
+
   async function verificarDisponibilidad(tiempo, fecha, estilista, idCita) {
-    console.log("[verificarDisponibilidad] tiempo:", tiempo, "estilista:", estilista, "idCita:", idCita);
-    console.trace("[verificarDisponibilidad] llamado desde:");
+
     const res = await fetchCitaEmpalme5(tiempo, new Date(fecha), estilista, idCita);
     const resHorario = await fetchHorarioDisponibleEstilistas(new Date(fecha), estilista, tiempo);
     let observacion = "";
@@ -4182,6 +4188,14 @@ function Basic() {
 
     if (claveEmpleado === "Cita sin restricciones" || claveEmpleado === "Prosiga") {
       // No action needed, continue
+    } else if (claveEmpleado === "Cita fuera del horario de cierre de la sucursal. Imposible agendar.") {
+      await Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: claveEmpleado,
+        confirmButtonColor: "#3085d6",
+      });
+      return { disponible: false };
     } else if (
       claveEmpleado === "Cita fuera del horario de salida del estilista ¿desea asignar la cita?" ||
       claveEmpleado === "Cita dentro del horario de la comida ¿desea asignar la cita?" ||
