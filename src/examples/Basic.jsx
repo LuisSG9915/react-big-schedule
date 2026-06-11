@@ -174,6 +174,37 @@ const OptimizedScheduler = memo(
   },
 );
 
+// Recorta las citas al horario de cierre (dayStopTo) para que el render no se
+// descuadre cuando hay citas que terminan despues de la hora de salida.
+// - Si la cita inicia en o despues del cierre, se descarta (no cabe en la vista).
+// - Si la cita termina despues del cierre, se recorta su fin al cierre.
+// Conserva el tipo de dato original de `end` (Date o string "YYYY-MM-DD HH:mm:00").
+const recortarCitasPorCierre = (citas, horaCierre) => {
+  if (!Array.isArray(citas) || horaCierre == null) return citas;
+  const formatearFin = (original, cierre) => {
+    if (original instanceof Date) return cierre;
+    return `${cierre.getFullYear()}-${String(cierre.getMonth() + 1).padStart(2, "0")}-${String(
+      cierre.getDate(),
+    ).padStart(2, "0")} ${String(cierre.getHours()).padStart(2, "0")}:${String(cierre.getMinutes()).padStart(
+      2,
+      "0",
+    )}:00`;
+  };
+  return citas.reduce((acc, cita) => {
+    const inicio = new Date(cita.start);
+    const fin = new Date(cita.end);
+    const cierre = new Date(inicio);
+    cierre.setHours(horaCierre, 0, 0, 0);
+    if (inicio >= cierre) return acc; // cita totalmente fuera del horario
+    if (fin > cierre) {
+      acc.push({ ...cita, end: formatearFin(cita.end, cierre) });
+    } else {
+      acc.push(cita);
+    }
+    return acc;
+  }, []);
+};
+
 function Basic() {
   const { dataSucursales } = useSucursales();
 
@@ -740,7 +771,7 @@ function Basic() {
         // Refrescar el scheduler: obtener citas y actualizar schedulerData activo
         getCitas(datosParametros.fecha).then((response) => {
           if (response && schedulerData) {
-            schedulerData.setEvents(response);
+            schedulerData.setEvents(recortarCitasPorCierre(response, schedulerData.config.dayStopTo + 1));
             dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
             // Evitar que el useEffect reconstructor descuadre el visual
             navigationLockRef.current = Date.now();
@@ -781,23 +812,16 @@ function Basic() {
         : [23, 0];
 
       let horaEntrada = horasInicio;
-      let horaSalida = horasFinal;
-
-      // Ajustar la hora de salida si tiene minutos adicionales
-      if (minutosFinal > 0) {
-        horaSalida += 1; // Añadir una hora más para incluir la hora parcial
-      }
-
-      // Extender la vista si hay citas que terminan después del horario de cierre
-      if (arregloCita && arregloCita.length > 0) {
-        const maxCitaHora = Math.max(...arregloCita.map((c) => new Date(c.end).getHours()));
-        if (maxCitaHora >= horaSalida) horaSalida = maxCitaHora + 1;
-      }
+      // La última columna abarca una hora completa; restamos 1 si el cierre es en punto.
+      let horaSalida = minutosFinal > 0 ? horasFinal : horasFinal - 1;
 
       // Actualizar la configuración del scheduler
       const updatedSchedulerData = state.viewModel;
       updatedSchedulerData.config.dayStartFrom = horaEntrada;
       updatedSchedulerData.config.dayStopTo = horaSalida;
+
+      // Re-recortar las citas al nuevo horario de cierre para evitar descuadres
+      updatedSchedulerData.setEvents(recortarCitasPorCierre(arregloCita, horaSalida + 1));
 
       // Actualizar el estado del scheduler
       dispatch({ type: "UPDATE_SCHEDULER", payload: updatedSchedulerData });
@@ -832,12 +856,10 @@ function Basic() {
       const [horasFinal, minutosFinal] = horariosAgenda.hora_final.split(":").map(Number);
 
       horaEntrada = horasInicio;
-      horaSalida = horasFinal;
-
-      // Ajustar la hora de salida si tiene minutos adicionales
-      if (minutosFinal > 0) {
-        horaSalida += 1; // Añadir una hora más para incluir la hora parcial
-      }
+      // La librería dibuja la última columna abarcando una hora completa (dayStopTo -> dayStopTo+1),
+      // por lo que dayStopTo debe ser la hora previa al cierre cuando el cierre es en punto.
+      // Ej: cierre 21:00 -> dayStopTo 20 (última columna 8pm, borde derecho 21:00).
+      horaSalida = minutosFinal > 0 ? horasFinal : horasFinal - 1;
 
       console.log(
         `Horario de agenda para ${horariosAgenda.dia}: ${horaEntrada}:${minutosInicio
@@ -857,13 +879,9 @@ function Basic() {
 
         // Obtener la hora (0-23)
         horaEntrada = fechaEntrada.getHours();
-        horaSalida = fechaSalida.getHours();
-
-        // Ajustar la hora de salida si tiene minutos adicionales
         const minutosSalida = fechaSalida.getMinutes();
-        if (minutosSalida > 0) {
-          horaSalida += 1; // Añadir una hora más para incluir la hora parcial
-        }
+        // La última columna abarca una hora completa; restamos 1 si el cierre es en punto.
+        horaSalida = minutosSalida > 0 ? fechaSalida.getHours() : fechaSalida.getHours() - 1;
 
         console.log(
           `Horario de sucursal ${sucursalActual.descripcion}: ${horaEntrada}:${fechaEntrada
@@ -877,12 +895,6 @@ function Basic() {
       }
     } else {
       console.log("No hay datos de horarios ni de sucursales. Usando valores por defecto.");
-    }
-
-    // Extender la vista si hay citas que terminan después del horario de cierre
-    if (arregloCita && arregloCita.length > 0) {
-      const maxCitaHora = Math.max(...arregloCita.map((c) => new Date(c.end).getHours()));
-      if (maxCitaHora >= horaSalida) horaSalida = maxCitaHora + 1;
     }
 
     schedulerData = new SchedulerData(datosParametros.fecha, ViewType.Day, false, false, {
@@ -953,7 +965,7 @@ function Basic() {
     };
 
     schedulerData.setResources(arreglo);
-    schedulerData.setEvents(arregloCita);
+    schedulerData.setEvents(recortarCitasPorCierre(arregloCita, horaSalida + 1));
     // if (arreglo.length > 0 && arregloCita.length > 0) {
     const timerId = setTimeout(() => {
       // 🚫 PREVENIR CONFLICTO: No actualizar durante navegación de fechas
@@ -980,16 +992,8 @@ function Basic() {
     // }
   }, [arregloCita, arreglo, dataSucursales, isLoading, isNavigatingDate]);
   const actualizarAgenda = (response, schedulerData) => {
-    schedulerData.setEvents(response);
-    // Extender la vista si hay citas que terminan después del horario de cierre
-    if (response && response.length > 0) {
-      const maxCitaHora = Math.max(...response.map((c) => new Date(c.end).getHours()));
-      if (maxCitaHora >= schedulerData.config.dayStopTo) {
-        schedulerData.config.dayStopTo = maxCitaHora + 1;
-        schedulerData._createHeaders();
-        schedulerData._createRenderData();
-      }
-    }
+    const citasRecortadas = recortarCitasPorCierre(response, schedulerData.config.dayStopTo + 1);
+    schedulerData.setEvents(citasRecortadas);
     dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
     // Activar lock ANTES de setArregloCita para que el useEffect reconstructor
     // no reconstruya SchedulerData (lo que descuadra el visual) cuando solo
@@ -2871,16 +2875,27 @@ function Basic() {
     let fechaSinHora = new Date(año, mes, día);
     const esValida = verificaDisponibilidadSucursal();
 
-    const fechaToUse = fecha ? fecha : datosParametrosPrevios.fecha;
-    console.log("tipo de fechaToUse:", typeof fechaToUse);
-    // Convert to string if it's not already and handle null/undefined
-    const fechaStr = String(fechaToUse || "");
-    const fechaLimpia = fechaStr.includes("T") ? fechaStr.split("T")[0] : fechaStr;
-    if (new Date(fechaLimpia) < new Date()) {
+    const fechaCitaDebug = new Date(citaDateTime);
+    const ahoraDebug = new Date();
+    console.log("=== DEBUG VALIDACION FECHA PASADA ===");
+    console.log("citaDateTime (raw):", citaDateTime);
+    console.log("typeof citaDateTime:", typeof citaDateTime);
+    console.log("formCita.fecha (raw):", formCita.fecha);
+    console.log("new Date(citaDateTime):", fechaCitaDebug.toString());
+    console.log("new Date(citaDateTime) ISO:", fechaCitaDebug.toISOString());
+    console.log("new Date(citaDateTime) getTime():", fechaCitaDebug.getTime());
+    console.log("ahora new Date():", ahoraDebug.toString());
+    console.log("ahora ISO:", ahoraDebug.toISOString());
+    console.log("ahora getTime():", ahoraDebug.getTime());
+    console.log("¿es pasado? (cita < ahora):", fechaCitaDebug < ahoraDebug);
+    console.log("diferencia ms (cita - ahora):", fechaCitaDebug.getTime() - ahoraDebug.getTime());
+    console.log("=====================================");
+
+    if (new Date(citaDateTime) < new Date()) {
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: `Imposible agregar una cita en el pasado ${new Date(fechaLimpia).toLocaleString()}`,
+        text: `Imposible agregar una cita en el pasado ${new Date(citaDateTime).toLocaleString()}`,
         confirmButtonColor: "#3085d6", // Cambiar el color del botón OK
       });
       return;
@@ -4572,7 +4587,7 @@ function Basic() {
                 }
               >
                 <AiFillBook size={20} />
-                Agenda2 .
+                Agenda2..
               </Button>
               <Button
                 size="sm"
