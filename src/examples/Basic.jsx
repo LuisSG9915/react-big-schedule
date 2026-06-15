@@ -3662,11 +3662,11 @@ function Basic() {
       setModalEdicionServicios(false);
       getCitasDia();
 
-      // Recargar la página si el flag estaba activo al inicio de la función
-      if (shouldReload) {
-        console.log("Recargando página después de actualizar servicio");
-        window.location.reload();
-      }
+      // // Recargar la página si el flag estaba activo al inicio de la función
+      // if (shouldReload) {
+      //   console.log("Recargando página después de actualizar servicio");
+      //   window.location.reload();
+      // }
 
       return response;
     } catch (error) {
@@ -3674,6 +3674,8 @@ function Basic() {
       throw error;
     }
   };
+
+
   const putDetalleCitasServiciosUpd7 = async (
     id,
     sucursal,
