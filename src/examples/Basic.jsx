@@ -1142,50 +1142,7 @@ function Basic() {
         idSuc: idSuc,
       });
       return;
-      setDatosParametros({
-        fecha: fecha.setDate(fecha.getDate() + 1),
-      });
-      dispatch({ type: "REINITIALIZE", payload: schedulerData });
-
-      jezaApi
-        .get(`/Estilistas?suc=21&fecha=${format(datosParametros.fecha + 1, "yyyy-MM-dd")}`)
-        .then((response) => {
-          setArreglo(
-            response.data.map((item) => {
-              const newItem = {
-                ...item,
-                name: item.nombre,
-              };
-              delete newItem.toggleExpandStatus;
-              return newItem;
-            }),
-          );
-        })
-        .catch((err) => {
-          console.log(err);
-        });
-      jezaApi
-        .get(`/Cita?cliente=%&f1=${format(datosParametros.fecha, "yyyyMMdd")}&suc=21`)
-        .then((response) => {
-          setArregloCita(
-            response.data.map((item) => {
-              const newItem = {
-                ...item,
-                start: item.fechaCita,
-                end: item.horaFin,
-                resourceId: item.idEstilista,
-                title: item.ServicioDescripción,
-                type: 3,
-                bgColor: "red",
-              };
-              delete newItem.toggleExpandStatus;
-              return newItem;
-            }),
-          );
-        })
-        .catch((err) => {
-          console.log(err);
-        });
+  
     },
     [idRec, idSuc, datosParametros.fecha],
   ); // Dependencias de ops1
@@ -4777,17 +4734,21 @@ function Basic() {
               disabled={event.idCita == 0}
               onClick={() => {
                 setIsModalOpen(false);
-                handleOpenNewWindowEdit({
-                  idCita: event.idCita,
-                  idUser: event.no_estilista,
-                  idCliente: event.no_cliente,
-                  fecha: event.hora1,
-                  flag: 1,
-                  estadoCita: event.estadoCita2,
-                  tiempo: event.tiempo,
-                  idSuc: idSuc,
-                  nombreCliente: event.nombre,
-                });
+              handleOpenNewWindowEdit({
+        idCita: event.idCita,
+        idUser: event.no_estilista,
+        idRec: idRec,
+        idCliente: event.no_cliente,
+        fecha: event.hora1,
+        flag: 0,
+        estadoCita: event.estadoCita2,
+        tiempo: event.tiempo,
+        idServicio: event.idServicios,
+        nombreCliente: event.nombre,
+        idSuc: idSuc,
+      });
+
+                
               }}
               style={{ marginBottom: "10px" }}
             >
