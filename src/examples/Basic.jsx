@@ -58,6 +58,7 @@ import debounce from "lodash.debounce";
 import { IoIosAddCircle } from "react-icons/io";
 import { IoListCircle } from "react-icons/io5";
 import { FaEye } from "react-icons/fa6";
+import { useVersion } from "../context/VersionContext";
 import { IoRefreshCircle } from "react-icons/io5";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { usePromocionesZonas } from "../functions/crearCita/usePromocionesZonas";
@@ -4542,7 +4543,7 @@ function Basic() {
               </Button>
               <Button size="sm" onClick={() => setModalPromociones(true)} color="primary">
                 <RiDiscountPercentLine size={20}></RiDiscountPercentLine>
-                Promociones
+                Promociones - v{useVersion().CURRENT_VERSION}
               </Button>
               <Button onClick={() => setModalCumpleanios(true)} size="sm">
                 <FaBirthdayCake size={20}></FaBirthdayCake>
