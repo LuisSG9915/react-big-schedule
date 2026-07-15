@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { peinadosApi } from "../../api/peinadosApi";
 import { format } from "date-fns-tz";
 
-export const useHorarioDisponibleEstilistas6 = ({ fecha, cveEmpleado, tiempo }) => {
+export const useHorarioDisponibleEstilistas6 = ({ fecha, cveEmpleado, tiempo, autoFetch = true }) => {
   const [dataHorarioDisponibleEstilistas, setdataHorarioDisponibleEstilistas] = useState([]);
 
   const fetchHorarioDisponibleEstilistas = async (fechaFetch, estilistaFetch, tiempoFetch) => {
@@ -20,9 +20,9 @@ export const useHorarioDisponibleEstilistas6 = ({ fecha, cveEmpleado, tiempo }) 
   };
 
   useEffect(() => {
-    if (tiempo == "" || !tiempo || tiempo<=0) return;
-    console.log(tiempo + 'TIEMPO EN USE HORARIOS')
+    if (!autoFetch || tiempo == "" || !tiempo || tiempo <= 0) return;
+    console.log(tiempo + "TIEMPO EN USE HORARIOS");
     fetchHorarioDisponibleEstilistas();
-  }, [tiempo]);
+  }, [tiempo, autoFetch]);
   return { dataHorarioDisponibleEstilistas, fetchHorarioDisponibleEstilistas };
 };

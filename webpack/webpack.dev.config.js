@@ -51,7 +51,6 @@ module.exports = {
       {
         context: ["/peinadosapi"],
         target: "http://217.216.95.62:9018",
-        pathRewrite: { "^/peinadosapi": "" },
         changeOrigin: true,
         secure: false,
       },

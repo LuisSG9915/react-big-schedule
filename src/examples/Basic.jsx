@@ -2407,6 +2407,7 @@ function Basic() {
     fecha: formCita.fecha,
     cveEmpleado: formCita.no_estilista,
     tiempo: formVentaTemporal.tiempo,
+    autoFetch: false,
   });
   const [formCitasObservaciones, setFormCitasObservaciones] = useState({
     id: 0,
