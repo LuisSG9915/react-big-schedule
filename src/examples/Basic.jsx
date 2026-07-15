@@ -2181,6 +2181,7 @@ function Basic() {
   const [dataClientesPuntos, setDataClientesPuntos] = useState({});
 
   const [dataProductos, setDataProductos] = useState([]);
+  const [dataTiposDescuento, setDataTiposDescuento] = useState([]);
   const [dataOperaciones, setDataOperaciones] = useState([]);
   const [dataPuntosporCliente, setDataPuntosPorCliente] = useState({});
   const [dataEstilistaDisponibilidadHorario, setdataEstilistaDisponibilidadHorario] = useState({});
@@ -2223,6 +2224,7 @@ function Basic() {
   useEffect(() => {
     getEstilistas();
     getProductos();
+    getTiposDescuento();
     getEstilistasDisponibilidadHorario();
   }, []);
 
@@ -2288,6 +2290,56 @@ function Basic() {
         setDataProductos(response.data);
       });
   };
+
+  const getTiposDescuento = () => {
+    peinadosApi
+      .get(`/Tipodescuento?id=0`)
+      .then((response) => setDataTiposDescuento(response.data || []))
+      .catch((error) => console.error("Error al obtener tipos de descuento:", error));
+  };
+
+  // ---- Flujo de promociones para Alta de servicio ----
+  const getPromoServVigentes = () => {
+    peinadosApi
+      .get(`/PromoSucursalesRegionVigente?idSuc=${idSuc}`)
+      .then((response) => {
+        setDataPromoServ(response.data || []);
+        setModalPromoServ(true);
+      })
+      .catch((error) => console.error("Error al obtener promociones vigentes:", error));
+  };
+
+  const getPromoServGrupos = (promo) => {
+    setPromoServSelected(promo);
+    const idPromocion = promo?.idPromocion ?? promo?.id;
+    peinadosApi
+      .get(`/catPromocionesGrupos?idPromocion=${idPromocion}`)
+      .then((response) => {
+        setDataPromoServGrupos(response.data || []);
+        setModalPromoServGrupos(true);
+      })
+      .catch((error) => console.error("Error al obtener grupos de la promoción:", error));
+  };
+
+  const getPromoServProductos = (grupo) => {
+    peinadosApi
+      .get(
+        `/sp_cPSEACPromo?id=0&cia=1&sucursal=${idSuc}&almacen=11&idProducto=${grupo.idProducto}&area=${grupo.idArea}&depto=${grupo.idDepto}&subdepto=${grupo.idSubdepto}`,
+      )
+      .then((response) => {
+        setDataPromoServProductos(response.data || []);
+        setModalPromoServProductos(true);
+      })
+      .catch((error) => console.error("Error al obtener productos de la promoción:", error));
+  };
+
+  const agregarServicioPromo = (producto) => {
+    postCitasServicios(producto.id, producto.tiempox, producto.precio, null, null, false, "promo");
+    setModalPromoServProductos(false);
+    setModalPromoServGrupos(false);
+    setModalPromoServ(false);
+  };
+
   const getOperaciones = () => {
     peinadosApi
       .get(
@@ -2369,6 +2421,15 @@ function Basic() {
   const [modalPrepagos, setModalPrepagos] = useState(false);
   const [modalPromocionesFechas, setModalPromocionesFechas] = useState(false);
   const [modalPromocionesGrupos, setModalPromocionesGrupos] = useState(false);
+
+  // Flujo de promociones para Alta de servicio (independiente del flujo antiguo)
+  const [modalPromoServ, setModalPromoServ] = useState(false);
+  const [modalPromoServGrupos, setModalPromoServGrupos] = useState(false);
+  const [modalPromoServProductos, setModalPromoServProductos] = useState(false);
+  const [dataPromoServ, setDataPromoServ] = useState([]);
+  const [dataPromoServGrupos, setDataPromoServGrupos] = useState([]);
+  const [dataPromoServProductos, setDataPromoServProductos] = useState([]);
+  const [promoServSelected, setPromoServSelected] = useState(null);
 
   const { dataPromocionesZonas } = usePromocionesZonas();
   const { dataPromocionesGrupos } = usePromocionesGrupos({ idPromocion: formPromocion.id });
@@ -2614,6 +2675,9 @@ function Basic() {
                 tiempo: cell.row.tiempo,
                 precio: cell.row.precio,
                 fecha: cell.row.fecha,
+                tipoDescuento: String(cell.row.tipo_descuento || 0),
+                cantidadDescuento: cell.row.descuento ? Number(cell.row.descuento) * 100 : "",
+                observacionDescuento: cell.row.observacion_descuento || "",
               });
             }}
           >
@@ -2637,8 +2701,26 @@ function Basic() {
       field: "precio",
       headerName: "Precio",
       width: 70,
-      renderCell: (cell) => <p className="centered-cell">{cell.row.precio.toFixed(2)}</p>,
+      renderCell: (cell) => <p className="centered-cell">{Number(cell.row.precio).toFixed(2)}</p>,
       cellClassName: "centered-cell", // Agrega esta línea para aplicar la clase CSS
+    },
+    {
+      field: "descuento",
+      headerName: "Descuento",
+      width: 90,
+      renderCell: (cell) => <p className="centered-cell">{(Number(cell.row.descuento || 0) * 100).toFixed(2)}%</p>,
+      cellClassName: "centered-cell",
+    },
+    {
+      field: "precioConDescuento",
+      headerName: "Precio c/descuento",
+      width: 130,
+      renderCell: (cell) => (
+        <p className="centered-cell">
+          {(Number(cell.row.precio) * (1 - Number(cell.row.descuento || 0))).toFixed(2)}
+        </p>
+      ),
+      cellClassName: "centered-cell",
     },
     {
       field: "tiempo",
@@ -3202,6 +3284,51 @@ function Basic() {
     //   className: "centered-cell", // Agrega esta línea para aplicar la clase CSS
     // },
   ]);
+  const columnsPromoServProductos = useMemo(() => [
+    {
+      accessorKey: "acciones",
+      header: "Acción",
+      size: 100,
+      enableColumnFilter: false,
+      Cell: ({ cell }) => (
+        <Button variant={"contained"} onClick={() => agregarServicioPromo(cell.row.original)}>
+          Agregar
+        </Button>
+      ),
+    },
+    {
+      accessorKey: "clave_prod",
+      header: "Cve",
+      size: 50,
+    },
+    {
+      accessorKey: "descripcion",
+      header: "Producto",
+      size: 500,
+    },
+    {
+      accessorKey: "existencia",
+      header: "Existencia",
+      size: 80,
+      Cell: ({ cell }) => <p className="centered-cell">{cell.row.original.existencia}</p>,
+    },
+    {
+      accessorKey: "precio",
+      header: "Precio",
+      size: 80,
+      Cell: ({ cell }) => (
+        <p className="centered-cell">
+          {Number(cell.row.original.precio).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}
+        </p>
+      ),
+    },
+    {
+      accessorKey: "tiempox",
+      header: "Tiempo",
+      size: 60,
+      Cell: ({ cell }) => <p className="centered-cell">{cell.row.original.tiempox + ""}</p>,
+    },
+  ]);
   const columnsProductosMRTLectura = useMemo(() => [
     {
       accessorKey: "clave_prod",
@@ -3567,7 +3694,15 @@ function Basic() {
     d_clave_prod: null,
     tiempo: null,
     fecha: null,
+    tipoDescuento: "0",
+    cantidadDescuento: "",
+    observacionDescuento: "",
   });
+  const tipoDescuentoSeleccionado = dataTiposDescuento.find(
+    (descuento) => descuento.id === Number(formDetalleCitasServicios.tipoDescuento),
+  );
+  const minimoDescuento = Number(tipoDescuentoSeleccionado?.min_descto || 0) * 100;
+  const maximoDescuento = Number(tipoDescuentoSeleccionado?.max_descto || 0) * 100;
   const putDetalleCitasServiciosUpd4 = async (
     id,
     sucursal,
@@ -3581,6 +3716,9 @@ function Basic() {
     precio,
     fechaCita,
     skipValidation = false, // Nuevo parámetro para omitir validación
+    tipoDescuento = 0,
+    observacionDescuento = "",
+    descuento = 0,
   ) => {
     // Guardar el estado actual del flag para usarlo después
     const shouldReload = skipValidation || isUpdatingService;
@@ -3600,7 +3738,7 @@ function Basic() {
     usuario = usuarioValidado; // Actualizar el parámetro usuario con el usuario validado
 
     try {
-      const response = await peinadosApi.put(`/sp_DetalleCitasServiciosUpd6`, null, {
+      const response = await peinadosApi.put(`/sp_detalleCitasServiciosUpd9`, null, {
         params: {
           id: id,
           sucursal: sucursal,
@@ -3613,6 +3751,9 @@ function Basic() {
           cantidad: cantidad,
           precio: precio,
           fechaCita: fechaCita ? fechaCita : formCita.fecha,
+          tipo_descuento: tipoDescuento,
+          observacion_descuento: observacionDescuento,
+          descuento: descuento,
         },
       });
 
@@ -3914,7 +4055,15 @@ function Basic() {
   //     // }
   //   });
   // };
-  const postCitasServicios = async (clave, tiempo, precio, idCita, usuarioValidado = null, skipValidacion = false) => {
+  const postCitasServicios = async (
+    clave,
+    tiempo,
+    precio,
+    idCita,
+    usuarioValidado = null,
+    skipValidacion = false,
+    observacionesOverride = null,
+  ) => {
     console.log("[postCitasServicios] iniciando, clave:", clave, "skipValidacion:", skipValidacion);
     let disponible = true;
     if (!skipValidacion) {
@@ -3937,7 +4086,7 @@ function Basic() {
             cantidad: formCitaServicio.cantidad ? formCitaServicio.cantidad : 1,
             tiempo: tiempo,
             precio: precio,
-            observaciones: formCitasObservaciones2 ? formCitasObservaciones2 : "",
+            observaciones: observacionesOverride ? observacionesOverride : formCitasObservaciones2 ? formCitasObservaciones2 : "",
             usuarioAlta: 0, // Usar el usuario validado si está disponible
             usuarioCambio: 0,
             sucursal: idSuc,
@@ -5083,6 +5232,9 @@ function Basic() {
           <Button color="primary" onClick={() => setProductosModal(true)}>
             Ingresar servicios
           </Button>
+          <Button color="success" style={{ marginLeft: "10px" }} onClick={() => getPromoServVigentes()}>
+            <RiDiscountPercentLine size={20} /> Promociones
+          </Button>
           <ThemeProvider theme={theme}>
             <DataGrid autoHeight rows={dataCitasServicios} columns={columnsCitasServiciosAltaServicio}></DataGrid>
           </ThemeProvider>
@@ -5802,11 +5954,93 @@ function Basic() {
               </FormGroup>
             </Col>
 
+            <Col md={4}>
+              <FormGroup>
+                <Label style={{ fontSize: "1.2rem" }}>Tipo de descuento</Label>
+                <Input
+                  type="select"
+                  value={formDetalleCitasServicios.tipoDescuento}
+                  onChange={(e) => {
+                    const tipoDescuento = e.target.value;
+                    const descuento = dataTiposDescuento.find((item) => item.id === Number(tipoDescuento));
+                    const minimo = Number(descuento?.min_descto || 0) * 100;
+                    const maximo = Number(descuento?.max_descto || 0) * 100;
+                    setFormDetalleCitasServicios({
+                      ...formDetalleCitasServicios,
+                      tipoDescuento,
+                      cantidadDescuento: tipoDescuento !== "0" && minimo === maximo ? minimo : "",
+                    });
+                  }}
+                >
+                  <option value="0">Seleccione un tipo</option>
+                  {dataTiposDescuento.map((descuento) => (
+                    <option key={descuento.id} value={descuento.id}>
+                      {descuento.descripcion}
+                    </option>
+                  ))}
+                </Input>
+              </FormGroup>
+            </Col>
+            <Col md={4}>
+              <FormGroup>
+                <Label style={{ fontSize: "1.2rem" }}>
+                  Cantidad de descuento
+                  {tipoDescuentoSeleccionado ? ` (${minimoDescuento}% - ${maximoDescuento}%)` : ""}
+                </Label>
+                <Input
+                  type="number"
+                  min={minimoDescuento}
+                  max={maximoDescuento}
+                  step="0.01"
+                  disabled={!tipoDescuentoSeleccionado}
+                  value={formDetalleCitasServicios.cantidadDescuento}
+                  onChange={(e) =>
+                    setFormDetalleCitasServicios({ ...formDetalleCitasServicios, cantidadDescuento: e.target.value })
+                  }
+                />
+              </FormGroup>
+            </Col>
+            <Col md={4}>
+              <FormGroup>
+                <Label style={{ fontSize: "1.2rem" }}>Observación descuento</Label>
+                <Input
+                  value={formDetalleCitasServicios.observacionDescuento}
+                  onChange={(e) =>
+                    setFormDetalleCitasServicios({ ...formDetalleCitasServicios, observacionDescuento: e.target.value })
+                  }
+                />
+              </FormGroup>
+            </Col>
+
             <Col md={6}>
               <FormGroup>
                 <Button
                   color="success"
                   onClick={() => {
+                    const tieneDescuento = Number(formDetalleCitasServicios.tipoDescuento) !== 0;
+                    if (
+                      tieneDescuento &&
+                      (!formDetalleCitasServicios.cantidadDescuento || !formDetalleCitasServicios.observacionDescuento.trim())
+                    ) {
+                      Swal.fire({
+                        icon: "info",
+                        text: "La cantidad y la observación del descuento son obligatorias.",
+                      });
+                      return;
+                    }
+
+                    if (
+                      tieneDescuento &&
+                      (Number(formDetalleCitasServicios.cantidadDescuento) < minimoDescuento ||
+                        Number(formDetalleCitasServicios.cantidadDescuento) > maximoDescuento)
+                    ) {
+                      Swal.fire({
+                        icon: "info",
+                        text: `El descuento debe estar entre ${minimoDescuento}% y ${maximoDescuento}%.`,
+                      });
+                      return;
+                    }
+
                     putDetalleCitasServiciosUpd4(
                       formDetalleCitasServicios.id,
                       idSuc, //SUCURSAL: 1 SUCURSAL: 2
@@ -5819,6 +6053,10 @@ function Basic() {
                       formDetalleCitasServicios.cantidad,
                       formDetalleCitasServicios.precio,
                       formDetalleCitasServicios.fecha,
+                      false,
+                      tieneDescuento ? Number(formDetalleCitasServicios.tipoDescuento) : 0,
+                      tieneDescuento ? formDetalleCitasServicios.observacionDescuento.trim() : "",
+                      tieneDescuento ? Number(formDetalleCitasServicios.cantidadDescuento) / 100 : 0,
                     );
                   }}
                 >
@@ -6809,6 +7047,130 @@ function Basic() {
           </Table>
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <Button color="danger" onClick={() => setModalPromocionesGrupos(false)}>
+              Salir
+            </Button>
+          </div>
+        </Box>
+      </Modal>
+
+      {/* Promociones - Alta de servicio: promociones vigentes */}
+      <Modal open={modalPromoServ} onClose={() => setModalPromoServ(false)} disableAutoFocus disableEnforceFocus>
+        <Box sx={{ ...styleAltaServicio }}>
+          <h3>Promociones vigentes</h3>
+          <Table striped hover>
+            <thead>
+              <tr>
+                <th>Selector</th>
+                <th>Promoción</th>
+                <th>F. Ini.</th>
+                <th>F. Fin.</th>
+              </tr>
+            </thead>
+            <tbody>
+              {dataPromoServ.map((promo) => (
+                <tr key={promo.id}>
+                  <td>
+                    <Button size="sm" color="primary" onClick={() => getPromoServGrupos(promo)}>
+                      Seleccionar
+                    </Button>
+                  </td>
+                  <td>{promo.descripcionPromo}</td>
+                  <td>{formatFecha(promo.f1)}</td>
+                  <td>{formatFecha(promo.f2)}</td>
+                </tr>
+              ))}
+              {dataPromoServ.length === 0 && (
+                <tr>
+                  <td colSpan={4} style={{ textAlign: "center" }}>
+                    No hay promociones vigentes
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </Table>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <Button color="danger" onClick={() => setModalPromoServ(false)}>
+              Salir
+            </Button>
+          </div>
+        </Box>
+      </Modal>
+
+      {/* Promociones - Alta de servicio: grupos de la promoción */}
+      <Modal
+        open={modalPromoServGrupos}
+        onClose={() => setModalPromoServGrupos(false)}
+        disableAutoFocus
+        disableEnforceFocus
+      >
+        <Box sx={{ ...styleAltaServicio }}>
+          <h3>Detalles de la promoción{promoServSelected?.descripcionPromo ? `: ${promoServSelected.descripcionPromo}` : ""}</h3>
+          <Table striped hover>
+            <thead>
+              <tr>
+                <th>Selector</th>
+                <th>Área</th>
+                <th>Depto</th>
+                <th>Subdepto</th>
+                <th>Producto</th>
+                <th>%</th>
+                <th>Precio</th>
+              </tr>
+            </thead>
+            <tbody>
+              {dataPromoServGrupos.map((grupo) => (
+                <tr key={grupo.id}>
+                  <td>
+                    <Button size="sm" color="primary" onClick={() => getPromoServProductos(grupo)}>
+                      Seleccionar
+                    </Button>
+                  </td>
+                  <td>{grupo.d_area}</td>
+                  <td>{grupo.d_depto}</td>
+                  <td>{grupo.d_subdepto}</td>
+                  <td>{grupo.d_producto}</td>
+                  <td>{Math.trunc(grupo.descuentoPorcentaje * 100)} %</td>
+                  <td>{grupo.precioFijo}</td>
+                </tr>
+              ))}
+              {dataPromoServGrupos.length === 0 && (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: "center" }}>
+                    Sin grupos configurados
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </Table>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <Button color="danger" onClick={() => setModalPromoServGrupos(false)}>
+              Salir
+            </Button>
+          </div>
+        </Box>
+      </Modal>
+
+      {/* Promociones - Alta de servicio: productos de la promoción */}
+      <Modal
+        open={modalPromoServProductos}
+        onClose={() => setModalPromoServProductos(false)}
+        disableAutoFocus
+        disableEnforceFocus
+      >
+        <Box sx={{ ...styleAltaServicio }}>
+          <h3>Productos de la promoción</h3>
+          <MaterialReactTable
+            columns={columnsPromoServProductos}
+            data={dataPromoServProductos}
+            initialState={{ density: "compact", pagination: { pageSize: 7, pageIndex: 0 } }}
+            muiTableContainerProps={{ sx: { maxHeight: "330px" } }}
+            muiTableBodyProps={{ sx: { fontSize: "16px" } }}
+            muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
+            muiTableBodyCellProps={{ sx: { fontSize: "16px" } }}
+          />
+          <br />
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <Button color="danger" onClick={() => setModalPromoServProductos(false)}>
               Salir
             </Button>
           </div>

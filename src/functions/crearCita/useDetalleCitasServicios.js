@@ -7,7 +7,9 @@ export const useDetalleCitasServicios = ({ fecha, noCliente, sucursal, idCita })
 
   const fetchDetalleCitasServicios = async () => {
     try {
-      const response = await peinadosApi.get(`/DetalleCitasServicios?fecha=${fecha}&no_cliente=${noCliente}&sucursal=${sucursal}&idCita=${idCita}`);
+      const response = await peinadosApi.get(
+        `/sp_detalleCitasServiciosSel7?fecha=${fecha}&no_cliente=${noCliente}&sucursal=${sucursal}&idCita=${idCita}`,
+      );
       setdataCitasServicios(response.data);
       return response;
     } catch (error) {
