@@ -47,14 +47,6 @@ module.exports = {
     historyApiFallback: true,
     hot: true, // Habilita Hot Module Replacement para recarga rápida
     port: 5173,
-    proxy: [
-      {
-        context: ["/peinadosapi"],
-        target: "http://217.216.95.62:9018",
-        changeOrigin: true,
-        secure: false,
-      },
-    ],
   },
   devtool: false, // Disable source maps for faster build
   cache: false,
