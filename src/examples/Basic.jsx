@@ -2299,10 +2299,11 @@ function Basic() {
   };
 
   // ---- Flujo de promociones para Alta de servicio ----
-  const getPromoServVigentes = () => {
+  const getPromoServVigentes = (soloVisual = false) => {
     peinadosApi
       .get(`/PromoSucursalesRegionVigente?idSuc=${idSuc}`)
       .then((response) => {
+        setSoloVisualPromoServ(soloVisual);
         setDataPromoServ(response.data || []);
         setModalPromoServ(true);
       })
@@ -2431,6 +2432,7 @@ function Basic() {
   const [dataPromoServGrupos, setDataPromoServGrupos] = useState([]);
   const [dataPromoServProductos, setDataPromoServProductos] = useState([]);
   const [promoServSelected, setPromoServSelected] = useState(null);
+  const [soloVisualPromoServ, setSoloVisualPromoServ] = useState(false);
 
   const { dataPromocionesZonas } = usePromocionesZonas();
   const { dataPromocionesGrupos } = usePromocionesGrupos({ idPromocion: formPromocion.id });
@@ -3291,11 +3293,12 @@ function Basic() {
       header: "Acción",
       size: 100,
       enableColumnFilter: false,
-      Cell: ({ cell }) => (
-        <Button variant={"contained"} onClick={() => agregarServicioPromo(cell.row.original)}>
-          Agregar
-        </Button>
-      ),
+      Cell: ({ cell }) =>
+        soloVisualPromoServ ? null : (
+          <Button variant={"contained"} onClick={() => agregarServicioPromo(cell.row.original)}>
+            Agregar
+          </Button>
+        ),
     },
     {
       accessorKey: "clave_prod",
@@ -3329,7 +3332,7 @@ function Basic() {
       size: 60,
       Cell: ({ cell }) => <p className="centered-cell">{cell.row.original.tiempox + ""}</p>,
     },
-  ]);
+  ], [soloVisualPromoServ]);
   const columnsProductosMRTLectura = useMemo(() => [
     {
       accessorKey: "clave_prod",
@@ -4691,7 +4694,7 @@ function Basic() {
                 <MdOutlinePriceCheck size={20}></MdOutlinePriceCheck>
                 Precios
               </Button>
-              <Button size="sm" onClick={() => setModalPromociones(true)} color="primary">
+              <Button size="sm" onClick={() => getPromoServVigentes(true)} color="primary">
                 <RiDiscountPercentLine size={20}></RiDiscountPercentLine>
                 Promociones - v{useVersion().CURRENT_VERSION}
               </Button>
@@ -5275,7 +5278,15 @@ function Basic() {
               >
                 Guardar
               </Button>
-              <Button color="danger" onClick={() => setModalServicioUso(false)}>
+              <Button
+                type="button"
+                color="danger"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setModalServicioUso(false);
+                }}
+              >
                 Salir
               </Button>
             </ButtonGroup>
@@ -7692,8 +7703,8 @@ function Basic() {
                         <Button
                           color="danger"
                           onClick={async () => {
-                            const result = await validarContraseña("CANCELAR_CITA", "AGENDA");
-                            if (!result.validado) return;
+                            // const result = await validarContraseña("CANCELAR_CITA", "AGENDA");
+                            // if (!result.validado) return;
                             setModalCrear(false);
                             setFormCitaServicio({
                               ...formCitaServicio,
