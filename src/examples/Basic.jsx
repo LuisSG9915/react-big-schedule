@@ -3,6 +3,7 @@ import * as dayjsLocale from "dayjs/locale/es-mx";
 import * as antdLocale from "antd/locale/es_ES";
 import { Scheduler, SchedulerData, ViewType, wrapperFun, DemoData } from "../index";
 import { peinadosApi } from "../api/peinadosApi";
+import { ModalPromociones } from "../components/promociones/ModalPromociones";
 // import Modal from "../components/Modal";
 import { format } from "date-fns-tz";
 import { DataGrid } from "@mui/x-data-grid";
@@ -2300,44 +2301,12 @@ function Basic() {
 
   // ---- Flujo de promociones para Alta de servicio ----
   const getPromoServVigentes = (soloVisual = false) => {
-    peinadosApi
-      .get(`/PromoSucursalesRegionVigente?idSuc=${idSuc}`)
-      .then((response) => {
-        setSoloVisualPromoServ(soloVisual);
-        setDataPromoServ(response.data || []);
-        setModalPromoServ(true);
-      })
-      .catch((error) => console.error("Error al obtener promociones vigentes:", error));
-  };
-
-  const getPromoServGrupos = (promo) => {
-    setPromoServSelected(promo);
-    const idPromocion = promo?.idPromocion ?? promo?.id;
-    peinadosApi
-      .get(`/catPromocionesGrupos?idPromocion=${idPromocion}`)
-      .then((response) => {
-        setDataPromoServGrupos(response.data || []);
-        setModalPromoServGrupos(true);
-      })
-      .catch((error) => console.error("Error al obtener grupos de la promoción:", error));
-  };
-
-  const getPromoServProductos = (grupo) => {
-    peinadosApi
-      .get(
-        `/sp_cPSEACPromo?id=0&cia=1&sucursal=${idSuc}&almacen=11&idProducto=${grupo.idProducto}&area=${grupo.idArea}&depto=${grupo.idDepto}&subdepto=${grupo.idSubdepto}`,
-      )
-      .then((response) => {
-        setDataPromoServProductos(response.data || []);
-        setModalPromoServProductos(true);
-      })
-      .catch((error) => console.error("Error al obtener productos de la promoción:", error));
+    setSoloVisualPromoServ(soloVisual);
+    setModalPromoServ(true);
   };
 
   const agregarServicioPromo = (producto) => {
     postCitasServicios(producto.id, producto.tiempox, producto.precio, null, null, false, "promo");
-    setModalPromoServProductos(false);
-    setModalPromoServGrupos(false);
     setModalPromoServ(false);
   };
 
@@ -2426,12 +2395,6 @@ function Basic() {
 
   // Flujo de promociones para Alta de servicio (independiente del flujo antiguo)
   const [modalPromoServ, setModalPromoServ] = useState(false);
-  const [modalPromoServGrupos, setModalPromoServGrupos] = useState(false);
-  const [modalPromoServProductos, setModalPromoServProductos] = useState(false);
-  const [dataPromoServ, setDataPromoServ] = useState([]);
-  const [dataPromoServGrupos, setDataPromoServGrupos] = useState([]);
-  const [dataPromoServProductos, setDataPromoServProductos] = useState([]);
-  const [promoServSelected, setPromoServSelected] = useState(null);
   const [soloVisualPromoServ, setSoloVisualPromoServ] = useState(false);
 
   const { dataPromocionesZonas } = usePromocionesZonas();
@@ -3287,52 +3250,6 @@ function Basic() {
     //   className: "centered-cell", // Agrega esta línea para aplicar la clase CSS
     // },
   ]);
-  const columnsPromoServProductos = useMemo(() => [
-    {
-      accessorKey: "acciones",
-      header: "Acción",
-      size: 100,
-      enableColumnFilter: false,
-      Cell: ({ cell }) =>
-        soloVisualPromoServ ? null : (
-          <Button variant={"contained"} onClick={() => agregarServicioPromo(cell.row.original)}>
-            Agregar
-          </Button>
-        ),
-    },
-    {
-      accessorKey: "clave_prod",
-      header: "Cve",
-      size: 50,
-    },
-    {
-      accessorKey: "descripcion",
-      header: "Producto",
-      size: 500,
-    },
-    {
-      accessorKey: "existencia",
-      header: "Existencia",
-      size: 80,
-      Cell: ({ cell }) => <p className="centered-cell">{cell.row.original.existencia}</p>,
-    },
-    {
-      accessorKey: "precio",
-      header: "Precio",
-      size: 80,
-      Cell: ({ cell }) => (
-        <p className="centered-cell">
-          {Number(cell.row.original.precio).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}
-        </p>
-      ),
-    },
-    {
-      accessorKey: "tiempox",
-      header: "Tiempo",
-      size: 60,
-      Cell: ({ cell }) => <p className="centered-cell">{cell.row.original.tiempox + ""}</p>,
-    },
-  ], [soloVisualPromoServ]);
   const columnsProductosMRTLectura = useMemo(() => [
     {
       accessorKey: "clave_prod",
@@ -6410,7 +6327,7 @@ function Basic() {
                   </Label>
                   <LocalizationProvider dateAdapter={AdapterDateFns}>
                     <TimePicker
-                      timeSteps={15}
+                      timeSteps={{ minutes: 15 }}
                       slotProps={{ textField: { size: "small" } }}
                       value={
                         formDetalleCitasServicios.fecha
@@ -6447,7 +6364,7 @@ function Basic() {
                   <LocalizationProvider dateAdapter={AdapterDateFns}>
                     <TimePicker
                       disabled
-                      timeSteps={15}
+                      timeSteps={{ minutes: 15 }}
                       slotProps={{ textField: { size: "small" } }}
                       value={
                         formDetalleCitasServicios.fechaFinal
@@ -7065,129 +6982,18 @@ function Basic() {
         </Box>
       </Modal>
 
-      {/* Promociones - Alta de servicio: promociones vigentes */}
-      <Modal open={modalPromoServ} onClose={() => setModalPromoServ(false)} disableAutoFocus disableEnforceFocus>
-        <Box sx={{ ...styleAltaServicio }}>
-          <h3>Promociones vigentes</h3>
-          <Table striped hover>
-            <thead>
-              <tr>
-                <th>Selector</th>
-                <th>Promoción</th>
-                <th>F. Ini.</th>
-                <th>F. Fin.</th>
-              </tr>
-            </thead>
-            <tbody>
-              {dataPromoServ.map((promo) => (
-                <tr key={promo.id}>
-                  <td>
-                    <Button size="sm" color="primary" onClick={() => getPromoServGrupos(promo)}>
-                      Seleccionar
-                    </Button>
-                  </td>
-                  <td>{promo.descripcionPromo}</td>
-                  <td>{formatFecha(promo.f1)}</td>
-                  <td>{formatFecha(promo.f2)}</td>
-                </tr>
-              ))}
-              {dataPromoServ.length === 0 && (
-                <tr>
-                  <td colSpan={4} style={{ textAlign: "center" }}>
-                    No hay promociones vigentes
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </Table>
-          <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <Button color="danger" onClick={() => setModalPromoServ(false)}>
-              Salir
-            </Button>
-          </div>
-        </Box>
-      </Modal>
-
-      {/* Promociones - Alta de servicio: grupos de la promoción */}
-      <Modal
-        open={modalPromoServGrupos}
-        onClose={() => setModalPromoServGrupos(false)}
-        disableAutoFocus
-        disableEnforceFocus
-      >
-        <Box sx={{ ...styleAltaServicio }}>
-          <h3>Detalles de la promoción{promoServSelected?.descripcionPromo ? `: ${promoServSelected.descripcionPromo}` : ""}</h3>
-          <Table striped hover>
-            <thead>
-              <tr>
-                <th>Selector</th>
-                <th>Área</th>
-                <th>Depto</th>
-                <th>Subdepto</th>
-                <th>Producto</th>
-                <th>%</th>
-                <th>Precio</th>
-              </tr>
-            </thead>
-            <tbody>
-              {dataPromoServGrupos.map((grupo) => (
-                <tr key={grupo.id}>
-                  <td>
-                    <Button size="sm" color="primary" onClick={() => getPromoServProductos(grupo)}>
-                      Seleccionar
-                    </Button>
-                  </td>
-                  <td>{grupo.d_area}</td>
-                  <td>{grupo.d_depto}</td>
-                  <td>{grupo.d_subdepto}</td>
-                  <td>{grupo.d_producto}</td>
-                  <td>{Math.trunc(grupo.descuentoPorcentaje * 100)} %</td>
-                  <td>{grupo.precioFijo}</td>
-                </tr>
-              ))}
-              {dataPromoServGrupos.length === 0 && (
-                <tr>
-                  <td colSpan={7} style={{ textAlign: "center" }}>
-                    Sin grupos configurados
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </Table>
-          <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <Button color="danger" onClick={() => setModalPromoServGrupos(false)}>
-              Salir
-            </Button>
-          </div>
-        </Box>
-      </Modal>
-
-      {/* Promociones - Alta de servicio: productos de la promoción */}
-      <Modal
-        open={modalPromoServProductos}
-        onClose={() => setModalPromoServProductos(false)}
-        disableAutoFocus
-        disableEnforceFocus
-      >
-        <Box sx={{ ...styleAltaServicio }}>
-          <h3>Productos de la promoción</h3>
-          <MaterialReactTable
-            columns={columnsPromoServProductos}
-            data={dataPromoServProductos}
-            initialState={{ density: "compact", pagination: { pageSize: 7, pageIndex: 0 } }}
-            muiTableContainerProps={{ sx: { maxHeight: "330px" } }}
-            muiTableBodyProps={{ sx: { fontSize: "16px" } }}
-            muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
-            muiTableBodyCellProps={{ sx: { fontSize: "16px" } }}
-          />
-          <br />
-          <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <Button color="danger" onClick={() => setModalPromoServProductos(false)}>
-              Salir
-            </Button>
-          </div>
-        </Box>
-      </Modal>
+      {/* Promociones: consulta (soloVisual) y alta de servicio (selección de producto) */}
+      <ModalPromociones
+        isOpen={modalPromoServ}
+        onClose={() => setModalPromoServ(false)}
+        onSelectProducto={agregarServicioPromo}
+        api={peinadosApi}
+        cia={1}
+        sucursal={idSuc}
+        almacen={11}
+        soloVisual={soloVisualPromoServ}
+        zIndex={1400}
+      />
 
       <Modal open={modalCumpleanios} onClose={() => setModalCumpleanios(false)} disableAutoFocus disableEnforceFocus>
         <Box sx={{ ...styleAltaServicio }}>

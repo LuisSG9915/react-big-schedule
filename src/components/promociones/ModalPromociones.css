@@ -1,0 +1,14 @@
+.modal-promociones {
+  max-width: 100vw !important;
+  width: 100vw !important;
+  margin: 0 !important;
+}
+
+.modal-promociones .modal-content {
+  min-height: 95vh;
+}
+
+.modal-promociones .modal-body {
+  max-height: 80vh;
+  overflow-y: auto;
+}
