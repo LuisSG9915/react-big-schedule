@@ -6993,6 +6993,7 @@ function Basic() {
         almacen={11}
         soloVisual={soloVisualPromoServ}
         zIndex={1400}
+        fecha={datosParametros.fecha ? format(datosParametros.fecha, "yyyy-MM-dd") : ""}
       />
 
       <Modal open={modalCumpleanios} onClose={() => setModalCumpleanios(false)} disableAutoFocus disableEnforceFocus>

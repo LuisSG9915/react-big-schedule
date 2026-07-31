@@ -66,10 +66,53 @@ export interface ProductoPromo {
   tiempox: number;
 }
 
+export interface ProductoPromoCopia {
+  sucursal: number;
+  almacen: number;
+  existencia: number;
+  precio: number;
+  precioPromocion?: number;
+  clave_lista: number;
+  id: number;
+  clave_prod: string;
+  descripcion: string;
+  descripcion_ticket: string;
+  marca: number;
+  area: number;
+  depto: number;
+  subdepto: number;
+  inventariable: boolean;
+  obsoleto: boolean;
+  costos_s_iva: number;
+  id_proveedor: number;
+  tiempox: string | number;
+  genera_puntos: boolean;
+  productividad: number;
+  genera_comision: boolean;
+  comision: number;
+  grupo: number;
+  descripcion_factura: string;
+  precio_lista: number;
+  precio_ideal: number;
+  insumo: boolean;
+  producto: boolean;
+  servicio: boolean;
+  tasa_iva: number;
+  fecha_act: string;
+  fecha_Alta: string;
+  promocion: boolean;
+  fecha_inicial: string;
+  fecha_final: string;
+  precio_oferta?: number;
+  certificado: boolean;
+  prepago: boolean;
+  productividadPeso: number;
+}
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onSelectProducto: (producto: ProductoPromo) => void;
+  onSelectProducto: (producto: ProductoPromo | ProductoPromoCopia) => void;
   api: AxiosInstance;
   cia: number;
   sucursal: number;
@@ -100,6 +143,10 @@ export const ModalPromociones = ({ isOpen, onClose, onSelectProducto, api, cia, 
   const [filtrosProductos, setFiltrosProductos] = useState<Record<number, string>>({});
   const [cargandoPromocion, setCargandoPromocion] = useState<number | null>(null);
   const [cargandoGrupo, setCargandoGrupo] = useState<number | null>(null);
+  const [mostrarPromoCopia, setMostrarPromoCopia] = useState(false);
+  const [dataPromoCopia, setDataPromoCopia] = useState<ProductoPromoCopia[]>([]);
+  const [filtroPromoCopia, setFiltroPromoCopia] = useState("");
+  const [cargandoPromoCopia, setCargandoPromoCopia] = useState(false);
 
   const cargarPromociones = async () => {
     try {
@@ -115,6 +162,28 @@ export const ModalPromociones = ({ isOpen, onClose, onSelectProducto, api, cia, 
     if (isOpen) void cargarPromociones();
   }, [isOpen]);
 
+  const cargarPromoCopia = async () => {
+    setCargandoPromoCopia(true);
+    try {
+      const response = await api.get(
+        `/sp_cPSEACPromoCopia?cia=${cia}&sucursal=${sucursal}&almacen=${almacen}`
+      );
+      setDataPromoCopia(response.data || []);
+    } catch (error) {
+      console.error("Error al obtener todas las claves de promoción:", error);
+      Swal.fire("Error", "No fue posible cargar todas las claves de promoción.", "error");
+    } finally {
+      setCargandoPromoCopia(false);
+    }
+  };
+
+  const abrirPromoCopia = async () => {
+    setMostrarPromoCopia(true);
+    if (dataPromoCopia.length === 0) {
+      await cargarPromoCopia();
+    }
+  };
+
   const cerrarModal = () => {
     setPromocionAbierta("");
     setGrupoAbierto("");
@@ -123,6 +192,9 @@ export const ModalPromociones = ({ isOpen, onClose, onSelectProducto, api, cia, 
     setFiltrosProductos({});
     setCargandoPromocion(null);
     setCargandoGrupo(null);
+    setMostrarPromoCopia(false);
+    setFiltroPromoCopia("");
+    setCargandoPromoCopia(false);
     onClose();
   };
 
@@ -188,16 +260,128 @@ export const ModalPromociones = ({ isOpen, onClose, onSelectProducto, api, cia, 
     onSelectProducto(producto);
   };
 
+  const handleSeleccionarProductoCopia = (producto: ProductoPromoCopia) => {
+    cerrarModal();
+    onSelectProducto(producto);
+  };
+
+  const textoFiltroPromoCopia = filtroPromoCopia.trim().toLocaleLowerCase("es-MX");
+  const productosPromoCopiaFiltrados = textoFiltroPromoCopia
+    ? dataPromoCopia.filter((producto) => {
+        const valoresColumnas = [
+          producto.id,
+          producto.clave_prod,
+          producto.descripcion,
+          producto.descripcion_ticket,
+          producto.existencia,
+          producto.precio,
+          producto.precioPromocion,
+          producto.area,
+          producto.depto,
+          producto.subdepto,
+          producto.tiempox,
+          producto.fecha_inicial,
+          producto.fecha_final,
+        ];
+
+        return valoresColumnas.some((valor) =>
+          String(valor ?? "").toLocaleLowerCase("es-MX").includes(textoFiltroPromoCopia)
+        );
+      })
+    : dataPromoCopia;
+
   return (
     <Modal isOpen={isOpen} toggle={cerrarModal} size="xl">
       <ModalHeader toggle={cerrarModal}>
-        <h3>Promociones disponibles</h3>
+        <div className="d-flex flex-wrap align-items-center gap-2">
+          <h3 className="mb-0">Promociones disponibles</h3>
+          <Button
+            color={mostrarPromoCopia ? "primary" : "secondary"}
+            size="sm"
+            outline={!mostrarPromoCopia}
+            onClick={abrirPromoCopia}
+            disabled={cargandoPromoCopia}
+          >
+            Todas las claves promo
+          </Button>
+          {mostrarPromoCopia && (
+            <Button color="secondary" size="sm" outline onClick={() => setMostrarPromoCopia(false)}>
+              Ver por promocion
+            </Button>
+          )}
+        </div>
       </ModalHeader>
       <ModalBody>
         <p className="text-muted mb-3">
           Abre una promoción, después el renglón de clasificación y selecciona la clave que deseas agregar a la venta.
         </p>
-        {dataPromo.length === 0 ? (
+        {mostrarPromoCopia ? (
+          <div>
+            <InputGroup className="mb-3">
+              <InputGroupText>Buscar</InputGroupText>
+              <Input
+                value={filtroPromoCopia}
+                onChange={(evento) => setFiltroPromoCopia(evento.target.value)}
+                placeholder="Buscar clave, producto, precio, existencia, clasificacion..."
+                aria-label="Buscar en todas las claves de promocion"
+              />
+              {filtroPromoCopia && (
+                <Button color="secondary" outline onClick={() => setFiltroPromoCopia("")}>
+                  Limpiar
+                </Button>
+              )}
+              <Button color="secondary" outline onClick={cargarPromoCopia} disabled={cargandoPromoCopia}>
+                Actualizar
+              </Button>
+            </InputGroup>
+
+            {cargandoPromoCopia ? (
+              <div className="text-center py-3">Cargando todas las claves de promocion...</div>
+            ) : dataPromoCopia.length === 0 ? (
+              <Alert color="info">No hay claves de promocion para esta sucursal.</Alert>
+            ) : productosPromoCopiaFiltrados.length === 0 ? (
+              <Alert color="info" className="mb-0">
+                No hay claves que coincidan con "{filtroPromoCopia}".
+              </Alert>
+            ) : (
+              <div className="table-responsive" style={{ maxHeight: "430px", overflowY: "auto" }}>
+                <Table hover size="sm" className="align-middle mb-0">
+                  <thead style={{ position: "sticky", top: 0, zIndex: 1, backgroundColor: "white" }}>
+                    <tr>
+                      <th>Clave</th>
+                      <th>Producto / servicio</th>
+                      <th>Existencia</th>
+                      <th>Precio</th>
+                      <th>Tiempo</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {productosPromoCopiaFiltrados.map((producto) => (
+                      <tr key={`${producto.id}-${producto.clave_prod}`}>
+                        <td>{producto.clave_prod }</td>
+                        <td>{producto.descripcion}</td>
+                        <td>{producto.existencia}</td>
+                        <td>
+                          ${Number(producto.precio || 0).toLocaleString("es-MX", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </td>
+                        <td>{producto.tiempox}</td>
+                        <td className="text-end">
+                          <Button color="primary" size="sm" onClick={() => handleSeleccionarProductoCopia(producto)}>
+                            Seleccionar
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </div>
+            )}
+          </div>
+        ) : dataPromo.length === 0 ? (
           <Alert color="info">No hay promociones vigentes para esta sucursal.</Alert>
         ) : (
           <AccordionControlado
@@ -305,7 +489,7 @@ export const ModalPromociones = ({ isOpen, onClose, onSelectProducto, api, cia, 
 
                                     {productosFiltrados.length === 0 ? (
                                       <Alert color="info" className="mb-0">
-                                        No hay productos que coincidan con “{filtroProducto}”.
+                                        No hay productos que coincidan con "{filtroProducto}".
                                       </Alert>
                                     ) : (
                                       <div className="table-responsive">

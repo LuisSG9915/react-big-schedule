@@ -44,6 +44,7 @@ export const ModalPromociones = ({
   almacen = 11,
   soloVisual = false,
   zIndex = 1400,
+  fecha = "",
 }) => {
   const [dataPromo, setDataPromo] = useState([]);
   const [promocionAbierta, setPromocionAbierta] = useState("");
@@ -53,10 +54,15 @@ export const ModalPromociones = ({
   const [filtrosProductos, setFiltrosProductos] = useState({});
   const [cargandoPromocion, setCargandoPromocion] = useState(null);
   const [cargandoGrupo, setCargandoGrupo] = useState(null);
+  const [mostrarPromoCopia, setMostrarPromoCopia] = useState(false);
+  const [dataPromoCopia, setDataPromoCopia] = useState([]);
+  const [filtroPromoCopia, setFiltroPromoCopia] = useState("");
+  const [cargandoPromoCopia, setCargandoPromoCopia] = useState(false);
 
   const cargarPromociones = async () => {
     try {
-      const response = await api.get(`/PromoSucursalesRegionVigente?idSuc=${sucursal}`);
+      const endpoint = `/sp_catPromocionesZonaSucVigenteSel_agenda?idSuc=${sucursal}&fecha=${fecha}`;
+      const response = await api.get(endpoint);
       setDataPromo(response.data || []);
     } catch (error) {
       console.error("Error al obtener las promociones vigentes:", error);
@@ -68,6 +74,29 @@ export const ModalPromociones = ({
     if (isOpen) void cargarPromociones();
   }, [isOpen]);
 
+  const cargarPromoCopia = async () => {
+    setCargandoPromoCopia(true);
+    try {
+      const endpoint = fecha
+        ? `/sp_cPSEACPromoCopia_agenda?cia=${cia}&sucursal=${sucursal}&almacen=${almacen}&fecha=${fecha}`
+        : `/sp_cPSEACPromoCopia?cia=${cia}&sucursal=${sucursal}&almacen=${almacen}`;
+      const response = await api.get(endpoint);
+      setDataPromoCopia(response.data || []);
+    } catch (error) {
+      console.error("Error al obtener todas las claves de promoción:", error);
+      Swal.fire("Error", "No fue posible cargar todas las claves de promoción.", "error");
+    } finally {
+      setCargandoPromoCopia(false);
+    }
+  };
+
+  const abrirPromoCopia = async () => {
+    setMostrarPromoCopia(true);
+    if (dataPromoCopia.length === 0) {
+      await cargarPromoCopia();
+    }
+  };
+
   const cerrarModal = () => {
     setPromocionAbierta("");
     setGrupoAbierto("");
@@ -76,6 +105,9 @@ export const ModalPromociones = ({
     setFiltrosProductos({});
     setCargandoPromocion(null);
     setCargandoGrupo(null);
+    setMostrarPromoCopia(false);
+    setFiltroPromoCopia("");
+    setCargandoPromoCopia(false);
     onClose();
   };
 
@@ -141,6 +173,31 @@ export const ModalPromociones = ({
     if (onSelectProducto) onSelectProducto(producto);
   };
 
+  const textoFiltroPromoCopia = filtroPromoCopia.trim().toLocaleLowerCase("es-MX");
+  const productosPromoCopiaFiltrados = textoFiltroPromoCopia
+    ? dataPromoCopia.filter((producto) => {
+        const valoresColumnas = [
+          producto.id,
+          producto.clave_prod,
+          producto.descripcion,
+          producto.descripcion_ticket,
+          producto.existencia,
+          producto.precio,
+          producto.precioPromocion,
+          producto.area,
+          producto.depto,
+          producto.subdepto,
+          producto.tiempox,
+          producto.fecha_inicial,
+          producto.fecha_final,
+        ];
+
+        return valoresColumnas.some((valor) =>
+          String(valor ?? "").toLocaleLowerCase("es-MX").includes(textoFiltroPromoCopia)
+        );
+      })
+    : dataPromoCopia;
+
   return (
     <Modal
       isOpen={isOpen}
@@ -150,15 +207,109 @@ export const ModalPromociones = ({
       style={{ width: "100vw", maxWidth: "100vw", margin: "0 auto", minHeight: "90vh" }}
     >
       <ModalHeader toggle={cerrarModal}>
-        <h3>Promociones disponibles</h3>
+        <div className="d-flex flex-wrap align-items-center gap-2">
+          <h3 className="mb-0">Promociones disponibles</h3>
+          <Button
+            color={mostrarPromoCopia ? "primary" : "secondary"}
+            size="sm"
+            outline={!mostrarPromoCopia}
+            onClick={abrirPromoCopia}
+            disabled={cargandoPromoCopia}
+          >
+            Todas las claves promo
+          </Button>
+          {mostrarPromoCopia && (
+            <Button color="secondary" size="sm" outline onClick={() => setMostrarPromoCopia(false)}>
+              Ver por promocion
+            </Button>
+          )}
+        </div>
       </ModalHeader>
       <ModalBody>
         <p className="text-muted mb-3">
-          {soloVisual
-            ? "Abre una promoción y después el renglón de clasificación para consultar las claves participantes."
-            : "Abre una promoción, después el renglón de clasificación y selecciona la clave que deseas agregar a la venta."}
+          {mostrarPromoCopia
+            ? "Busca y selecciona la clave que deseas agregar a la venta."
+            : soloVisual
+              ? "Abre una promoción y después el renglón de clasificación para consultar las claves participantes."
+              : "Abre una promoción, después el renglón de clasificación y selecciona la clave que deseas agregar a la venta."}
         </p>
-        {dataPromo.length === 0 ? (
+        {mostrarPromoCopia ? (
+          <div>
+            <InputGroup className="mb-3">
+              <InputGroupText>Buscar</InputGroupText>
+              <Input
+                value={filtroPromoCopia}
+                onChange={(evento) => setFiltroPromoCopia(evento.target.value)}
+                placeholder="Buscar clave, producto, precio, existencia, clasificacion..."
+                aria-label="Buscar en todas las claves de promocion"
+              />
+              {filtroPromoCopia && (
+                <Button color="secondary" outline onClick={() => setFiltroPromoCopia("")}>
+                  Limpiar
+                </Button>
+              )}
+              <Button color="secondary" outline onClick={cargarPromoCopia} disabled={cargandoPromoCopia}>
+                Actualizar
+              </Button>
+            </InputGroup>
+
+            {cargandoPromoCopia ? (
+              <div className="text-center py-3">Cargando todas las claves de promocion...</div>
+            ) : dataPromoCopia.length === 0 ? (
+              <Alert color="info">No hay claves de promocion para esta sucursal.</Alert>
+            ) : productosPromoCopiaFiltrados.length === 0 ? (
+              <Alert color="info" className="mb-0">
+                No hay claves que coincidan con "{filtroPromoCopia}".
+              </Alert>
+            ) : (
+              <div className="table-responsive" style={{ maxHeight: "430px", overflowY: "auto" }}>
+                <Table hover size="sm" className="align-middle mb-0">
+                  <thead style={{ position: "sticky", top: 0, zIndex: 1, backgroundColor: "white" }}>
+                    <tr>
+                      <th>Clave</th>
+                      <th>Producto / servicio</th>
+                      <th>Existencia</th>
+                      <th>Precio</th>
+                      <th>Tiempo</th>
+                      {!soloVisual && <th></th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {productosPromoCopiaFiltrados.map((producto) => (
+                      <tr key={`${producto.clave_prod}`}>
+                        <td>{producto.clave_prod || producto.id}</td>
+                        <td>{producto.descripcion}</td>
+                        <td>{producto.existencia}</td>
+                        <td>
+                          $
+                          {Number(producto.precio || 0).toLocaleString("es-MX", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </td>
+                        <td>{producto.tiempox}</td>
+                        {!soloVisual && (
+                          <td className="text-end">
+                            <Button
+                              color="primary"
+                              size="sm"
+                              onClick={() => {
+                                cerrarModal();
+                                if (onSelectProducto) onSelectProducto(producto);
+                              }}
+                            >
+                              Seleccionar
+                            </Button>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </div>
+            )}
+          </div>
+        ) : dataPromo.length === 0 ? (
           <Alert color="info">No hay promociones vigentes para esta sucursal.</Alert>
         ) : (
           <Accordion
@@ -203,6 +354,7 @@ export const ModalPromociones = ({
                           const productosFiltrados = textoFiltro
                             ? productos.filter((producto) => {
                                 const valoresColumnas = [
+                                  producto.clave_prod,
                                   producto.id,
                                   producto.descripcion,
                                   producto.existencia,
@@ -274,7 +426,7 @@ export const ModalPromociones = ({
 
                                     {productosFiltrados.length === 0 ? (
                                       <Alert color="info" className="mb-0">
-                                        No hay productos que coincidan con “{filtroProducto}”.
+                                        No hay productos que coincidan con "{filtroProducto}".
                                       </Alert>
                                     ) : (
                                       <div className="table-responsive">
@@ -292,7 +444,7 @@ export const ModalPromociones = ({
                                           <tbody>
                                             {productosFiltrados.map((producto) => (
                                               <tr key={producto.id}>
-                                                <td>{producto.id}</td>
+                                                <td>{producto.clave_prod || producto.id}</td>
                                                 <td>{producto.descripcion}</td>
                                                 <td>{producto.existencia}</td>
                                                 <td>
