@@ -587,6 +587,7 @@ function Basic() {
             resourceId: item.no_estilista,
             title: "",
             type: 2,
+            clickable1: item.estadoCita != 4,
             bgColor:
               item.estadoCita == 6
                 ? "#bababa"
@@ -635,6 +636,7 @@ function Basic() {
           resourceId: item.no_estilista,
           title: "",
           type: 2,
+          clickable1: item.estadoCita != 4,
           // bgColor: "red",
           bgColor:
             item.estadoCita == 6
@@ -1129,6 +1131,7 @@ function Basic() {
 
   const ops1 = useCallback(
     (schedulerData, event) => {
+      if (event.estadoCita == 4) return;
       console.log(event);
       handleOpenNewWindowEdit({
         idCita: event.idCita,
@@ -1181,6 +1184,28 @@ function Basic() {
     dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
   }, []);
 
+  const verificarPromocionCambio = async (idCita, fechaNueva) => {
+    try {
+      const fecha = format(new Date(fechaNueva), "yyyy-MM-dd");
+      const response = await peinadosApi.get("/sp_VerificaPromo_agenda", {
+        params: {
+          idcita: idCita,
+          fecha,
+        },
+      });
+      return response.data?.[0] || { codigo: 0, mensaje: "Todo bien" };
+    } catch (error) {
+      console.error("Error al verificar promociones de la cita:", error);
+      await Swal.fire({
+        icon: "error",
+        title: "No se pudo validar la promoción",
+        text: "No se puede cambiar la fecha hasta confirmar la vigencia de la promoción.",
+        confirmButtonText: "Aceptar",
+      });
+      return null;
+    }
+  };
+
   const moveEvent = useCallback(
     async (schedulerData, event, slotId, slotName, start, end) => {
       if (event.estadoCita == 4) {
@@ -1212,47 +1237,59 @@ function Basic() {
         return;
       }
 
-      const nombreAgendaNuevo = dataTrabajadores.find((item) => item.id === slotId).nombre_agenda;
-      const nombreAgendaAnterior = dataTrabajadores.find((item) => item.id === event.no_estilista).nombre_agenda;
+      const promo = await verificarPromocionCambio(event.idCita, start);
+      if (!promo) return;
 
+      const nombreAgendaNuevo = dataTrabajadores.find((item) => item.id === slotId)?.nombre_agenda || "";
+      const nombreAgendaAnterior = dataTrabajadores.find((item) => item.id === event.no_estilista)?.nombre_agenda || "";
       const passwordYaValidado = isVerified.passwordYaValidado;
-      Swal.fire({
-        title: "Cambio de Cita",
+      const detallePromo = promo.codigo === 1
+        ? `<p style="color:#b45309"><strong>Ajuste de promoción:</strong><br>${promo.mensaje}</p>`
+        : "";
+
+      const result = await Swal.fire({
+        title: "Cambio de cita",
         html: `
-        <p>CLIENTE: Publico en General</p>
-        <p>ANTERIOR:<br>Horas: ${format(new Date(event.hora1), "hh:mm a")}   Estilista: ${
-          nombreAgendaAnterior ? nombreAgendaAnterior : ""
-        }</p>
-        <p>NUEVA:<br>Horas: ${format(new Date(start), "hh:mm a")}   Estilista: ${
-          nombreAgendaNuevo ? nombreAgendaNuevo : ""
-        }</p>
-        <p>Quiere confirmar el cambio?</p>
-      `,
+          <p>CLIENTE: Publico en General</p>
+          <p>ANTERIOR:<br>Hora: ${format(new Date(event.hora1), "hh:mm a")}   Estilista: ${nombreAgendaAnterior}</p>
+          <p>NUEVA:<br>Hora: ${format(new Date(start), "hh:mm a")}   Estilista: ${nombreAgendaNuevo}</p>
+          ${detallePromo}
+          <p>¿Está seguro(a) de confirmar el cambio y aplicar el ajuste indicado?</p>
+        `,
         showCancelButton: true,
-        confirmButtonText: "Sí",
+        confirmButtonText: "Sí, confirmar",
         cancelButtonText: "No",
-      }).then(async (result) => {
-        if (result.isConfirmed) {
-          let usuarioValidado;
-          if (passwordYaValidado) {
-            // Contraseña ya fue validada en verificarDisponibilidad, no pedir de nuevo
-            usuarioValidado = null;
-          } else {
-            const pwResult = await validarContraseña("MODIFICAR_CITA", "AGENDA");
-            if (!pwResult.validado) return;
-            usuarioValidado = pwResult.usuario;
-          }
-          // Guardar usuario en ref para que putEditarCita no pida contraseña de nuevo
-          usuarioValidadoMoveRef.current = usuarioValidado;
-          setDatosParametrosFechaCitaTemp({
-            fecha: start,
-            usuarioEstilista: slotId,
-          });
-          setDatosParametrosCitaTemp(event);
-        }
+      });
+      if (!result.isConfirmed) return;
+
+      let usuarioValidado;
+      if (passwordYaValidado) {
+        // Contraseña ya fue validada en verificarDisponibilidad, no pedir de nuevo
+        usuarioValidado = null;
+      } else {
+        const pwResult = await validarContraseña("MODIFICAR_CITA", "AGENDA");
+        if (!pwResult.validado) return;
+        usuarioValidado = pwResult.usuario;
+      }
+      // Guardar usuario en ref para que putEditarCita no pida contraseña de nuevo
+      usuarioValidadoMoveRef.current = usuarioValidado;
+      setDatosParametrosFechaCitaTemp({
+        fecha: start,
+        usuarioEstilista: slotId,
+      });
+      setDatosParametrosCitaTemp({
+        ...event,
+        promoCambio: promo,
       });
     },
-    [Swal, arreglo, setDatosParametrosFechaCitaTemp, setDatosParametrosCitaTemp, validarContraseña],
+    [
+      Swal,
+      arreglo,
+      setDatosParametrosFechaCitaTemp,
+      setDatosParametrosCitaTemp,
+      validarContraseña,
+      verificarPromocionCambio,
+    ],
   );
 
   const newEvent = useCallback((schedulerData, slotId, slotName, start, end, type, item) => {
@@ -1772,8 +1809,8 @@ function Basic() {
     // },
   ];
 
-  //  const ligaPruebas = "http://localhost:5173/";
-   const ligaPruebas = "http://217.216.95.62:9019/";
+    const ligaPruebas = "http://localhost:5173/";
+  //  const ligaPruebas = "http://217.216.95.62:9019/";
   const handleOpenNewWindow = ({ idCita, idUser, idCliente, fecha, flag }) => {
     const url = `${ligaPruebas}miliga/crearcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idSuc=${1}&idRec=${1}&flag=${flag}`; // Reemplaza esto con la URL que desees abrir
     const width = 390;
@@ -1898,7 +1935,7 @@ function Basic() {
           stao_estilista: datosParametrosCitaTemp.estadoCita2,
           nota_canc: 0,
           registrada: true,
-          observacion: 0,
+          observacion: datosParametrosCitaTemp.promoCambio?.codigo === 1 ? "SIN PROMO2026" : "PROMO",
           user_uc: 0,
           estatus: datosParametrosCitaTemp.estadoCita2,
         },
@@ -2303,6 +2340,29 @@ function Basic() {
   const getPromoServVigentes = (soloVisual = false) => {
     setSoloVisualPromoServ(soloVisual);
     setModalPromoServ(true);
+  };
+
+  const abrirPromocionesCreacion = async () => {
+    if (formCitaServicio.idCita > 0) {
+      getPromoServVigentes();
+      return;
+    }
+
+    try {
+      const citaId = await postCrearCita();
+      if (!citaId) return;
+      setFormCitaServicio((actual) => ({ ...actual, idCita: citaId }));
+      setProductosModal(false);
+      setTimeout(() => getPromoServVigentes(), 0);
+    } catch (error) {
+      console.error("Error al crear la cita antes de abrir promociones:", error);
+      Swal.fire({
+        icon: "error",
+        title: "No se pudo preparar la cita",
+        text: "Primero debe crearse la cita para poder agregar una promoción.",
+        confirmButtonText: "Aceptar",
+      });
+    }
   };
 
   const agregarServicioPromo = (producto) => {
@@ -7150,6 +7210,14 @@ function Basic() {
                   }}
                 >
                   Historial ventas
+                </Button>
+                <Button
+                  size="sm"
+                  color="success"
+                  style={{ marginLeft: "10px" }}
+                  onClick={abrirPromocionesCreacion}
+                >
+                  <RiDiscountPercentLine size={20} /> Promociones
                 </Button>
               </div>
             </div>

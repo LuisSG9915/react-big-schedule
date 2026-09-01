@@ -287,6 +287,27 @@ function EditarCita() {
     });
   };
 
+  const verificarPromocionCambio = async (idCita, fechaNueva) => {
+    try {
+      const response = await peinadosApi.get("/sp_VerificaPromo_agenda", {
+        params: {
+          idcita: idCita,
+          fecha: format(new Date(fechaNueva), "yyyy-MM-dd"),
+        },
+      });
+      return response.data?.[0] || { codigo: 0, mensaje: "Todo bien" };
+    } catch (error) {
+      console.error("Error al verificar promociones de la cita:", error);
+      await Swal.fire({
+        icon: "error",
+        title: "No se pudo validar la promoción",
+        text: "No se puede cambiar la fecha hasta confirmar la vigencia de la promoción.",
+        confirmButtonText: "Aceptar",
+      });
+      return null;
+    }
+  };
+
   const updateCita = async () => {
     const isVerified = await verificarDisponibilidad(
       formCita.tiempo,
@@ -295,6 +316,20 @@ function EditarCita() {
       formCita.id,
     );
     if (!isVerified) return;
+
+    const promo = await verificarPromocionCambio(formCita.id, formCita.fecha);
+    if (!promo) return;
+    if (promo.codigo === 1) {
+      const promoResult = await Swal.fire({
+        icon: "warning",
+        title: "Ajuste de promoción",
+        html: `<p>${promo.mensaje}</p><p>¿Está seguro(a) de confirmar el cambio y aplicar el ajuste indicado?</p>`,
+        showCancelButton: true,
+        confirmButtonText: "Sí, confirmar",
+        cancelButtonText: "No",
+      });
+      if (!promoResult.isConfirmed) return;
+    }
 
     const result = await validarContraseña("MODIFICAR_CITA", "AGENDA");
     if (!result.validado) return;
@@ -328,7 +363,7 @@ function EditarCita() {
           stao_estilista: 1,
           nota_canc: 0,
           registrada: false,
-          observacion: "",
+          observacion: promo.codigo === 1 ? "SIN PROMO2026" : "PROMO",
           user_uc: 0,
           estatus:
             formCita.cambioCitaModo == "1" && formCita.estatusAsignado

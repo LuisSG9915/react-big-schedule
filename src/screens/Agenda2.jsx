@@ -294,6 +294,7 @@ function Agenda2() {
             resourceId: item.no_estilista,
             title: "",
             type: 2,
+            clickable1: item.estadoCita != 4,
             bgColor:
               item.estadoCita == 6
                 ? "#bababa"
@@ -327,6 +328,7 @@ function Agenda2() {
           resourceId: item.no_estilista,
           title: "",
           type: 2,
+          clickable1: item.estadoCita != 4,
           // bgColor: "red",
           bgColor:
             item.estadoCita == 6
