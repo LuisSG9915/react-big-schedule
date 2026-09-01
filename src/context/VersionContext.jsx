@@ -13,7 +13,7 @@ export const useVersion = () => {
 };
 
 export const VersionProvider = ({ children }) => {
-  const CURRENT_VERSION = 18.7;
+  const CURRENT_VERSION = 19;
   const [verificadorVersion, setVerificadorVersion] = useState(false);
 
   const checkVersion = async () => {
