@@ -1809,8 +1809,8 @@ function Basic() {
     // },
   ];
 
-    const ligaPruebas = "http://localhost:5173/";
-  //  const ligaPruebas = "http://217.216.95.62:9019/";
+    //const ligaPruebas = "http://localhost:5173/";
+   const ligaPruebas = "http://217.216.95.62:9019/";
   const handleOpenNewWindow = ({ idCita, idUser, idCliente, fecha, flag }) => {
     const url = `${ligaPruebas}miliga/crearcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idSuc=${1}&idRec=${1}&flag=${flag}`; // Reemplaza esto con la URL que desees abrir
     const width = 390;
@@ -7211,14 +7211,7 @@ function Basic() {
                 >
                   Historial ventas
                 </Button>
-                <Button
-                  size="sm"
-                  color="success"
-                  style={{ marginLeft: "10px" }}
-                  onClick={abrirPromocionesCreacion}
-                >
-                  <RiDiscountPercentLine size={20} /> Promociones
-                </Button>
+               
               </div>
             </div>
             <div>
@@ -7479,6 +7472,14 @@ function Basic() {
               >
                 {formCitaServicio.idCita > 0 ? "Modificar cita" : "Ingresar servicios..."}
               </Button>
+               <Button
+                  size="sm"
+                  color="success"
+                  style={{ marginLeft: "10px" }}
+                  onClick={abrirPromocionesCreacion}
+                >
+                  <RiDiscountPercentLine size={20} /> Promociones
+                </Button>
               <hr />
               <ThemeProvider theme={theme}>
                 <DataGrid rows={dataCitasServicios} columns={columnsCitasServicios} />
