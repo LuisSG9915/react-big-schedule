@@ -334,6 +334,10 @@ function Basic() {
   const [datosParametrosCitaTemp, setDatosParametrosCitaTemp] = useState({});
   const [datosParametrosFechaCitaTemp, setDatosParametrosFechaCitaTemp] = useState({});
   const usuarioValidadoMoveRef = useRef(null);
+  const modalCrearBoxRef = useRef(null);
+  const isDraggingModalCrear = useRef(false);
+  const dragStartOffset = useRef({ x: 0, y: 0 });
+  const [modalCrearPos, setModalCrearPos] = useState({ x: 0, y: 0 });
   const handleChangeObservaciones = (e) => {
     setFormCitasObservaciones2(e.target.value);
   };
@@ -509,7 +513,7 @@ function Basic() {
         "0",
       )}${String(fechaLocal.getDate()).padStart(2, "0")}`;
       const response = await peinadosApi.get(
-        `/DetalleAgendaSelv20?fecha=${fechaFormateadaCitas}&suc=${idSuc}&nomberEstilista=${"%"}&nombreCliente=${"%"}`,
+        `/DetalleAgendaSelv21?fecha=${fechaFormateadaCitas}&suc=${idSuc}&nomberEstilista=${"%"}&nombreCliente=${"%"}`,
       );
 
       // Filtrar solo las citas del estilista 37 para análisis
@@ -2076,16 +2080,19 @@ function Basic() {
     overflow: "auto", // Añade esta línea
   };
   const styleCrearCita = {
-    position: "absolute",
-    top: "50%",
-    left: "50%",
-    transform: "translate(-50%, -50%)",
-    width: "100%",
+    width: "55%",
+    minWidth: "620px",
+    maxWidth: "95vw",
+    maxHeight: "92vh",
     bgcolor: "background.paper",
-    border: "2px solid #000",
-    p: 4,
-    height: "100%",
-    overflow: "auto", // Añade esta línea
+    border: "2px solid #333",
+    borderRadius: "8px",
+    boxShadow: 24,
+    display: "flex",
+    flexDirection: "column",
+    outline: "none",
+    position: "relative",
+    overflow: "hidden",
   };
   const styleCantidad = {
     position: "absolute",
@@ -2467,6 +2474,118 @@ function Basic() {
   const { dataPrepagos, fetchPrepagos } = usePrepagos();
   const { fetchProductosAreaDeptoSub, dataProductosAreaDeptoSub, setDataProductosAreaDeptoSub } =
     useProductosAreaDeptoSub();
+
+  const handleMouseDownModalCrear = useCallback(
+    (e) => {
+      if (e.target.closest("button, input, select, textarea, .modal-no-drag, .MuiButtonBase-root")) {
+        return;
+      }
+      if (e.button !== 0) return;
+
+      e.preventDefault();
+      isDraggingModalCrear.current = true;
+      dragStartOffset.current = {
+        startX: e.clientX - modalCrearPos.x,
+        startY: e.clientY - modalCrearPos.y,
+      };
+
+      const handleMouseMove = (moveEvent) => {
+        if (!isDraggingModalCrear.current) return;
+        const newX = moveEvent.clientX - dragStartOffset.current.startX;
+        const newY = moveEvent.clientY - dragStartOffset.current.startY;
+        if (modalCrearBoxRef.current) {
+          modalCrearBoxRef.current.style.transform = `translate(${newX}px, ${newY}px)`;
+        }
+      };
+
+      const handleMouseUp = (upEvent) => {
+        if (!isDraggingModalCrear.current) return;
+        isDraggingModalCrear.current = false;
+        const finalX = upEvent.clientX - dragStartOffset.current.startX;
+        const finalY = upEvent.clientY - dragStartOffset.current.startY;
+        setModalCrearPos({ x: finalX, y: finalY });
+        window.removeEventListener("mousemove", handleMouseMove);
+        window.removeEventListener("mouseup", handleMouseUp);
+      };
+
+      window.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("mouseup", handleMouseUp);
+    },
+    [modalCrearPos],
+  );
+
+  const handleTouchStartModalCrear = useCallback(
+    (e) => {
+      if (e.target.closest("button, input, select, textarea, .modal-no-drag, .MuiButtonBase-root")) return;
+      const touch = e.touches?.[0];
+      if (!touch) return;
+
+      isDraggingModalCrear.current = true;
+      dragStartOffset.current = {
+        startX: touch.clientX - modalCrearPos.x,
+        startY: touch.clientY - modalCrearPos.y,
+      };
+
+      const handleTouchMove = (moveEvent) => {
+        if (!isDraggingModalCrear.current) return;
+        const t = moveEvent.touches?.[0];
+        if (!t) return;
+        const newX = t.clientX - dragStartOffset.current.startX;
+        const newY = t.clientY - dragStartOffset.current.startY;
+        if (modalCrearBoxRef.current) {
+          modalCrearBoxRef.current.style.transform = `translate(${newX}px, ${newY}px)`;
+        }
+      };
+
+      const handleTouchEnd = (endEvent) => {
+        if (!isDraggingModalCrear.current) return;
+        isDraggingModalCrear.current = false;
+        const t = endEvent.changedTouches?.[0];
+        if (t) {
+          const finalX = t.clientX - dragStartOffset.current.startX;
+          const finalY = t.clientY - dragStartOffset.current.startY;
+          setModalCrearPos({ x: finalX, y: finalY });
+        }
+        window.removeEventListener("touchmove", handleTouchMove);
+        window.removeEventListener("touchend", handleTouchEnd);
+      };
+
+      window.addEventListener("touchmove", handleTouchMove, { passive: true });
+      window.addEventListener("touchend", handleTouchEnd);
+    },
+    [modalCrearPos],
+  );
+
+  const handleCerrarModalCrear = useCallback(() => {
+    setModalCrear(false);
+    setModalCrearPos({ x: 0, y: 0 });
+    if (modalCrearBoxRef.current) {
+      modalCrearBoxRef.current.style.transform = "translate(0px, 0px)";
+    }
+    setFormCitaServicio((prev) => ({
+      ...prev,
+      idCita: null,
+      estatusAsignado: false,
+      estatusRequerido: false,
+    }));
+    setFormCita((prev) => ({
+      ...prev,
+      cia: null,
+      sucursal: idSuc,
+      no_estilista: 0,
+    }));
+    setFormCitaDescripciones({
+      descripcion_no_cancelacion: "",
+      descripcion_no_estilista: "",
+      descripcion_no_cliente: "",
+    });
+    setFormCitasObservaciones2("");
+    setdataCitasServicios([]);
+    setModalEdicionServicios2(false);
+    if (usuarioValidadoMoveRef) {
+      usuarioValidadoMoveRef.current = null;
+    }
+  }, [idSuc, setdataCitasServicios]);
   const putCitasObservaciones = (estado, idCita) => {
     setModalCitasObservaciones(false);
     if (estado == 1) {
@@ -4833,7 +4952,65 @@ function Basic() {
             >
               Cancelar cita
             </Button>
-            <Button disabled={event.idCita == 0} onClick={() => setIsModalOpen(false)} style={{ marginBottom: "10px" }}>
+            <Button
+              color="warning"
+              onClick={async () => {
+
+console.log(event.idCita)
+console.log(event.no_estilista)
+console.log(event.idVenta)
+                // return
+                const result = await validarContraseña("MODIFICAR_CITA", "AGENDA");
+                if (!result.validado) return;
+
+                try {
+                  const fechaServicio = format(new Date(event.hora1), "yyyy-MM-dd HH:mm:ss");
+                  const response = await peinadosApi.get("/sp_liberaEstilista", {
+                    params: {
+                      cita: event.idCita || 0,
+                      estilista: event.no_estilista,
+                      fecha: fechaServicio,
+                      venta: event.idVenta || 0,
+                    },
+                  });
+                  const respuesta = response.data?.[0];
+                  if (respuesta && Number(respuesta.codigo) === 1) {
+                    Swal.fire({
+                      icon: "success",
+                      title: "Éxito",
+                      text: "Servicio liberado correctamente",
+                    }).then(() => {
+                      setIsModalOpen(false);
+                      getCitas(datosParametros.fecha).then((citas) => {
+                        if (citas && schedulerData) {
+                          schedulerData.setEvents(
+                            recortarCitasPorCierre(citas, schedulerData.config.dayStopTo + 1),
+                          );
+                          dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
+                          navigationLockRef.current = Date.now();
+                          setArregloCita(citas);
+                        }
+                      });
+                      getCitasDia();
+                    });
+                  } else {
+                    Swal.fire({
+                      icon: "error",
+                      title: "No se pudo liberar el servicio",
+                      text: respuesta?.mensaje || "El procedimiento no devolvió respuesta",
+                    });
+                  }
+                } catch (error) {
+                  console.error("Error al liberar servicio:", error);
+                  Swal.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: "Ocurrió un error al liberar el servicio. Por favor, inténtalo de nuevo.",
+                  });
+                }
+              }}
+              style={{ marginBottom: "10px" }}
+            >
               Liberar servicio
             </Button>
             <Button
@@ -5025,17 +5202,18 @@ function Basic() {
                       size={"sm"}
                       value={datosParametros.nombreEstilista}
                     ></Input>
-                    <Button color="primary" size="sm">
-                      <AiOutlineSearch size={19} onClick={() => getCitasDia()} />
+                    <Button color="primary" size="sm" onClick={() => getCitasDia()}>
+                      <AiOutlineSearch size={19} />
                     </Button>
-                    <Button color="secondary" size="sm">
-                      <AiOutlineReload
-                        size={19}
-                        onClick={() => {
-                          setDatosParametros({ ...datosParametros, nombreCliente: "", nombreEstilista: "" });
-                          getCitasDia(1);
-                        }}
-                      />
+                    <Button
+                      color="secondary"
+                      size="sm"
+                      onClick={() => {
+                        setDatosParametros({ ...datosParametros, nombreCliente: "", nombreEstilista: "" });
+                        getCitasDia(1);
+                      }}
+                    >
+                      <AiOutlineReload size={19} />
                     </Button>
                   </InputGroup>
                 </div>
@@ -7093,96 +7271,60 @@ function Basic() {
         </Box>
       </Modal>
 
-      <Draggable>
-        <Modal
-          keepMounted
-          open={ModalCrear}
-          style={{ maxWidth: "48%", maxHeight: "95%", overflow: "auto" }}
-          onClose={() => {
-            setModalCrear(false);
-            setFormCitaServicio({
-              ...formCitaServicio,
-              idCita: null,
-              estatusAsignado: false,
-              estatusRequerido: false,
-            });
-            setFormCita({
-              ...formCita,
-              cia: null,
-              sucursal: idSuc,
-              no_estilista: 0,
-            });
-
-            setFormCitaDescripciones({
-              ...formCitaDescripciones,
-              descripcion_no_cancelacion: "",
-              descripcion_no_estilista: "",
-              descripcion_no_cliente: "",
-            });
-            setFormCitasObservaciones2("");
-            setdataCitasServicios([]);
-            setModalEdicionServicios2(false);
+      <Modal
+        open={ModalCrear}
+        onClose={(event, reason) => {
+          if (reason === "backdropClick") return;
+          handleCerrarModalCrear();
+        }}
+        disableAutoFocus
+        disableEnforceFocus
+        disableRestoreFocus
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+        slotProps={{
+          backdrop: {
+            sx: {
+              backgroundColor: "rgba(0, 0, 0, 0.25)",
+            },
+          },
+        }}
+      >
+        <Box
+          ref={modalCrearBoxRef}
+          sx={{
+            ...styleCrearCita,
+            transform: `translate(${modalCrearPos.x}px, ${modalCrearPos.y}px)`,
           }}
-          disableEnforceFocus
         >
-          <Box sx={styleCrearCita}>
-            <div
-              onClick={() => {
-                setModalCrear(false);
-                setFormCitaServicio({
-                  ...formCitaServicio,
-                  idCita: null,
-                  estatusAsignado: false,
-                  estatusRequerido: false,
-                });
-                setFormCita({
-                  ...formCita,
-                  cia: null,
-                  sucursal: idSuc,
-                  no_estilista: 0,
-                });
-
-                setFormCitaDescripciones({
-                  ...formCitaDescripciones,
-                  descripcion_no_cancelacion: "",
-                  descripcion_no_estilista: "",
-                  descripcion_no_cliente: "",
-                });
-                setFormCitasObservaciones2("");
-                setdataCitasServicios([]);
-                setModalEdicionServicios2(false);
-              }}
-              style={{
-                cursor: "pointer",
-                marginRight: "2px",
-                marginTop: "2px",
-                width: "20px",
-                height: "20px",
-                backgroundColor: "red",
-                color: "white",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                position: "absolute", // Agrega esta línea
-                top: "10px", // Agrega esta línea
-                right: "10px", // Agrega esta línea
-                borderRadius: "50%",
-                // si requiero ponerlo en la derecha
+          <div
+            className="modal-crear-header-drag"
+            onMouseDown={handleMouseDownModalCrear}
+            onTouchStart={handleTouchStartModalCrear}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "10px 16px",
+              backgroundColor: "#f1f3f5",
+                borderBottom: "1px solid #dee2e6",
+                cursor: "move",
+                userSelect: "none",
+                flexShrink: 0,
               }}
             >
-              X
-            </div>
-            <div
-              style={{
-                flex: 1,
-                justifyContent: "space-between",
-                alignContent: "right",
-                alignItems: "right",
-                display: "flex",
-              }}
-            >
-              <h1>Creación de cita</h1>
-              <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <h3 style={{ margin: 0, fontSize: "1.35rem", fontWeight: "bold", color: "#212529" }}>
+                  Creación de cita
+                </h3>
+                <span style={{ fontSize: "0.8rem", color: "#6c757d", fontStyle: "italic" }}>
+                  (Arrastrar para mover)
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }} className="modal-no-drag">
                 <Button
                   size="sm"
                   disabled={!formCitaDescripciones.descripcion_no_cliente}
@@ -7192,7 +7334,7 @@ function Basic() {
                         icon: "error",
                         title: "Sin puntos",
                         text: `Este cliente todavia no cuenta con puntos`,
-                        confirmButtonColor: "#3085d6", // Cambiar el color del botón OK
+                        confirmButtonColor: "#3085d6",
                       });
                     } else {
                       setModalClientesPuntos(true);
@@ -7211,9 +7353,37 @@ function Basic() {
                 >
                   Historial ventas
                 </Button>
-               
+                <div
+                  onClick={handleCerrarModalCrear}
+                  style={{
+                    cursor: "pointer",
+                    width: "24px",
+                    height: "24px",
+                    backgroundColor: "#dc3545",
+                    color: "white",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    borderRadius: "50%",
+                    fontWeight: "bold",
+                    fontSize: "14px",
+                    lineHeight: 1,
+                    marginLeft: "6px",
+                  }}
+                  title="Cerrar"
+                >
+                  X
+                </div>
               </div>
             </div>
+
+            <div
+              style={{
+                flex: 1,
+                overflowY: "auto",
+                padding: "16px 20px",
+              }}
+            >
             <div>
               <Row form>
                 <Col xs="12" style={{ marginBottom: 0 }}>
@@ -7578,34 +7748,7 @@ function Basic() {
                         </Button>
                         <Button
                           color="danger"
-                          onClick={async () => {
-                            // const result = await validarContraseña("CANCELAR_CITA", "AGENDA");
-                            // if (!result.validado) return;
-                            setModalCrear(false);
-                            setFormCitaServicio({
-                              ...formCitaServicio,
-                              idCita: null,
-                              estatusAsignado: false,
-                              estatusRequerido: false,
-                            });
-                            setFormCita({
-                              ...formCita,
-                              cia: null,
-                              sucursal: idSuc,
-                              no_estilista: 0,
-                            });
-
-                            setFormCitaDescripciones({
-                              ...formCitaDescripciones,
-                              descripcion_no_cancelacion: "",
-                              descripcion_no_estilista: "",
-                              descripcion_no_cliente: "",
-                            });
-                            setFormCitasObservaciones2("");
-                            setdataCitasServicios([]);
-                            setModalEdicionServicios2(false);
-                            usuarioValidadoMoveRef.current = null;
-                          }}
+                          onClick={handleCerrarModalCrear}
                         >
                           Salir
                         </Button>
@@ -7615,9 +7758,9 @@ function Basic() {
                 </Row>
               </Box>
             </Box>
-          </Box>
-        </Modal>
-      </Draggable>
+          </div>
+        </Box>
+      </Modal>
 
       {/* Modal para mostrar la bitácora de citas */}
       <Modal open={modalBitacora} onClose={() => setModalBitacora(false)} disableAutoFocus disableEnforceFocus>
