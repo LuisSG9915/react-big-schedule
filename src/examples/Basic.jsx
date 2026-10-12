@@ -4915,7 +4915,7 @@ function Basic() {
             <h2>Seleccione la accion</h2>
             <Button
               color="danger"
-              disabled={event.idCita == 0}
+              disabled={event.idCita == 0 || event.estadoCita == 4}
               style={{ marginBottom: "10px" }}
               onClick={async () => {
                 if (event.hora1 < new Date()) {
@@ -4959,6 +4959,7 @@ function Basic() {
 console.log(event.idCita)
 console.log(event.no_estilista)
 console.log(event.idVenta)
+console.log(event.idsVenta)
                 // return
                 const result = await validarContraseña("MODIFICAR_CITA", "AGENDA");
                 if (!result.validado) return;
@@ -4970,7 +4971,11 @@ console.log(event.idVenta)
                       cita: event.idCita || 0,
                       estilista: event.no_estilista,
                       fecha: fechaServicio,
-                      venta: event.idVenta || 0,
+                      // idsVenta trae el CSV con TODOS los detalle_ventas.id del
+                      // bloque (ticket con varios servicios); idVenta queda de respaldo.
+                      venta: String(event.idsVenta || event.idVenta || 0),
+                      // Hora del navegador: evita depender del reloj del servidor SQL
+                      ahora: format(new Date(), "yyyy-MM-dd HH:mm:ss"),
                     },
                   });
                   const respuesta = response.data?.[0];
@@ -5015,7 +5020,7 @@ console.log(event.idVenta)
             </Button>
             <Button
               color="success"
-              disabled={event.idCita == 0}
+              disabled={event.idCita == 0 || event.estadoCita == 4}
               onClick={() => {
                 setFormCitaServicio({
                   ...formCitaServicio,
@@ -5039,7 +5044,7 @@ console.log(event.idVenta)
             </Button>
             <Button
               color="primary"
-              disabled={event.idCita == 0}
+              disabled={event.idCita == 0 || event.estadoCita == 4}
               onClick={() => {
                 setIsModalOpen(false);
               handleOpenNewWindowEdit({
@@ -7283,7 +7288,7 @@ console.log(event.idVenta)
         sx={{
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
+          justifyContent: "flex-start",
         }}
         slotProps={{
           backdrop: {

@@ -56,7 +56,7 @@ function EventItemPopover({
   const getEstilistas = () => {
     peinadosApi
       .get(
-        `/sp_detalleCitasServiciosResumen5?idCita=${eventItem.idCita}&cve_cliente=${eventItem.no_cliente}&estilista=${eventItem.no_estilista}&idVenta=${eventItem.idVenta}`
+        `/sp_detalleCitasServiciosResumen5?idCita=${eventItem.idCita}&cve_cliente=${eventItem.no_cliente}&estilista=${eventItem.no_estilista}&idVenta=${eventItem.noVenta || 0}`
       )
       .then((response) => {
         setDataPuntosPorCliente(response.data[0]);
