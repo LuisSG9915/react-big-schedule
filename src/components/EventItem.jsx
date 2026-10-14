@@ -473,9 +473,45 @@ class EventItem extends Component {
     let endResizeDiv = <div />;
     if (endResizable(this.props)) endResizeDiv = <div className="event-resizer event-end-resizer" ref={(ref) => (this.endResizer = ref)} />;
 
+    const superaSalida =
+      eventItem?.superaHoraSalida ||
+      (eventItem?.finReal && new Date(eventItem.finReal).getTime() > endDate.getTime());
+
     let eventItemTemplate = (
-      <div className={`${roundCls} event-item`} key={eventItem.id} style={{ height: config.eventItemHeight, backgroundColor: bgColor }}>
+      <div
+        className={`${roundCls} event-item`}
+        key={eventItem.id}
+        style={{
+          height: config.eventItemHeight,
+          backgroundColor: bgColor,
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
         <span style={{ marginLeft: "1px", lineHeight: `${config.eventItemHeight}px` }}>{eventTitle}</span>
+        {superaSalida && (
+          <span
+            title={`Supera horario de salida\nFin real: ${
+              eventItem.finReal
+                ? (eventItem.finReal instanceof Date
+                    ? eventItem.finReal
+                    : new Date(eventItem.finReal)
+                  ).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                : ""
+            }\nTiempo real: ${eventItem.tiempoReal || eventItem.tiempo || ""} min`}
+            style={{
+              position: "absolute",
+              right: "4px",
+              top: "0",
+              lineHeight: `${config.eventItemHeight}px`,
+              fontSize: "12px",
+              cursor: "pointer",
+              zIndex: 2,
+            }}
+          >
+            ⚠️
+          </span>
+        )}
       </div>
     );
     if (eventItemTemplateResolver !== undefined) {

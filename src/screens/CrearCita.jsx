@@ -664,27 +664,32 @@ function CrearCita() {
     if (horariosAgenda && horariosAgenda.hora_inicio && horariosAgenda.hora_final) {
       [horaEntrada, minutoEntrada] = horariosAgenda.hora_inicio.split(":").map(Number);
       [horaSalida, minutoSalida] = horariosAgenda.hora_final.split(":").map(Number);
-    } else {
+    } else if (dataEstilistaDisponibilidadHorario && dataEstilistaDisponibilidadHorario[0] && dataEstilistaDisponibilidadHorario[0].hora_entrada) {
       let entradaSucursal = dataEstilistaDisponibilidadHorario[0].hora_entrada;
       let salidaSucursal = dataEstilistaDisponibilidadHorario[0].hora_salida;
       horaEntrada = new Date(entradaSucursal).getHours();
       minutoEntrada = new Date(entradaSucursal).getMinutes();
       horaSalida = new Date(salidaSucursal).getHours();
       minutoSalida = new Date(salidaSucursal).getMinutes();
+    } else {
+      horaEntrada = null;
     }
 
     // Obtener la hora y minutos de la cita a verificar
     let horaCita = new Date(formCita.fecha).getHours();
     let minutoCita = new Date(formCita.fecha).getMinutes();
 
-    // Convertir todo a minutos desde medianoche para facilitar la comparación
-    let minutosDesdeMedianocheEntrada = horaEntrada * 60 + minutoEntrada;
-    let minutosDesdeMedianocheSalida = horaSalida * 60 + minutoSalida;
-    let minutosDesdeMedianocheCita = horaCita * 60 + minutoCita;
+    let esValida = false;
+    if (horaEntrada !== null) {
+      // Convertir todo a minutos desde medianoche para facilitar la comparación
+      let minutosDesdeMedianocheEntrada = horaEntrada * 60 + minutoEntrada;
+      let minutosDesdeMedianocheSalida = horaSalida * 60 + minutoSalida;
+      let minutosDesdeMedianocheCita = horaCita * 60 + minutoCita;
 
-    let esValida =
-      minutosDesdeMedianocheCita >= minutosDesdeMedianocheEntrada &&
-      minutosDesdeMedianocheCita <= minutosDesdeMedianocheSalida;
+      esValida =
+        minutosDesdeMedianocheCita >= minutosDesdeMedianocheEntrada &&
+        minutosDesdeMedianocheCita < minutosDesdeMedianocheSalida;
+    }
 
     if (new Date(formCita.fecha) < new Date()) {
       Swal.fire({
@@ -712,11 +717,39 @@ function CrearCita() {
       });
     } else {
       if (esValida === false) {
+        // Cita en o después de la salida de la sucursal: imposible agendar de ninguna manera
+        if (
+          horaEntrada !== null &&
+          horaCita * 60 + minutoCita >= horaSalida * 60 + minutoSalida
+        ) {
+          Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "Cita fuera del horario de cierre de la sucursal. Imposible agendar.",
+            confirmButtonColor: "#3085d6",
+          });
+          return;
+        }
+
+        const fechaCitaD = new Date(formCita.fecha);
+        const hoyD = new Date();
+        fechaCitaD.setHours(0, 0, 0, 0);
+        hoyD.setHours(0, 0, 0, 0);
+        const esDiaPosterior = fechaCitaD > hoyD;
+        const sinHorarioSucursal = !horariosAgenda || !horariosAgenda.hora_inicio;
+
+        const mensajeAlerta =
+          esDiaPosterior && sinHorarioSucursal
+            ? "No hay disponibilidad en sucursal en esta fecha, ¿desea registrar la cita?"
+            : "La hora de la cita está antes del horario de entrada de esta sucursal, ¿desea registrar la cita?";
+
         Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "La hora de la cita está fuera del horario de esta sucursal, ¿desea asignar la cita?",
-          confirmButtonColor: "#3085d6", // Cambiar el color del botón OK
+          icon: "warning",
+          title: "Fuera de horario de sucursal",
+          text: mensajeAlerta,
+          confirmButtonColor: "#3085d6",
+          confirmButtonText: "Sí",
+          cancelButtonText: "Cancelar",
           showCancelButton: true,
         }).then(async (result) => {
           if (result.isConfirmed) {
@@ -740,9 +773,9 @@ function CrearCita() {
                       stao_estilista: 1,
                       nota_canc: 0,
                       registrada: true,
-                      observacion: 0,
+                      observacion: "FUERA DE HORARIO SUCURSAL",
                       user_uc: 0,
-                      estatus: formCita.estatusAsignado ? 3 : formCita.estatusRequerido ? 2 : 1,
+                      estatus: 6, // CONFLICTO (gris)
                       servDomicilio: formCita.esServicioDomicilio == false ? 0 : 1,
                     },
                   });

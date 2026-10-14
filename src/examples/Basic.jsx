@@ -176,13 +176,12 @@ const OptimizedScheduler = memo(
   },
 );
 
-// Recorta las citas al horario de cierre (dayStopTo) para que el render no se
-// descuadre cuando hay citas que terminan despues de la hora de salida.
-// - Si la cita inicia en o despues del cierre, se descarta (no cabe en la vista).
-// - Si la cita termina despues del cierre, se recorta su fin al cierre.
-// Conserva el tipo de dato original de `end` (Date o string "YYYY-MM-DD HH:mm:00").
+// Recorta las citas al horario de cierre (dayStopTo + 1) para que el render no se descuadre.
+// Las citas con excedente cortan hasta la hora de salida de la sucursal.
+// Los bloqueos de no disponible del personal se preservan íntegros.
 const recortarCitasPorCierre = (citas, horaCierre) => {
   if (!Array.isArray(citas) || horaCierre == null) return citas;
+
   const formatearFin = (original, cierre) => {
     if (original instanceof Date) return cierre;
     return `${cierre.getFullYear()}-${String(cierre.getMonth() + 1).padStart(2, "0")}-${String(
@@ -192,14 +191,39 @@ const recortarCitasPorCierre = (citas, horaCierre) => {
       "0",
     )}:00`;
   };
+
   return citas.reduce((acc, cita) => {
+    // Los bloqueos de no disponible del personal no se recortan
+    if (!cita.idCita && !cita.idVenta) {
+      acc.push(cita);
+      return acc;
+    }
+
     const inicio = new Date(cita.start);
-    const fin = new Date(cita.end);
+    const fin = new Date(cita.finReal || cita.end);
     const cierre = new Date(inicio);
     cierre.setHours(horaCierre, 0, 0, 0);
-    if (inicio >= cierre) return acc; // cita totalmente fuera del horario
+
+    // Si la cita termina después de la hora de cierre, recortar hasta la hora de salida
     if (fin > cierre) {
-      acc.push({ ...cita, end: formatearFin(cita.end, cierre) });
+      const finRealVal = cita.finReal || cita.end;
+      const tiempoRealVal = cita.tiempoReal || cita.tiempo;
+      if (inicio < cierre) {
+        acc.push({
+          ...cita,
+          end: formatearFin(cita.end, cierre),
+          finReal: finRealVal,
+          tiempoReal: tiempoRealVal,
+          superaHoraSalida: true,
+        });
+      } else {
+        acc.push({
+          ...cita,
+          finReal: finRealVal,
+          tiempoReal: tiempoRealVal,
+          superaHoraSalida: true,
+        });
+      }
     } else {
       acc.push(cita);
     }
@@ -503,9 +527,17 @@ function Basic() {
     try {
       // Formatear fecha en local (no UTC) para evitar corrimiento de día en México (UTC-6)
       const toLocalDate = (d) => {
-        if (!d) return datosParametros.fecha instanceof Date ? datosParametros.fecha : new Date(datosParametros.fecha);
-        if (typeof d === "string") return new Date(d.includes("T") ? d.split("T")[0] : d);
-        return d;
+        const val = d || datosParametros.fecha;
+        if (val instanceof Date) return val;
+        if (typeof val === "string") {
+          const datePart = val.includes("T") ? val.split("T")[0] : val.split(" ")[0];
+          const parts = datePart.split("-").map(Number);
+          if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+            return new Date(parts[0], parts[1] - 1, parts[2]);
+          }
+          return new Date(val);
+        }
+        return new Date(val);
       };
       const fechaLocal = toLocalDate(fecha);
       const fechaFormateadaCitas = `${fechaLocal.getFullYear()}${String(fechaLocal.getMonth() + 1).padStart(
@@ -516,132 +548,65 @@ function Basic() {
         `/DetalleAgendaSelv21?fecha=${fechaFormateadaCitas}&suc=${idSuc}&nomberEstilista=${"%"}&nombreCliente=${"%"}`,
       );
 
-      // Filtrar solo las citas del estilista 37 para análisis
-      const citasEstilista37 = response.data.filter((item) => item.no_estilista === 37);
+      const getHM = (str) => {
+        if (!str) return { h: 0, min: 0 };
+        const timePart = String(str).includes("T")
+          ? String(str).split("T")[1]
+          : String(str).includes(" ")
+          ? String(str).split(" ")[1]
+          : String(str);
+        const [h, min] = timePart.split(":").map(Number);
+        return { h: isNaN(h) ? 0 : h, min: isNaN(min) ? 0 : min };
+      };
 
-      // Mostrar los datos originales para diagnóstico
-      console.log(
-        "📊 Datos originales de citas (estilista 37):",
-        citasEstilista37.map((item) => ({
-          id: item.id,
-          fecha: item.fecha,
-          hora1: item.hora1,
-          hora2: item.hora2,
-        })),
-      );
+      const procesarItem = (item) => {
+        let y, m, d;
+        if (item.fecha) {
+          const fStr = String(item.fecha).split("T")[0].split(" ")[0];
+          const parts = fStr.split("-").map(Number);
+          if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+            y = parts[0];
+            m = parts[1] - 1;
+            d = parts[2];
+          }
+        }
+        if (y === undefined) {
+          y = fechaLocal.getFullYear();
+          m = fechaLocal.getMonth();
+          d = fechaLocal.getDate();
+        }
 
-      // Procesar y mostrar las fechas transformadas con debugging detallado
-      console.log("🔄 Procesando fechas transformadas (estilista 37):");
+        const t1 = getHM(item.hora1);
+        const hora1 = new Date(y, m, d, t1.h, t1.min, 0);
+        let hora2;
 
-      citasEstilista37.forEach((item) => {
-        console.log(`\n🎯 === CITA ID ${item.id} ===`);
-
-        // Crear fechas a partir de los datos
-        let fechaBase = new Date(item.fecha);
-        let hora1Original = new Date(item.hora1);
-        let hora2Original = new Date(item.hora2);
-
-        // Crear nuevas fechas con la fecha base y las horas/minutos de hora1 y hora2
-        let hora1 = new Date(fechaBase);
-        let hora2 = new Date(fechaBase);
-
-        hora1.setHours(hora1Original.getHours(), hora1Original.getMinutes(), 0, 0);
-        hora2.setHours(hora2Original.getHours(), hora2Original.getMinutes(), 0, 0);
-
-        // Crear el resultado final - CAMBIO IMPORTANTE: enviamos Date objects, no ISO strings
-        const result = {
-          start: hora1, // Date object local
-          end: hora2, // Date object local
-          resourceId: item.no_estilista,
-          // Añadir información de diagnóstico extendida
-          startLocal: hora1.toString(),
-          endLocal: hora2.toString(),
-          startMexicoTime: hora1.toLocaleString("es-MX", { timeZone: "America/Mexico_City" }),
-          endMexicoTime: hora2.toLocaleString("es-MX", { timeZone: "America/Mexico_City" }),
-          originalHour1: item.hora1,
-          originalHour2: item.hora2,
-        };
-
-        return result;
-      });
-      setArregloCita(
-        response.data.map((item) => {
-          // Crear fechas a partir de los datos
-          let fechaBase = new Date(item.fecha);
-
-          // Extraer las horas y minutos de hora1 y hora2
-          let hora1Original = new Date(item.hora1);
-          let hora2Original = new Date(item.hora2);
-
-          // Crear nuevas fechas con la fecha base y las horas/minutos de hora1 y hora2
-          let hora1 = new Date(fechaBase);
-          let hora2 = new Date(fechaBase);
-
-          hora1.setHours(hora1Original.getHours(), hora1Original.getMinutes(), 0, 0);
-          hora2.setHours(hora2Original.getHours(), hora2Original.getMinutes(), 0, 0);
-
-          // Ajustar para la zona horaria de México (UTC-6)
-          // No es necesario ajustar manualmente ya que toISOString() ya convierte a UTC
-          // y la biblioteca de calendario interpretará correctamente la hora UTC
-
-          return {
-            ...item,
-            start: hora1, // Enviar objeto Date local en lugar de ISO string
-            end: hora2, // Enviar objeto Date local en lugar de ISO string
-            resourceId: item.no_estilista,
-            title: "",
-            type: 2,
-            clickable1: item.estadoCita != 4,
-            bgColor:
-              item.estadoCita == 6
-                ? "#bababa"
-                : item.estadoCita == 1
-                ? "#F8C471" // Sandy Orange
-                : item.esDomicilio == true
-                ? "#DDA0DD" // Plum
-                : item.estadoCita == 2
-                ? "#AFEEEE" // Pale Turquoise
-                : item.estadoCita == 3
-                ? "#FFF26C" // Lemon Chiffon
-                : item.estadoCita == 4
-                ? "#90EE90" // Light Green
-                : item.estadoCita == 5
-                ? "#DDA0DD" // Plum
-                : "#bababa", // Light Gray
-          };
-        }),
-      );
-
-      return response.data.map((item) => {
-        // Crear fechas a partir de los datos
-        let fechaBase = new Date(item.fecha);
-
-        // Extraer las horas y minutos de hora1 y hora2
-        let hora1Original = new Date(item.hora1);
-        let hora2Original = new Date(item.hora2);
-
-        // Crear nuevas fechas con la fecha base y las horas/minutos de hora1 y hora2
-        let hora1 = new Date(fechaBase);
-        let hora2 = new Date(fechaBase);
-
-        hora1.setHours(hora1Original.getHours(), hora1Original.getMinutes(), 0, 0);
-        hora2.setHours(hora2Original.getHours(), hora2Original.getMinutes(), 0, 0);
+        if (item.idCita == 0 && item.idVenta == 0) {
+          const t2 = getHM(item.hora2);
+          hora2 = new Date(y, m, d, t2.h, t2.min, 0);
+        } else if (item.tiempo > 0) {
+          hora2 = new Date(hora1.getTime() + item.tiempo * 60000);
+        } else {
+          const t2 = getHM(item.hora2);
+          hora2 = new Date(y, m, d, t2.h, t2.min, 0);
+        }
 
         // Usar formato local (no toISOString que convierte a UTC y desplaza 6h en México)
-        const toLocalStr = (d) =>
-          `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(
+        const toLocalStr = (dt) =>
+          `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(
             2,
             "0",
-          )} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:00`;
+          )} ${String(dt.getHours()).padStart(2, "0")}:${String(dt.getMinutes()).padStart(2, "0")}:00`;
+
         return {
           ...item,
           start: toLocalStr(hora1),
           end: toLocalStr(hora2),
+          finReal: toLocalStr(hora2),
+          tiempoReal: item.tiempo,
           resourceId: item.no_estilista,
           title: "",
           type: 2,
           clickable1: item.estadoCita != 4,
-          // bgColor: "red",
           bgColor:
             item.estadoCita == 6
               ? "#bababa"
@@ -655,9 +620,15 @@ function Basic() {
               ? "#FFF26C" // Lemon Chiffon
               : item.estadoCita == 4
               ? "#90EE90" // Light Green
+              : item.estadoCita == 5
+              ? "#DDA0DD" // Plum
               : "#bababa", // Light Gray
         };
-      });
+      };
+
+      const citasProcesadas = (response.data || []).map(procesarItem);
+      setArregloCita(citasProcesadas);
+      return citasProcesadas;
     } catch (err) {
       console.error(err);
     }
@@ -812,24 +783,23 @@ function Basic() {
       console.log("Actualizando configuración de horarios en la agenda:", horariosAgenda);
 
       // Extraer las horas de los horarios de la agenda
-      const [horasInicio, minutosInicio] = horariosAgenda.hora_inicio
+      const [horasInicio] = horariosAgenda.hora_inicio
         ? horariosAgenda.hora_inicio.split(":").map(Number)
-        : [10, 0];
+        : [10];
       const [horasFinal, minutosFinal] = horariosAgenda.hora_final
         ? horariosAgenda.hora_final.split(":").map(Number)
         : [23, 0];
 
       let horaEntrada = horasInicio;
-      // La última columna abarca una hora completa; restamos 1 si el cierre es en punto.
       let horaSalida = minutosFinal > 0 ? horasFinal : horasFinal - 1;
-
       // Actualizar la configuración del scheduler
       const updatedSchedulerData = state.viewModel;
       updatedSchedulerData.config.dayStartFrom = horaEntrada;
       updatedSchedulerData.config.dayStopTo = horaSalida;
-
-      // Re-recortar las citas al nuevo horario de cierre para evitar descuadres
-      updatedSchedulerData.setEvents(recortarCitasPorCierre(arregloCita, horaSalida + 1));
+      updatedSchedulerData._createHeaders();
+      updatedSchedulerData.setEvents(
+        recortarCitasPorCierre(arregloCita, updatedSchedulerData.config.dayStopTo + 1),
+      );
 
       // Actualizar el estado del scheduler
       dispatch({ type: "UPDATE_SCHEDULER", payload: updatedSchedulerData });
@@ -905,6 +875,7 @@ function Basic() {
       console.log("No hay datos de horarios ni de sucursales. Usando valores por defecto.");
     }
 
+
     schedulerData = new SchedulerData(datosParametros.fecha, ViewType.Day, false, false, {
       besidesWidth: window.innerWidth <= 1600 ? 100 : 350,
       dayMaxEvents: 99,
@@ -973,7 +944,7 @@ function Basic() {
     };
 
     schedulerData.setResources(arreglo);
-    schedulerData.setEvents(recortarCitasPorCierre(arregloCita, horaSalida + 1));
+    schedulerData.setEvents(recortarCitasPorCierre(arregloCita, schedulerData.config.dayStopTo + 1));
     // if (arreglo.length > 0 && arregloCita.length > 0) {
     const timerId = setTimeout(() => {
       // 🚫 PREVENIR CONFLICTO: No actualizar durante navegación de fechas
@@ -1000,8 +971,7 @@ function Basic() {
     // }
   }, [arregloCita, arreglo, dataSucursales, isLoading, isNavigatingDate]);
   const actualizarAgenda = (response, schedulerData) => {
-    const citasRecortadas = recortarCitasPorCierre(response, schedulerData.config.dayStopTo + 1);
-    schedulerData.setEvents(citasRecortadas);
+    schedulerData.setEvents(recortarCitasPorCierre(response, schedulerData.config.dayStopTo + 1));
     dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
     // Activar lock ANTES de setArregloCita para que el useEffect reconstructor
     // no reconstruya SchedulerData (lo que descuadra el visual) cuando solo
@@ -1284,6 +1254,7 @@ function Basic() {
       setDatosParametrosCitaTemp({
         ...event,
         promoCambio: promo,
+        fueraDeHorario: isVerified.observacion === "FUERA DE HORARIO SUCURSAL",
       });
     },
     [
@@ -1936,12 +1907,12 @@ function Basic() {
           serv: "1",
           importe: 100,
           cancelada: false,
-          stao_estilista: datosParametrosCitaTemp.estadoCita2,
+          stao_estilista: datosParametrosCitaTemp.fueraDeHorario || datosParametrosCitaTemp.estadoCita2 == 6 ? 6 : datosParametrosCitaTemp.estadoCita2,
           nota_canc: 0,
           registrada: true,
           observacion: datosParametrosCitaTemp.promoCambio?.codigo === 1 ? "SIN PROMO2026" : "PROMO",
           user_uc: 0,
-          estatus: datosParametrosCitaTemp.estadoCita2,
+          estatus: datosParametrosCitaTemp.fueraDeHorario || datosParametrosCitaTemp.estadoCita2 == 6 ? 6 : datosParametrosCitaTemp.estadoCita2,
         },
       })
       .then((response) => {
@@ -3002,13 +2973,15 @@ function Basic() {
     if (horariosAgenda && horariosAgenda.hora_inicio && horariosAgenda.hora_final) {
       [horaEntrada, minutoEntrada] = horariosAgenda.hora_inicio.split(":").map(Number);
       [horaSalida, minutoSalida] = horariosAgenda.hora_final.split(":").map(Number);
-    } else {
+    } else if (dataEstilistaDisponibilidadHorario && dataEstilistaDisponibilidadHorario[0] && dataEstilistaDisponibilidadHorario[0].hora_entrada) {
       let entradaSucursal = dataEstilistaDisponibilidadHorario[0].hora_entrada;
       let salidaSucursal = dataEstilistaDisponibilidadHorario[0].hora_salida;
       horaEntrada = new Date(entradaSucursal).getHours();
       minutoEntrada = new Date(entradaSucursal).getMinutes();
       horaSalida = new Date(salidaSucursal).getHours();
       minutoSalida = new Date(salidaSucursal).getMinutes();
+    } else {
+      return false;
     }
 
     // Obtener la hora y minutos de la cita a verificar
@@ -3114,13 +3087,28 @@ function Basic() {
       });
     } else {
       if (esValida === false) {
+        const fechaCitaD = new Date(citaDateTime);
+        const hoyD = new Date();
+        fechaCitaD.setHours(0, 0, 0, 0);
+        hoyD.setHours(0, 0, 0, 0);
+        const esDiaPosterior = fechaCitaD > hoyD;
+        const sinHorarioSucursal = !horariosAgenda || !horariosAgenda.hora_inicio;
+
+        const mensajeAlerta =
+          esDiaPosterior && sinHorarioSucursal
+            ? "No hay disponibilidad en sucursal en esta fecha, ¿desea registrar la cita?"
+            : "La hora de la cita está fuera del horario de esta sucursal, ¿desea registrar la cita?";
+
         Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "La hora de la cita está fuera del horario de esta sucursal. No se puede agregar la cita.",
+          icon: "warning",
+          title: "Fuera de horario de sucursal",
+          text: mensajeAlerta,
+          confirmButtonColor: "#3085d6",
+          confirmButtonText: "Sí",
+          cancelButtonText: "Cancelar",
+          showCancelButton: true,
         }).then(async (result) => {
           if (result.isConfirmed) {
-            return
             // Si el usuario confirma, mostrar el modal de verificación de contraseña
             validarContraseña("AGENDAR_CITA", "AGENDA").then(async (result) => {
               if (result.validado) {
@@ -3128,13 +3116,15 @@ function Basic() {
                 const usuarioValidado = result.usuario;
                 try {
                   let citaId;
+                  // Al agendar fuera de horario de sucursal, registrar con estatus CONFLICTO (6)
+                  const estatusConflicto = 6;
 
                   // Verificar si ya existe formCitaServicio.idCita
                   if (formCitaServicio.idCita && formCitaServicio.idCita > 0) {
                     // Si ya existe, usar ese ID
                     citaId = formCitaServicio.idCita;
 
-                    // Ejecutar directamente putDetalleCitasServiciosUpd7
+                    // Ejecutar directamente putDetalleCitasServiciosUpd7 con estatus CONFLICTO
                     await putDetalleCitasServiciosUpd7(
                       0, // id
                       idSuc, // sucursal
@@ -3147,10 +3137,11 @@ function Basic() {
                       formCitaServicio.cantidad || 1, // cantidad
                       formCitaServicio.precio || 0, // precio
                       citaDateTime, // fechaCita
-                      formCita.estatusAsignado ? 3 : formCita.estatusRequerido ? 2 : 1, // estatusCita
+                      estatusConflicto, // estatusCita con CONFLICTO
+                      true, // skipValidation
                     );
                   } else {
-                    // Si no existe, crear nueva cita
+                    // Si no existe, crear nueva cita con estatus CONFLICTO
                     const response = await peinadosApi.post("/DetalleCitas", null, {
                       params: {
                         cia: 1,
@@ -3167,9 +3158,9 @@ function Basic() {
                         stao_estilista: 1,
                         nota_canc: 0,
                         registrada: true,
-                        observacion: disponibilidad.observacion || formCitasObservaciones2,
+                        observacion: disponibilidad.observacion || formCitasObservaciones2 || "FUERA DE HORARIO SUCURSAL",
                         user_uc: 0,
-                        estatus: formCita.estatusAsignado ? 3 : formCita.estatusRequerido ? 2 : 1,
+                        estatus: estatusConflicto,
                         servDomicilio: formCita.esServicioDomicilio == false ? 0 : 1,
                       },
                     });
@@ -3192,7 +3183,7 @@ function Basic() {
                         formCitaServicio.cantidad || 1, // cantidad
                         formCitaServicio.precio || 0, // precio
                         citaDateTime, // fechaCita
-                        formCita.estatusAsignado ? 3 : formCita.estatusRequerido ? 2 : 1, // estatusCita
+                        estatusConflicto, // estatusCita con CONFLICTO
                         true, // skipValidation — ya validado antes
                       );
                     }
@@ -3203,11 +3194,9 @@ function Basic() {
                   alert(`Hubo un error, ${error}`);
                 }
               } else {
-                // La contraseña no es válida, puedes mostrar un mensaje o realizar alguna otra acción
+                // La contraseña no es válida
               }
             });
-
-            // validarContraseña();
           } else {
             // Si el usuario cancela, no hacer nada adicional
             return;
@@ -4349,10 +4338,30 @@ function Basic() {
   };
 
   async function verificarHorarioCierre(tiempo, fecha, estilista, idCita) {
+    // Si la cita inicia a la hora de cierre o después: imposible agendar de ninguna manera
+    if (horariosAgenda && horariosAgenda.hora_final) {
+      const [hFinSuc, mFinSuc] = horariosAgenda.hora_final.split(":").map(Number);
+      const dFecha = new Date(fecha);
+      const horaCitaMin = dFecha.getHours() * 60 + dFecha.getMinutes();
+      const horaCierreMin = hFinSuc * 60 + (mFinSuc || 0);
+      if (horaCitaMin >= horaCierreMin) {
+        await Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Cita fuera del horario de cierre de la sucursal. Imposible agendar.",
+          confirmButtonColor: "#3085d6",
+        });
+        return { disponible: false };
+      }
+    }
+
     const resHorario = await fetchHorarioDisponibleEstilistas(new Date(fecha), estilista, tiempo);
-    if (!resHorario || !resHorario.data || !resHorario.data[0]) return { disponible: false };
+    if (!resHorario || !resHorario.data || !resHorario.data[0]) return { disponible: true };
     const claveEmpleado = resHorario.data[0].clave_empleado;
-    if (claveEmpleado === "Cita fuera del horario de cierre de la sucursal. Imposible agendar.") {
+    if (
+      claveEmpleado === "Cita fuera del horario de cierre de la sucursal. Imposible agendar." ||
+      claveEmpleado.toLowerCase().includes("imposible")
+    ) {
       await Swal.fire({
         icon: "error",
         title: "Error",
@@ -4361,10 +4370,39 @@ function Basic() {
       });
       return { disponible: false };
     }
+    if (claveEmpleado.toLowerCase().includes("desea")) {
+      const isConfirmed = await Swal.fire({
+        icon: "warning",
+        title: "Fuera de horario de sucursal",
+        text: claveEmpleado,
+        confirmButtonColor: "#3085d6",
+        confirmButtonText: "Sí",
+        cancelButtonText: "Cancelar",
+        showCancelButton: true,
+      });
+      if (!isConfirmed.isConfirmed) return { disponible: false };
+      return { disponible: true };
+    }
     return { disponible: true };
   }
 
   async function verificarDisponibilidad(tiempo, fecha, estilista, idCita) {
+    // Si la cita inicia a la hora de cierre de la sucursal o después: imposible agendar de ninguna manera
+    if (horariosAgenda && horariosAgenda.hora_final) {
+      const [hFinSuc, mFinSuc] = horariosAgenda.hora_final.split(":").map(Number);
+      const dFecha = new Date(fecha);
+      const horaCitaMin = dFecha.getHours() * 60 + dFecha.getMinutes();
+      const horaCierreMin = hFinSuc * 60 + (mFinSuc || 0);
+      if (horaCitaMin >= horaCierreMin) {
+        await Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Cita fuera del horario de cierre de la sucursal. Imposible agendar.",
+          confirmButtonColor: "#3085d6",
+        });
+        return { disponible: false };
+      }
+    }
 
     const res = await fetchCitaEmpalme5(tiempo, new Date(fecha), estilista, idCita);
     const resHorario = await fetchHorarioDisponibleEstilistas(new Date(fecha), estilista, tiempo);
@@ -4397,7 +4435,10 @@ function Basic() {
 
     if (claveEmpleado === "Cita sin restricciones" || claveEmpleado === "Prosiga") {
       // No action needed, continue
-    } else if (claveEmpleado === "Cita fuera del horario de cierre de la sucursal. Imposible agendar.") {
+    } else if (
+      claveEmpleado === "Cita fuera del horario de cierre de la sucursal. Imposible agendar." ||
+      claveEmpleado.toLowerCase().includes("imposible")
+    ) {
       await Swal.fire({
         icon: "error",
         title: "Error",
@@ -4409,18 +4450,21 @@ function Basic() {
       claveEmpleado === "Cita fuera del horario de salida del estilista ¿desea asignar la cita?" ||
       claveEmpleado === "Cita dentro del horario de la comida ¿desea asignar la cita?" ||
       claveEmpleado === "Cita antes de la apertura del horario del estilista, ¿desea asignar la cita?" ||
-      claveEmpleado === "Esta sucursal tiene restricciones en esta fecha"
+      claveEmpleado === "Esta sucursal tiene restricciones en esta fecha" ||
+      claveEmpleado.toLowerCase().includes("desea")
     ) {
       if (claveEmpleado === "Esta sucursal tiene restricciones en esta fecha") {
         observacion = "RESTRICCION";
+      } else if (claveEmpleado.toLowerCase().includes("sucursal")) {
+        observacion = "FUERA DE HORARIO SUCURSAL";
       }
       const isConfirmed2 = await Swal.fire({
-        icon: "error",
-        title: "Error",
+        icon: "warning",
+        title: "Advertencia",
         text: claveEmpleado || "",
         confirmButtonColor: "#3085d6",
-        confirmButtonText: "Si",
-        cancelButtonText: "CANCELAR",
+        confirmButtonText: "Sí",
+        cancelButtonText: "Cancelar",
         showConfirmButton: true,
         showCancelButton: true,
       });
@@ -4988,12 +5032,7 @@ console.log(event.idsVenta)
                       setIsModalOpen(false);
                       getCitas(datosParametros.fecha).then((citas) => {
                         if (citas && schedulerData) {
-                          schedulerData.setEvents(
-                            recortarCitasPorCierre(citas, schedulerData.config.dayStopTo + 1),
-                          );
-                          dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
-                          navigationLockRef.current = Date.now();
-                          setArregloCita(citas);
+                          actualizarAgenda(citas, schedulerData);
                         }
                       });
                       getCitasDia();

@@ -1018,32 +1018,47 @@ function EditarCita() {
         //si no confirma
         return false;
       } else {
-        const res = await validarContraseña();
-        if (!res) return false;
+        const res = await validarContraseña("MODIFICAR_CITA", "AGENDA");
+        if (!res || !res.validado) return false;
       }
       // return false;
     }
-    if (!resHorario) return false;
+    if (!resHorario || !resHorario.data || !resHorario.data[0]) return false;
+    const claveEmp = resHorario.data[0].clave_empleado || "";
     if (
-      resHorario.data[0].clave_empleado == "Cita sin restricciones" ||
-      resHorario.data[0].clave_empleado == "Prosiga"
+      claveEmp === "Cita sin restricciones" ||
+      claveEmp === "Prosiga"
     ) {
       console.log("");
-    } else if (resHorario.data[0].clave_empleado == "Cita fuera del horario de salida del estilista") {
-      const isConfirmed2 = await Swal.fire({
+    } else if (
+      claveEmp === "Cita fuera del horario de cierre de la sucursal. Imposible agendar." ||
+      claveEmp.toLowerCase().includes("imposible")
+    ) {
+      await Swal.fire({
         icon: "error",
         title: "Error",
-        text: `El estilista se encuentra fuera de horario, desea registrar la cita`,
+        text: claveEmp,
         confirmButtonColor: "#3085d6",
-        confirmButtonText: "Si?",
-        cancelButtonText: "CANCELAR",
+      });
+      return false;
+    } else if (
+      claveEmp.toLowerCase().includes("desea") ||
+      claveEmp.toLowerCase().includes("sucursal") ||
+      claveEmp.toLowerCase().includes("horario")
+    ) {
+      const isConfirmed2 = await Swal.fire({
+        icon: "warning",
+        title: "Advertencia",
+        text: claveEmp,
+        confirmButtonColor: "#3085d6",
+        confirmButtonText: "Sí",
+        cancelButtonText: "Cancelar",
         showConfirmButton: true,
         showCancelButton: true,
       });
       if (!isConfirmed2.isConfirmed) return false;
-      const resContraseña = await validarContraseña();
-      if (!resContraseña) return false;
-      console.log(res);
+      const resContraseña = await validarContraseña("MODIFICAR_CITA", "AGENDA");
+      if (!resContraseña || !resContraseña.validado) return false;
     } else if (res && res.data[0] && res.data[0].id > 0) {
       Swal.fire({
         icon: "error",

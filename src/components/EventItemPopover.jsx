@@ -31,6 +31,30 @@ function EventItemPopover({
   const start = localeDayjs(startDate);
   const end = localeDayjs(endDate);
 
+  // Detectar si la cita supera la hora de salida de la sucursal
+  const finRealDate = eventItem?.finReal
+    ? eventItem.finReal instanceof Date
+      ? eventItem.finReal
+      : new Date(eventItem.finReal)
+    : null;
+  const finReal = finRealDate ? localeDayjs(finRealDate) : null;
+  const superaSalida =
+    eventItem?.superaHoraSalida ||
+    (finRealDate && finRealDate.getTime() > endDate.getTime());
+
+  const minutosReales = eventItem?.tiempoReal || eventItem?.tiempo;
+  let tiempoRealTexto = "";
+  if (minutosReales) {
+    const horas = Math.floor(minutosReales / 60);
+    const mins = minutosReales % 60;
+    tiempoRealTexto =
+      horas > 0
+        ? mins > 0
+          ? `${horas}h ${mins}m (${minutosReales} min)`
+          : `${horas}h (${minutosReales} min)`
+        : `${minutosReales} min`;
+  }
+
   if (eventItemPopoverTemplateResolver) {
     return eventItemPopoverTemplateResolver(schedulerData, eventItem, title, start, end, statusColor);
   }
@@ -119,6 +143,58 @@ function EventItemPopover({
           )}
         </Col>
       </Row>
+      {superaSalida && (
+        <Row type="flex" align="middle" style={{ marginTop: "6px", marginBottom: "6px" }}>
+          <Col span={2}>
+            <div />
+          </Col>
+          <Col span={22}>
+            <div
+              style={{
+                backgroundColor: "#fff7e6",
+                border: "1px solid #ffd591",
+                borderRadius: "6px",
+                padding: "6px 10px",
+                fontSize: "12px",
+                lineHeight: "1.5",
+              }}
+            >
+              <div
+                style={{
+                  color: "#d46b08",
+                  fontWeight: "bold",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  marginBottom: "2px",
+                }}
+              >
+                <span>⚠️</span>
+                <span>Supera horario de salida</span>
+              </div>
+              {finReal && (
+                <div style={{ color: "#434343" }}>
+                  <strong>Fin real:</strong>{" "}
+                  <span style={{ color: "#1890ff", fontWeight: "600" }}>
+                    {finReal.format("HH:mm")}{" "}
+                    {config.eventItemPopoverDateFormat && (
+                      <span style={{ fontSize: "11px", fontWeight: "normal", color: "#8c8c8c" }}>
+                        ({finReal.format(config.eventItemPopoverDateFormat)})
+                      </span>
+                    )}
+                  </span>
+                </div>
+              )}
+              {tiempoRealTexto && (
+                <div style={{ color: "#434343" }}>
+                  <strong>Tiempo real:</strong>{" "}
+                  <span style={{ fontWeight: "600", color: "#262626" }}>{tiempoRealTexto}</span>
+                </div>
+              )}
+            </div>
+          </Col>
+        </Row>
+      )}
       {(showViewEvent || showViewEvent2) && (
         <Row type="flex" align="middle">
           <Col span={2}>
