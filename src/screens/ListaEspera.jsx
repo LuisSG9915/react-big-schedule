@@ -15,6 +15,21 @@ import { useHorarioDisponibleEstilistas6 } from "../functions/crearCita/useHorar
 import { AiFillDelete, AiFillEdit, AiOutlineClose, AiOutlineSearch, AiOutlineReload } from "react-icons/ai";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 
+const formatLocalDate = (value) => {
+  if (typeof value === "string") {
+    const datePart = value.split(/[T ]/)[0];
+    if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return datePart;
+  }
+
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 function ListaEspera() {
   const [openListaEspera, setOpenListaEspera] = useState(false);
   const idUser = new URLSearchParams(window.location.search).get("idUser");
@@ -107,17 +122,12 @@ function ListaEspera() {
   };
 
   const getEstilistas = async () => {
-    console.log({fecha})
-     await peinadosApi
-       .get(
-         `/estilistas5?id=0&sucursal=${idSuc}&fecha=${
-           fecha ? new Date(fecha).toISOString().split("T")[0] : new Date().toISOString().split("T")[0]
-         }`
-       )
-       .then((response) => {
-         setDataEstilistas(response.data);
-       });
-   };
+    const fechaEstilistas = formatLocalDate(fecha || new Date());
+    const response = await peinadosApi.get(
+      `/Estilistas6?id=0&sucursal=${idSuc}&fecha=${fechaEstilistas}`,
+    );
+    setDataEstilistas(response.data.filter((estilista) => !estilista.listaEsperaocultar));
+  };
   const getProductos = () => {
     peinadosApi
       .get(`/sp_cPSEAC?id=0&cia=1&sucursal=${idSuc}&almacen=0&marca=%&descripcion=%&verinventariable=2&esServicio=2&esInsumo=0&obsoleto=0`)
@@ -320,9 +330,10 @@ function ListaEspera() {
   }
   function renderButtonEstilista(params) {
     return (
-      <div>
+      <div style={{ display: "flex", gap: "8px" }}>
         <Button
-          variant={"contained"}
+          color="primary"
+          size="sm"
           onClick={() => {
             setformClienteEspera({ ...formClienteEspera, estilista: params.row.id, estilista_descripcion: params.row.estilista });
             setEstilistasModal(false);
@@ -330,8 +341,67 @@ function ListaEspera() {
         >
           Agregar
         </Button>
+        <Button
+          color="warning"
+          size="sm"
+          onClick={(event) => {
+            event.stopPropagation();
+            ocultarEstilistaDeListaEspera(params.row);
+          }}
+        >
+          Ocultar
+        </Button>
       </div>
     );
+  }
+
+  async function ocultarEstilistaDeListaEspera(estilista) {
+    const confirmacion = await Swal.fire({
+      title: "¿Ocultar estilista?",
+      text: `${estilista.estilista} no aparecerá en la lista de espera para esta fecha.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Ocultar",
+      cancelButtonText: "Cancelar",
+    });
+
+    if (!confirmacion.isConfirmed) return;
+
+    try {
+      const fechaEstilistas = formatLocalDate(fecha || new Date());
+      const response = await peinadosApi.put("/ListaEsperaOcultarEstilista", null, {
+        params: {
+          idEmpleado: estilista.id,
+          fecha: fechaEstilistas,
+          sucursal: idSuc,
+          user: idUser,
+          listaEsperaOcultar: true,
+        },
+      });
+
+      if (!response.data || response.data.codigo !== 1) {
+        await Swal.fire({
+          title: "No se pudo ocultar",
+          text: response.data ? response.data.mensaje1 : "No se recibió respuesta del servidor.",
+          icon: "error",
+        });
+        return;
+      }
+
+      await getEstilistas();
+      await Swal.fire({
+        title: "Estilista ocultado",
+        text: "Se ocultó de la lista de espera para esta fecha.",
+        icon: "success",
+      });
+    } catch (error) {
+      console.error("Error al ocultar estilista de lista de espera:", error);
+      await Swal.fire({
+        title: "Error",
+        text: "No se pudo actualizar la visibilidad del estilista.",
+        icon: "error",
+      });
+    }
   }
 
   async function verificarDisponibilidad(tiempo, fecha, estilista) {
@@ -640,7 +710,7 @@ function ListaEspera() {
   const columnsEstilistas = [
     // { field: "cia", headerName: "cia", width: 250 },
     // { field: "sucursal", headerName: "sucursal", width: 130 },
-    { field: "pr", headerName: "accion", renderCell: renderButtonEstilista, width: 90 },
+    { field: "pr", headerName: "accion", renderCell: renderButtonEstilista, width: 210 },
     { field: "estilista", headerName: "estilista", width: 130, renderCell: (params) => <p>{params.row.estilista}</p> },
     //{ field: "tc", headerName: "tc", width: 130, renderCell: (params) => <input type="checkbox" value={params.row.tc} disabled /> },
   ];

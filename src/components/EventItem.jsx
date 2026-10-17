@@ -477,6 +477,10 @@ class EventItem extends Component {
       eventItem?.superaHoraSalida ||
       (eventItem?.finReal && new Date(eventItem.finReal).getTime() > endDate.getTime());
 
+    const iniciaAntes =
+      eventItem?.iniciaAntesDeEntrada ||
+      (eventItem?.inicioReal && new Date(eventItem.inicioReal).getTime() < startDate.getTime());
+
     let eventItemTemplate = (
       <div
         className={`${roundCls} event-item`}
@@ -488,7 +492,42 @@ class EventItem extends Component {
           overflow: "hidden",
         }}
       >
-        <span style={{ marginLeft: "1px", lineHeight: `${config.eventItemHeight}px` }}>{eventTitle}</span>
+        {iniciaAntes && (
+          <span
+            title={`Inicia antes del horario de entrada\nInicio real: ${
+              eventItem.inicioReal
+                ? (eventItem.inicioReal instanceof Date
+                    ? eventItem.inicioReal
+                    : new Date(eventItem.inicioReal)
+                  ).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                : ""
+            }\nTiempo real: ${eventItem.tiempoReal || eventItem.tiempo || ""} min`}
+            style={{
+              position: "absolute",
+              left: "4px",
+              top: "0",
+              lineHeight: `${config.eventItemHeight}px`,
+              fontSize: "12px",
+              cursor: "pointer",
+              zIndex: 2,
+            }}
+          >
+            ⚠️
+          </span>
+        )}
+        <span
+          style={{
+            marginLeft: iniciaAntes ? "18px" : "1px",
+            marginRight: superaSalida ? "18px" : "1px",
+            lineHeight: `${config.eventItemHeight}px`,
+            display: "inline-block",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {eventTitle}
+        </span>
         {superaSalida && (
           <span
             title={`Supera horario de salida\nFin real: ${

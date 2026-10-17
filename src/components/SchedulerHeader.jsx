@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 import { Col, Row, Spin, Radio, Space, Popover, Calendar } from "antd";
 import { RightOutlined, LeftOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
-import { DATE_FORMAT } from "../config/default";
+import { DATE_FORMAT, ViewType } from "../config/default";
 
 const RadioButton = Radio.Button;
 const RadioGroup = Radio.Group;
@@ -15,6 +15,8 @@ function SchedulerHeader({ onViewChange, goNext, goBack, onSelectDate, scheduler
 
   const { viewType, showAgenda, isEventPerspective, config } = schedulerData;
   const dateLabel = schedulerData.getDateLabel();
+  const weekdayLabel =
+    viewType === ViewType.Day ? schedulerData.localeDayjs(schedulerData.startDate).format("dddd") : null;
 
   const selectDate = schedulerData.getSelectedDate();
   const calendarLocale = schedulerData.getCalendarPopoverLocale()?.default?.Calendar;
@@ -83,25 +85,32 @@ function SchedulerHeader({ onViewChange, goNext, goBack, onSelectDate, scheduler
             className="icon-nav"
             onClick={() => !isLoading && handleEvents(goBack, false)}
           />
-          {config.calendarPopoverEnabled ? (
-            <Popover
-              content={popover}
-              placement="bottomLeft"
-              trigger="click"
-              open={visible}
-              onOpenChange={setVisible}
-              overlayClassName="scheduler-header-popover"
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span className="header2-text-label" style={{ cursor: "pointer", fontSize: "26px" }}>
-                  {dateLabel}
-                </span>
-                {isLoading && <Spin size="large" />}
-              </div>
-            </Popover>
-          ) : (
-            <span className="header2-text-label">{dateLabel}</span>
-          )}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
+            {weekdayLabel && (
+              <span style={{ fontSize: "22px", lineHeight: 1.1, fontWeight: 700, textTransform: "capitalize" }}>
+                {weekdayLabel}
+              </span>
+            )}
+            {config.calendarPopoverEnabled ? (
+              <Popover
+                content={popover}
+                placement="bottomLeft"
+                trigger="click"
+                open={visible}
+                onOpenChange={setVisible}
+                overlayClassName="scheduler-header-popover"
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span className="header2-text-label" style={{ cursor: "pointer", fontSize: "26px" }}>
+                    {dateLabel}
+                  </span>
+                  {isLoading && <Spin size="large" />}
+                </div>
+              </Popover>
+            ) : (
+              <span className="header2-text-label">{dateLabel}</span>
+            )}
+          </div>
           <RightOutlined
             size={50}
             type="right"

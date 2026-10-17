@@ -58,6 +58,21 @@ import { useVentasOperacionesMediosPagos2 } from "../functions/crearCita/useVent
 
 let schedulerData;
 
+const formatLocalDate = (value) => {
+  if (typeof value === "string") {
+    const datePart = value.split(/[T ]/)[0];
+    if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return datePart;
+  }
+
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 const initialState = {
   showScheduler: false,
   viewModel: {},
@@ -354,9 +369,7 @@ function Agenda2() {
   const fetchData = async (tempFecha) => {
     await peinadosApi
       .get(
-        `/Estilistas5?id=0&sucursal=${idSuc}&fecha=${
-          tempFecha ? tempFecha.toISOString().split("T")[0] : new Date().toISOString().split("T")[0]
-        }`,
+        `/Estilistas6?id=0&sucursal=${idSuc}&fecha=${formatLocalDate(tempFecha || new Date())}`,
       )
       .then((response) => {
         setArreglo(
@@ -442,13 +455,11 @@ function Agenda2() {
       // Manejar el caso cuando es un objeto o una fecha string
       let fechaBase;
       if (fecha) {
-        fechaBase = fecha;
+        fechaBase = formatLocalDate(fecha);
       } else if (typeof datosParametrosPrevios.fecha === "object") {
-        // Si es un objeto Date
-        fechaBase = datosParametrosPrevios.fecha.toISOString().split("T")[0];
+        fechaBase = formatLocalDate(datosParametrosPrevios.fecha);
       } else if (typeof datosParametrosPrevios.fecha === "string") {
-        // Si es string con formato ISO
-        fechaBase = datosParametrosPrevios.fecha.split("T")[0];
+        fechaBase = formatLocalDate(datosParametrosPrevios.fecha);
       }
 
       const tempFecha = parseISO(fechaBase);
@@ -464,8 +475,7 @@ function Agenda2() {
           if (dias < 0) {
             schedulerData.prev();
           } else if (dias === 0) {
-            // schedulerData.setDate(format(tempFecha, "yyyy-MM-dd"));
-            schedulerData.setDate(tempFecha.toISOString().split("T")[0]);
+            schedulerData.setDate(formatLocalDate(tempFecha));
           } else {
             schedulerData.next();
           }
@@ -1512,11 +1522,7 @@ function Agenda2() {
   const getEstilistas = async () => {
     await peinadosApi
       .get(
-        `/estilistas5?id=0&sucursal=${idSuc}&fecha=${
-          datosParametros.fecha
-            ? datosParametros.fecha.toISOString().split("T")[0]
-            : new Date().toISOString().split("T")[0]
-        }`,
+        `/Estilistas6?id=0&sucursal=${idSuc}&fecha=${formatLocalDate(datosParametros.fecha || new Date())}`,
       )
       .then((response) => {
         setDataEstilistas(response.data);
@@ -1567,10 +1573,7 @@ function Agenda2() {
 
   const fetchHorariosAgenda = async () => {
     try {
-      const fechaFormateada =
-        datosParametros.fecha instanceof Date
-          ? datosParametros.fecha.toISOString().split("T")[0]
-          : String(datosParametros.fecha).split("T")[0];
+      const fechaFormateada = formatLocalDate(datosParametros.fecha || new Date());
       const response = await peinadosApi.get(`/sp_catHorariosGetAgenda2?sucursal=${idSuc}&fecha=${fechaFormateada}`);
       if (response.data && response.data.length > 0) {
         setHorariosAgenda(response.data[0]);

@@ -177,10 +177,10 @@ const OptimizedScheduler = memo(
 );
 
 // Recorta las citas al horario de cierre (dayStopTo + 1) para que el render no se descuadre.
-// Las citas con excedente cortan hasta la hora de salida de la sucursal.
+// Detecta citas antes del horario de entrada (sucursal o estilista) y después de la salida.
 // Los bloqueos de no disponible del personal se preservan íntegros.
-const recortarCitasPorCierre = (citas, horaCierre) => {
-  if (!Array.isArray(citas) || horaCierre == null) return citas;
+const recortarCitasPorCierre = (citas, horaCierre, horaApertura) => {
+  if (!Array.isArray(citas)) return citas;
 
   const formatearFin = (original, cierre) => {
     if (original instanceof Date) return cierre;
@@ -192,6 +192,30 @@ const recortarCitasPorCierre = (citas, horaCierre) => {
     )}:00`;
   };
 
+  // Mapear horarios de entrada y salida de cada estilista a partir de los bloques 'No disponible'
+  const estilistasHorarios = {};
+  citas.forEach((c) => {
+    if (!c.idCita && !c.idVenta && c.resourceId) {
+      const d1 = new Date(c.start);
+      const d2 = new Date(c.end);
+      if (!estilistasHorarios[c.resourceId]) {
+        estilistasHorarios[c.resourceId] = { entrada: null, salida: null };
+      }
+      // Bloque de no disponible en la mañana: su fin (d2) es la hora de entrada del estilista
+      if (horaApertura != null && d1.getHours() <= horaApertura + 1) {
+        if (!estilistasHorarios[c.resourceId].entrada || d2 > estilistasHorarios[c.resourceId].entrada) {
+          estilistasHorarios[c.resourceId].entrada = d2;
+        }
+      }
+      // Bloque de no disponible en la tarde/noche: su inicio (d1) es la salida del estilista
+      if (horaCierre != null && d2.getHours() >= horaCierre - 1) {
+        if (!estilistasHorarios[c.resourceId].salida || d1 < estilistasHorarios[c.resourceId].salida) {
+          estilistasHorarios[c.resourceId].salida = d1;
+        }
+      }
+    }
+  });
+
   return citas.reduce((acc, cita) => {
     // Los bloqueos de no disponible del personal no se recortan
     if (!cita.idCita && !cita.idVenta) {
@@ -199,34 +223,57 @@ const recortarCitasPorCierre = (citas, horaCierre) => {
       return acc;
     }
 
-    const inicio = new Date(cita.start);
+    const inicio = new Date(cita.inicioReal || cita.start);
     const fin = new Date(cita.finReal || cita.end);
-    const cierre = new Date(inicio);
-    cierre.setHours(horaCierre, 0, 0, 0);
-
-    // Si la cita termina después de la hora de cierre, recortar hasta la hora de salida
-    if (fin > cierre) {
-      const finRealVal = cita.finReal || cita.end;
-      const tiempoRealVal = cita.tiempoReal || cita.tiempo;
-      if (inicio < cierre) {
-        acc.push({
-          ...cita,
-          end: formatearFin(cita.end, cierre),
-          finReal: finRealVal,
-          tiempoReal: tiempoRealVal,
-          superaHoraSalida: true,
-        });
-      } else {
-        acc.push({
-          ...cita,
-          finReal: finRealVal,
-          tiempoReal: tiempoRealVal,
-          superaHoraSalida: true,
-        });
-      }
-    } else {
-      acc.push(cita);
+    let cierre = null;
+    if (horaCierre != null) {
+      cierre = new Date(inicio);
+      cierre.setHours(horaCierre, 0, 0, 0);
     }
+    let apertura = null;
+    if (horaApertura != null) {
+      apertura = new Date(inicio);
+      apertura.setHours(horaApertura, 0, 0, 0);
+    }
+
+    const estilistaH = estilistasHorarios[cita.resourceId];
+    let iniciaAntes = Boolean(cita.iniciaAntesDeEntrada);
+    let superaSalida = Boolean(cita.superaHoraSalida);
+
+    // 1. Detectar si inicia antes del horario de entrada de sucursal o del estilista
+    if (apertura && inicio < apertura) {
+      iniciaAntes = true;
+    }
+    if (estilistaH && estilistaH.entrada && inicio < estilistaH.entrada) {
+      iniciaAntes = true;
+    }
+
+    // 2. Detectar si supera el horario de salida de la sucursal o del estilista
+    if (cierre && fin > cierre) {
+      superaSalida = true;
+    }
+    const finRealVal = cita.finReal || cita.end;
+    const inicioRealVal = cita.inicioReal || cita.start;
+    const tiempoRealVal = cita.tiempoReal || cita.tiempo;
+
+    let endFinal = cita.end;
+    // Si la cita termina después de la hora de cierre de la sucursal, recortar visualmente al cierre
+    if (cierre && fin > cierre) {
+      if (inicio < cierre) {
+        endFinal = formatearFin(cita.end, cierre);
+      }
+    }
+
+    acc.push({
+      ...cita,
+      end: endFinal,
+      inicioReal: inicioRealVal,
+      finReal: finRealVal,
+      tiempoReal: tiempoRealVal,
+      iniciaAntesDeEntrada: iniciaAntes,
+      superaHoraSalida: superaSalida,
+    });
+
     return acc;
   }, []);
 };
@@ -358,6 +405,10 @@ function Basic() {
   const [datosParametrosCitaTemp, setDatosParametrosCitaTemp] = useState({});
   const [datosParametrosFechaCitaTemp, setDatosParametrosFechaCitaTemp] = useState({});
   const usuarioValidadoMoveRef = useRef(null);
+  const ultimoAvisoCierreRef = useRef("");
+  const horariosAutorizadosRef = useRef(new Set());
+  const avisosHorarioPendientesRef = useRef(new Map());
+  const postCrearCitaEnCursoRef = useRef(false);
   const modalCrearBoxRef = useRef(null);
   const isDraggingModalCrear = useRef(false);
   const dragStartOffset = useRef({ x: 0, y: 0 });
@@ -750,7 +801,13 @@ function Basic() {
         // Refrescar el scheduler: obtener citas y actualizar schedulerData activo
         getCitas(datosParametros.fecha).then((response) => {
           if (response && schedulerData) {
-            schedulerData.setEvents(recortarCitasPorCierre(response, schedulerData.config.dayStopTo + 1));
+            schedulerData.setEvents(
+              recortarCitasPorCierre(
+                response,
+                schedulerData.config.dayStopTo + 1,
+                schedulerData.config.dayStartFrom,
+              ),
+            );
             dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
             // Evitar que el useEffect reconstructor descuadre el visual
             navigationLockRef.current = Date.now();
@@ -767,6 +824,7 @@ function Basic() {
     };
 
     window.addEventListener("message", handleMessage);
+
     return () => {
       window.removeEventListener("message", handleMessage);
     };
@@ -791,6 +849,18 @@ function Basic() {
         : [23, 0];
 
       let horaEntrada = horasInicio;
+      if (Array.isArray(arregloCita) && arregloCita.length > 0) {
+        let minCitaHour = horaEntrada;
+        arregloCita.forEach((c) => {
+          if (c.idCita > 0 || c.idVenta > 0) {
+            const d = new Date(c.start);
+            if (!isNaN(d.getTime()) && d.getHours() < minCitaHour) {
+              minCitaHour = d.getHours();
+            }
+          }
+        });
+        horaEntrada = minCitaHour;
+      }
       let horaSalida = minutosFinal > 0 ? horasFinal : horasFinal - 1;
       // Actualizar la configuración del scheduler
       const updatedSchedulerData = state.viewModel;
@@ -798,7 +868,7 @@ function Basic() {
       updatedSchedulerData.config.dayStopTo = horaSalida;
       updatedSchedulerData._createHeaders();
       updatedSchedulerData.setEvents(
-        recortarCitasPorCierre(arregloCita, updatedSchedulerData.config.dayStopTo + 1),
+        recortarCitasPorCierre(arregloCita, updatedSchedulerData.config.dayStopTo + 1, horasInicio),
       );
 
       // Actualizar el estado del scheduler
@@ -834,6 +904,18 @@ function Basic() {
       const [horasFinal, minutosFinal] = horariosAgenda.hora_final.split(":").map(Number);
 
       horaEntrada = horasInicio;
+      if (Array.isArray(arregloCita) && arregloCita.length > 0) {
+        let minCitaHour = horaEntrada;
+        arregloCita.forEach((c) => {
+          if (c.idCita > 0 || c.idVenta > 0) {
+            const d = new Date(c.start);
+            if (!isNaN(d.getTime()) && d.getHours() < minCitaHour) {
+              minCitaHour = d.getHours();
+            }
+          }
+        });
+        horaEntrada = minCitaHour;
+      }
       // La librería dibuja la última columna abarcando una hora completa (dayStopTo -> dayStopTo+1),
       // por lo que dayStopTo debe ser la hora previa al cierre cuando el cierre es en punto.
       // Ej: cierre 21:00 -> dayStopTo 20 (última columna 8pm, borde derecho 21:00).
@@ -944,7 +1026,13 @@ function Basic() {
     };
 
     schedulerData.setResources(arreglo);
-    schedulerData.setEvents(recortarCitasPorCierre(arregloCita, schedulerData.config.dayStopTo + 1));
+    schedulerData.setEvents(
+      recortarCitasPorCierre(
+        arregloCita,
+        schedulerData.config.dayStopTo + 1,
+        schedulerData.config.dayStartFrom,
+      ),
+    );
     // if (arreglo.length > 0 && arregloCita.length > 0) {
     const timerId = setTimeout(() => {
       // 🚫 PREVENIR CONFLICTO: No actualizar durante navegación de fechas
@@ -971,7 +1059,13 @@ function Basic() {
     // }
   }, [arregloCita, arreglo, dataSucursales, isLoading, isNavigatingDate]);
   const actualizarAgenda = (response, schedulerData) => {
-    schedulerData.setEvents(recortarCitasPorCierre(response, schedulerData.config.dayStopTo + 1));
+    schedulerData.setEvents(
+      recortarCitasPorCierre(
+        response,
+        schedulerData.config.dayStopTo + 1,
+        schedulerData.config.dayStartFrom,
+      ),
+    );
     dispatch({ type: "UPDATE_SCHEDULER", payload: schedulerData });
     // Activar lock ANTES de setArregloCita para que el useEffect reconstructor
     // no reconstruya SchedulerData (lo que descuadra el visual) cuando solo
@@ -1785,7 +1879,7 @@ function Basic() {
   ];
 
     //const ligaPruebas = "http://localhost:5173/";
-   const ligaPruebas = "http://217.216.95.62:9019/";
+     const ligaPruebas = "http://217.216.95.62:9019/";
   const handleOpenNewWindow = ({ idCita, idUser, idCliente, fecha, flag }) => {
     const url = `${ligaPruebas}miliga/crearcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idSuc=${1}&idRec=${1}&flag=${flag}`; // Reemplaza esto con la URL que desees abrir
     const width = 390;
@@ -2280,7 +2374,7 @@ function Basic() {
     // Verificar la fecha que se está usando (para depuración)
     console.log("Fecha utilizada:", fechaFormateada);
 
-    await peinadosApi.get(`/estilistas5?id=0&sucursal=${idSuc}&fecha=${fechaFormateada}`).then((response) => {
+    await peinadosApi.get(`/Estilistas5?id=0&sucursal=${idSuc}&fecha=${fechaFormateada}`).then((response) => {
       setDataEstilistas(response.data);
     });
   };
@@ -2528,6 +2622,7 @@ function Basic() {
   );
 
   const handleCerrarModalCrear = useCallback(() => {
+    horariosAutorizadosRef.current.clear();
     setModalCrear(false);
     setModalCrearPos({ x: 0, y: 0 });
     if (modalCrearBoxRef.current) {
@@ -2981,83 +3076,48 @@ function Basic() {
       horaSalida = new Date(salidaSucursal).getHours();
       minutoSalida = new Date(salidaSucursal).getMinutes();
     } else {
-      return false;
+      return { esValida: false, sinHorario: true };
     }
 
     // Obtener la hora y minutos de la cita a verificar
     let horaCita = new Date(formCita.fecha).getHours();
     let minutoCita = new Date(formCita.fecha).getMinutes();
+    let duracion = Number(formCita.tiempo) || 0;
 
     // Convertir todo a minutos desde medianoche para facilitar la comparación
     let minutosDesdeMedianocheEntrada = horaEntrada * 60 + minutoEntrada;
     let minutosDesdeMedianocheSalida = horaSalida * 60 + minutoSalida;
     let minutosDesdeMedianocheCita = horaCita * 60 + minutoCita;
+    let minutosFinCita = minutosDesdeMedianocheCita + duracion;
 
-    let esValida =
-      minutosDesdeMedianocheCita >= minutosDesdeMedianocheEntrada &&
-      minutosDesdeMedianocheCita <= minutosDesdeMedianocheSalida;
-    return esValida;
+    // Si la cita inicia a la hora de cierre o excede el horario de salida de la sucursal: IMPOSIBLE AGENDAR
+    if (minutosDesdeMedianocheCita >= minutosDesdeMedianocheSalida || minutosFinCita > minutosDesdeMedianocheSalida) {
+      return { esValida: false, excedeSalida: true };
+    }
+
+    // Si inicia antes del horario de entrada: PERMITIDO CON ALERTA Y CONTRASEÑA
+    if (minutosDesdeMedianocheCita < minutosDesdeMedianocheEntrada) {
+      return { esValida: false, antesDeEntrada: true };
+    }
+
+    return { esValida: true };
   };
 
   const postCrearCita = async () => {
+    if (postCrearCitaEnCursoRef.current) return;
+    postCrearCitaEnCursoRef.current = true;
+    window.setTimeout(() => {
+      postCrearCitaEnCursoRef.current = false;
+    }, 10000);
     console.log("[postCrearCita] iniciando");
     if (formCitaServicio.idCita) {
+      postCrearCitaEnCursoRef.current = false;
       setProductosModal(true);
       return;
     }
 
-    console.log("[postCrearCita] llamando verificarDisponibilidad");
-    const disponibilidad = await verificarDisponibilidad(
-      formCita.tiempo,
-      formCita.fecha,
-      formCita.no_estilista,
-      formCita.idCita,
-    );
+    horariosAutorizadosRef.current.clear();
 
-    if (!disponibilidad.disponible) {
-      return;
-    }
-
-    console.log("=== DEBUG postCrearCita ===");
-    console.log("formCita.fecha:", formCita.fecha);
-    console.log("datosParametros.fecha:", datosParametros.fecha);
-    
-    const citaDateTime = formCita.fecha;
-    console.log("citaDateTime definido como:", citaDateTime);
-    
-    let fechaActual = new Date(datosParametros.fecha);
-    // Extrae el año, mes y día
-    let año = fechaActual.getFullYear();
-    let mes = fechaActual.getMonth(); // Nota: getMonth() devuelve un valor de 0 a 11, donde 0 es enero y 11 es diciembre
-    let día = fechaActual.getDate();
-    let fechaSinHora = new Date(año, mes, día);
-    const esValida = verificaDisponibilidadSucursal();
-
-    const fechaCitaDebug = new Date(citaDateTime);
-    const ahoraDebug = new Date();
-    console.log("=== DEBUG VALIDACION FECHA PASADA ===");
-    console.log("citaDateTime (raw):", citaDateTime);
-    console.log("typeof citaDateTime:", typeof citaDateTime);
-    console.log("formCita.fecha (raw):", formCita.fecha);
-    console.log("new Date(citaDateTime):", fechaCitaDebug.toString());
-    console.log("new Date(citaDateTime) ISO:", fechaCitaDebug.toISOString());
-    console.log("new Date(citaDateTime) getTime():", fechaCitaDebug.getTime());
-    console.log("ahora new Date():", ahoraDebug.toString());
-    console.log("ahora ISO:", ahoraDebug.toISOString());
-    console.log("ahora getTime():", ahoraDebug.getTime());
-    console.log("¿es pasado? (cita < ahora):", fechaCitaDebug < ahoraDebug);
-    console.log("diferencia ms (cita - ahora):", fechaCitaDebug.getTime() - ahoraDebug.getTime());
-    console.log("=====================================");
-
-    if (new Date(citaDateTime) < new Date()) {
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: `Imposible agregar una cita en el pasado ${new Date(citaDateTime).toLocaleString()}`,
-        confirmButtonColor: "#3085d6", // Cambiar el color del botón OK
-      });
-      return;
-    }
     if (
       formCita.no_estilista == 0 ||
       !formCita.no_estilista ||
@@ -3085,19 +3145,81 @@ function Basic() {
         text: mensajeError,
         confirmButtonColor: "#3085d6", // Cambiar el color del botón OK
       });
-    } else {
-      if (esValida === false) {
-        const fechaCitaD = new Date(citaDateTime);
-        const hoyD = new Date();
-        fechaCitaD.setHours(0, 0, 0, 0);
-        hoyD.setHours(0, 0, 0, 0);
-        const esDiaPosterior = fechaCitaD > hoyD;
-        const sinHorarioSucursal = !horariosAgenda || !horariosAgenda.hora_inicio;
+      postCrearCitaEnCursoRef.current = false;
+      return;
+    }
 
-        const mensajeAlerta =
-          esDiaPosterior && sinHorarioSucursal
-            ? "No hay disponibilidad en sucursal en esta fecha, ¿desea registrar la cita?"
-            : "La hora de la cita está fuera del horario de esta sucursal, ¿desea registrar la cita?";
+    console.log("[postCrearCita] llamando verificarDisponibilidad");
+    const disponibilidad = await verificarDisponibilidad(
+      formCita.tiempo,
+      formCita.fecha,
+      formCita.no_estilista,
+      formCita.idCita,
+    );
+    const horarioYaConfirmado = disponibilidad.passwordYaValidado;
+
+    if (!disponibilidad.disponible) {
+      postCrearCitaEnCursoRef.current = false;
+      return;
+    }
+
+    console.log("=== DEBUG postCrearCita ===");
+    console.log("formCita.fecha:", formCita.fecha);
+    console.log("datosParametros.fecha:", datosParametros.fecha);
+    
+    const citaDateTime = formCita.fecha;
+    console.log("citaDateTime definido como:", citaDateTime);
+    
+    let fechaActual = new Date(datosParametros.fecha);
+    // Extrae el año, mes y día
+    let año = fechaActual.getFullYear();
+    let mes = fechaActual.getMonth(); // Nota: getMonth() devuelve un valor de 0 a 11, donde 0 es enero y 11 es diciembre
+    let día = fechaActual.getDate();
+    let fechaSinHora = new Date(año, mes, día);
+    const checkSuc = verificaDisponibilidadSucursal();
+    if (checkSuc.excedeSalida) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Cita fuera del horario de cierre de la sucursal. Imposible agendar.",
+        confirmButtonColor: "#3085d6",
+      });
+      postCrearCitaEnCursoRef.current = false;
+      return;
+    }
+    const esValida = checkSuc.esValida;
+
+    const fechaCitaDebug = new Date(citaDateTime);
+    const ahoraDebug = new Date();
+    console.log("=== DEBUG VALIDACION FECHA PASADA ===");
+    console.log("citaDateTime (raw):", citaDateTime);
+    console.log("typeof citaDateTime:", typeof citaDateTime);
+    console.log("formCita.fecha (raw):", formCita.fecha);
+    console.log("new Date(citaDateTime):", fechaCitaDebug.toString());
+    console.log("new Date(citaDateTime) ISO:", fechaCitaDebug.toISOString());
+    console.log("new Date(citaDateTime) getTime():", fechaCitaDebug.getTime());
+    console.log("ahora new Date():", ahoraDebug.toString());
+    console.log("ahora ISO:", ahoraDebug.toISOString());
+    console.log("ahora getTime():", ahoraDebug.getTime());
+    console.log("¿es pasado? (cita < ahora):", fechaCitaDebug < ahoraDebug);
+    console.log("diferencia ms (cita - ahora):", fechaCitaDebug.getTime() - ahoraDebug.getTime());
+    console.log("=====================================");
+
+    if (new Date(citaDateTime) < new Date()) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: `Imposible agregar una cita en el pasado ${new Date(citaDateTime).toLocaleString()}`,
+        confirmButtonColor: "#3085d6", // Cambiar el color del botón OK
+      });
+      postCrearCitaEnCursoRef.current = false;
+      return;
+    }
+    if (esValida === false && !horarioYaConfirmado) {
+        const sinHorarioSucursal = checkSuc.sinHorario || !horariosAgenda || !horariosAgenda.hora_inicio;
+        const mensajeAlerta = sinHorarioSucursal
+          ? "No hay disponibilidad en sucursal en esta fecha, ¿desea registrar la cita?"
+          : "La hora de la cita está antes del horario de entrada de esta sucursal, ¿desea registrar la cita?";
 
         Swal.fire({
           icon: "warning",
@@ -3254,7 +3376,6 @@ function Basic() {
           });
         }
       }
-    }
   };
 
   const formatFecha = (fechaCompleta1) => {
@@ -3971,9 +4092,6 @@ function Basic() {
     });
   };
   const putCitasServiciosTerminado = async () => {
-    const disponible = await verificarHorarioCierre(formVentaTemporal.tiempo, datosParametros.fecha, formCitaServicio.no_estilista, formCitaServicio.idCita);
-    if (!disponible.disponible) return;
-    
     setModalCrear(false);
     Swal.fire({
       title: "Confirmación de cita",
@@ -4337,20 +4455,51 @@ function Basic() {
       });
   };
 
+  const mostrarErrorCierre = async (clave, texto) => {
+    const claveAviso = `${clave}|${texto}`;
+    if (ultimoAvisoCierreRef.current === claveAviso) return;
+    ultimoAvisoCierreRef.current = claveAviso;
+    await Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: texto,
+      confirmButtonColor: "#3085d6",
+    });
+  };
+
+  const mostrarAvisoHorario = async (clave, texto, titulo = "Advertencia") => {
+    const claveAviso = `${clave}|${texto}`;
+    const avisoPendiente = avisosHorarioPendientesRef.current.get(claveAviso);
+    if (avisoPendiente) return avisoPendiente;
+
+    const promesaAviso = Swal.fire({
+      icon: "warning",
+      title: titulo,
+      text: texto,
+      confirmButtonColor: "#3085d6",
+      confirmButtonText: "Sí",
+      cancelButtonText: "Cancelar",
+      showConfirmButton: true,
+      showCancelButton: true,
+    }).finally(() => avisosHorarioPendientesRef.current.delete(claveAviso));
+    avisosHorarioPendientesRef.current.set(claveAviso, promesaAviso);
+    return promesaAviso;
+  };
+
   async function verificarHorarioCierre(tiempo, fecha, estilista, idCita) {
-    // Si la cita inicia a la hora de cierre o después: imposible agendar de ninguna manera
+    const claveCierre = `${new Date(fecha).getTime()}|${estilista || 0}`;
+    // Si la cita inicia a la hora de cierre o termina después: imposible agendar de ninguna manera
     if (horariosAgenda && horariosAgenda.hora_final) {
       const [hFinSuc, mFinSuc] = horariosAgenda.hora_final.split(":").map(Number);
       const dFecha = new Date(fecha);
       const horaCitaMin = dFecha.getHours() * 60 + dFecha.getMinutes();
       const horaCierreMin = hFinSuc * 60 + (mFinSuc || 0);
-      if (horaCitaMin >= horaCierreMin) {
-        await Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "Cita fuera del horario de cierre de la sucursal. Imposible agendar.",
-          confirmButtonColor: "#3085d6",
-        });
+      const duracion = Number(tiempo) || 0;
+      if (horaCitaMin >= horaCierreMin || horaCitaMin + duracion > horaCierreMin) {
+        await mostrarErrorCierre(
+          claveCierre,
+          "Cita fuera del horario de cierre de la sucursal. Imposible agendar.",
+        );
         return { disponible: false };
       }
     }
@@ -4362,24 +4511,11 @@ function Basic() {
       claveEmpleado === "Cita fuera del horario de cierre de la sucursal. Imposible agendar." ||
       claveEmpleado.toLowerCase().includes("imposible")
     ) {
-      await Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: claveEmpleado,
-        confirmButtonColor: "#3085d6",
-      });
+      await mostrarErrorCierre(claveCierre, claveEmpleado);
       return { disponible: false };
     }
     if (claveEmpleado.toLowerCase().includes("desea")) {
-      const isConfirmed = await Swal.fire({
-        icon: "warning",
-        title: "Fuera de horario de sucursal",
-        text: claveEmpleado,
-        confirmButtonColor: "#3085d6",
-        confirmButtonText: "Sí",
-        cancelButtonText: "Cancelar",
-        showCancelButton: true,
-      });
+      const isConfirmed = await mostrarAvisoHorario(claveCierre, claveEmpleado, "Fuera de horario de sucursal");
       if (!isConfirmed.isConfirmed) return { disponible: false };
       return { disponible: true };
     }
@@ -4387,19 +4523,19 @@ function Basic() {
   }
 
   async function verificarDisponibilidad(tiempo, fecha, estilista, idCita) {
-    // Si la cita inicia a la hora de cierre de la sucursal o después: imposible agendar de ninguna manera
+    const claveCierre = `${new Date(fecha).getTime()}|${estilista || 0}`;
+    // Si la cita inicia a la hora de cierre de la sucursal o termina después: imposible agendar de ninguna manera
     if (horariosAgenda && horariosAgenda.hora_final) {
       const [hFinSuc, mFinSuc] = horariosAgenda.hora_final.split(":").map(Number);
       const dFecha = new Date(fecha);
       const horaCitaMin = dFecha.getHours() * 60 + dFecha.getMinutes();
       const horaCierreMin = hFinSuc * 60 + (mFinSuc || 0);
-      if (horaCitaMin >= horaCierreMin) {
-        await Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "Cita fuera del horario de cierre de la sucursal. Imposible agendar.",
-          confirmButtonColor: "#3085d6",
-        });
+      const duracion = Number(tiempo) || 0;
+      if (horaCitaMin >= horaCierreMin || horaCitaMin + duracion > horaCierreMin) {
+        await mostrarErrorCierre(
+          claveCierre,
+          "Cita fuera del horario de cierre de la sucursal. Imposible agendar.",
+        );
         return { disponible: false };
       }
     }
@@ -4439,12 +4575,7 @@ function Basic() {
       claveEmpleado === "Cita fuera del horario de cierre de la sucursal. Imposible agendar." ||
       claveEmpleado.toLowerCase().includes("imposible")
     ) {
-      await Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: claveEmpleado,
-        confirmButtonColor: "#3085d6",
-      });
+      await mostrarErrorCierre(claveCierre, claveEmpleado);
       return { disponible: false };
     } else if (
       claveEmpleado === "Cita fuera del horario de salida del estilista ¿desea asignar la cita?" ||
@@ -4458,22 +4589,19 @@ function Basic() {
       } else if (claveEmpleado.toLowerCase().includes("sucursal")) {
         observacion = "FUERA DE HORARIO SUCURSAL";
       }
-      const isConfirmed2 = await Swal.fire({
-        icon: "warning",
-        title: "Advertencia",
-        text: claveEmpleado || "",
-        confirmButtonColor: "#3085d6",
-        confirmButtonText: "Sí",
-        cancelButtonText: "Cancelar",
-        showConfirmButton: true,
-        showCancelButton: true,
-      });
-      if (!isConfirmed2.isConfirmed) return { disponible: false };
+      const claveAutorizacion = `${claveCierre}|${claveEmpleado}`;
+      if (horariosAutorizadosRef.current.has(claveAutorizacion)) {
+        passwordYaValidado = true;
+      } else {
+        const isConfirmed2 = await mostrarAvisoHorario(claveCierre, claveEmpleado || "");
+        if (!isConfirmed2.isConfirmed) return { disponible: false };
 
-      const result = await validarContraseña("MODIFICAR_CITA", "AGENDA");
-      if (!result.validado) return { disponible: false };
-      // Contraseña ya validada en este bloque — no repetir en el caller
-      passwordYaValidado = true;
+        const result = await validarContraseña("MODIFICAR_CITA", "AGENDA");
+        if (!result.validado) return { disponible: false };
+        horariosAutorizadosRef.current.add(claveAutorizacion);
+        // Contraseña ya validada en este bloque — no repetir en el caller
+        passwordYaValidado = true;
+      }
     } else if (res && res.data[0] && res.data[0].id > 0) {
       Swal.fire({
         icon: "error",

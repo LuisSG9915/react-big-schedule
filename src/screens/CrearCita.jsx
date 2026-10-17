@@ -717,10 +717,12 @@ function CrearCita() {
       });
     } else {
       if (esValida === false) {
-        // Cita en o después de la salida de la sucursal: imposible agendar de ninguna manera
+        // Cita en o después de la salida de la sucursal o que termina después del cierre: imposible agendar
+        const duracionMin = Number(formCita.tiempo) || 0;
         if (
           horaEntrada !== null &&
-          horaCita * 60 + minutoCita >= horaSalida * 60 + minutoSalida
+          (horaCita * 60 + minutoCita >= horaSalida * 60 + minutoSalida ||
+           horaCita * 60 + minutoCita + duracionMin > horaSalida * 60 + minutoSalida)
         ) {
           Swal.fire({
             icon: "error",
@@ -731,17 +733,10 @@ function CrearCita() {
           return;
         }
 
-        const fechaCitaD = new Date(formCita.fecha);
-        const hoyD = new Date();
-        fechaCitaD.setHours(0, 0, 0, 0);
-        hoyD.setHours(0, 0, 0, 0);
-        const esDiaPosterior = fechaCitaD > hoyD;
         const sinHorarioSucursal = !horariosAgenda || !horariosAgenda.hora_inicio;
-
-        const mensajeAlerta =
-          esDiaPosterior && sinHorarioSucursal
-            ? "No hay disponibilidad en sucursal en esta fecha, ¿desea registrar la cita?"
-            : "La hora de la cita está antes del horario de entrada de esta sucursal, ¿desea registrar la cita?";
+        const mensajeAlerta = sinHorarioSucursal
+          ? "No hay disponibilidad en sucursal en esta fecha, ¿desea registrar la cita?"
+          : "La hora de la cita está antes del horario de entrada de esta sucursal, ¿desea registrar la cita?";
 
         Swal.fire({
           icon: "warning",

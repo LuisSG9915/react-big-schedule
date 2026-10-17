@@ -251,7 +251,7 @@ function EditarCita() {
     const fechaFormateada = fecha ? formatearFecha(fecha) : formatearFecha(fechaActual);
 
     await peinadosApi
-      .get(`/estilistas5?id=0&sucursal=${idSuc}&fecha=${fechaFormateada}`)
+      .get(`/Estilistas6?id=0&sucursal=${idSuc}&fecha=${fechaFormateada}`)
       .then((response) => {
         setDataEstilistas(response.data);
       })
