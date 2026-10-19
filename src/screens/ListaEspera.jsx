@@ -167,22 +167,22 @@ function ListaEspera() {
     {
       accessorKey: "nombre",
       header: "Nombre",
-      size: 100,
+      size: 250,
     },
     {
       accessorKey: "telefono",
       header: "Telefono",
-      size: 100,
+      size: 130,
     },
     {
       accessorKey: "celular",
       header: "Celular",
-      size: 100,
+      size: 130,
     },
     {
       accessorKey: "cumpleaños",
       header: "Cumpleaños",
-      size: 100,
+      size: 120,
       Cell: ({ cell }) => {
         const fechaCompleta1 = cell.row.original.cumpleaños;
         const fechaFormateada1 = fechaCompleta1 ? formatFecha(fechaCompleta1) : "";
@@ -368,14 +368,11 @@ function ListaEspera() {
     if (!confirmacion.isConfirmed) return;
 
     try {
-      const fechaEstilistas = formatLocalDate(fecha || new Date());
-      const response = await peinadosApi.put("/ListaEsperaOcultarEstilista", null, {
+      const response = await peinadosApi.put("/sp_nominaHorariosUpdListaEspera", null, {
         params: {
+          id: 0,
           idEmpleado: estilista.id,
-          fecha: fechaEstilistas,
-          sucursal: idSuc,
-          user: idUser,
-          listaEsperaOcultar: true,
+          listaEsperaOcultar: false,
         },
       });
 
@@ -505,83 +502,43 @@ function ListaEspera() {
     }
   };
   const [formListaEsperaVerificacion, setFormListaEsperaVerificacion] = useState();
-  const [pendingAction, setPendingAction] = useState(null); // 'post' | 'open'
   function renderDeleteListaEspera(params) {
     return (
       <div style={{ display: "flex" }}>
         <MdCalendarMonth
           onClick={() => {
-            setPendingAction({ type: 'post', row: params.row });
-            setOpenListaEspera(true);
-            setformClienteEspera({
-              id: params.row.id,
-              estilista: params.row.estilista,
-              estilista_descripcion: params.row.nombreEstilsta,
-              descripcion_no_cliente: params.row.nombreCompleto,
-              descripcion_clave_prod: params.row.descripcion,
-              hora_estimada: params.row.hora_estimada,
-              max_detalle_venta_id: params.row.max_detalle_venta_id,
-              tiempo_servicio: params.row.tiempo_servicio,
-              fecha: new Date(params.row.hora_estimada),
-              sucursal: params.row.sucursal,
-              sucursal_descripcion: params.row.sucursal_descripcion,
-              observacion: params.row.observacion,
-              no_cliente: params.row.no_cliente,
-              clave_prod: params.row.clave_prod,
-              usuario_registra: idUser,
-              usuario_servicio: idUser,
-              precio: params.row.precio ?? 0,
-              tipoCita: params.row.atendido === 1 || params.row.atendido === true,
-              esEdicion: true,
-            });
+            listaEsperaPost(
+              params.row.id,
+              1,
+              params.row.tiempo_servicio,
+              params.row.estilista,
+              new Date(params.row.hora_estimada),
+            );
           }}
-          title="C"
-          size={25}
+          title="Agendar cita"
+          size={20}
         />
         <MdFolderOpen
-          title="S"
-          size={25}
+          title="Servicio y hora"
+          size={20}
           onClick={() => {
-            setPendingAction({
-              type: 'open',
-              verificacion: {
-                id: params.row.id,
-                fecha: params.row.fecha,
-                estilista: params.row.estilista,
-                estilista_descripcion: params.row.nombreEstilsta,
-                servicio_descripcion: params.row.descripcion,
-                cliente_descripcion: params.row.nombreCompleto,
-                hora_estimada: new Date(),
-                max_detalle_venta_id: params.row.max_detalle_venta_id,
-                tiempo: params.row.tiempo_servicio,
-              },
-            });
-            setOpenListaEspera(true);
-            setformClienteEspera({
+            setModalCitaServicio(true);
+            setFormListaEsperaVerificacion({
               id: params.row.id,
+              fecha: params.row.fecha,
               estilista: params.row.estilista,
               estilista_descripcion: params.row.nombreEstilsta,
-              descripcion_no_cliente: params.row.nombreCompleto,
-              descripcion_clave_prod: params.row.descripcion,
-              hora_estimada: params.row.hora_estimada,
+              servicio_descripcion: params.row.descripcion,
+              cliente_descripcion: params.row.nombreCompleto,
+              hora_estimada: new Date(),
               max_detalle_venta_id: params.row.max_detalle_venta_id,
-              tiempo_servicio: params.row.tiempo_servicio,
-              fecha: new Date(params.row.hora_estimada),
-              sucursal: params.row.sucursal,
-              sucursal_descripcion: params.row.sucursal_descripcion,
-              observacion: params.row.observacion,
-              no_cliente: params.row.no_cliente,
-              clave_prod: params.row.clave_prod,
-              usuario_registra: idUser,
-              usuario_servicio: idUser,
-              precio: params.row.precio ?? 0,
-              tipoCita: params.row.atendido === 1 || params.row.atendido === true,
-              esEdicion: true,
+              tiempo: params.row.tiempo_servicio,
             });
           }}
         />
         <AiFillEdit
-          size={25}
+          title="Editar"
+          size={20}
           onClick={() => {
             setOpenListaEspera(true);
             setformClienteEspera({
@@ -609,7 +566,7 @@ function ListaEspera() {
         ></AiFillEdit>
         <MdOutlineDelete
           title="Eliminar lista de espera"
-          size={25}
+          size={20}
           onClick={async () => {
             const result = await validarContraseña("CANCELAR_LISTA_DE_ESPERA", "AGENDA");
             if (!result.validado) return;
@@ -696,6 +653,13 @@ function ListaEspera() {
       Cell: ({ cell }) => <p className="centered-cell">{Number(cell.row.original.precio)}</p>,
       className: "centered-cell", // Agrega esta línea para aplicar la clase CSS
     },
+    {
+      accessorKey: "clave_prod",
+      header: "Clave",
+      size: 50,
+      Cell: ({ cell }) => <p className="centered-cell">{cell.row.original.clave_prod}</p>,
+      className: "centered-cell", // Agrega esta línea para aplicar la clase CSS
+    },
     // {
     //   accessorKey: "precioPromocion",
     //   header: "Precio",
@@ -711,38 +675,38 @@ function ListaEspera() {
     // { field: "cia", headerName: "cia", width: 250 },
     // { field: "sucursal", headerName: "sucursal", width: 130 },
     { field: "pr", headerName: "accion", renderCell: renderButtonEstilista, width: 210 },
-    { field: "estilista", headerName: "estilista", width: 130, renderCell: (params) => <p>{params.row.estilista}</p> },
+    { field: "estilista", headerName: "estilista", width: 300, renderCell: (params) => <p>{params.row.estilista}</p> },
     //{ field: "tc", headerName: "tc", width: 130, renderCell: (params) => <input type="checkbox" value={params.row.tc} disabled /> },
   ];
   const columnListaEspera = [
-    { field: "Accion", headerName: "Accion", renderCell: renderDeleteListaEspera, width: 130 },
+    { field: "Accion", headerName: "Acc.", renderCell: renderDeleteListaEspera, width: 95 },
     {
       field: "fecha",
-      headerName: "hora",
-      width: 90,
+      headerName: "Hora",
+      width: 65,
       renderCell: (params) => <p className="centered-cell"> {format(new Date(params.row.fecha), "p")}</p>,
     },
-    { field: "nombreCompleto", headerName: "Nombre completo", width: 280 },
-    { field: "descripcion", headerName: "Servicio", width: 280, renderCell: (params) => <p className="centered-cell">{params.row.descripcion}</p> },
-    { field: "tiempo_servicio", headerName: "T", width: 45 },
+    { field: "nombreCompleto", headerName: "Cliente", width: 190 },
+    { field: "descripcion", headerName: "Servicio", width: 90, renderCell: (params) => <p className="centered-cell">{params.row.descripcion}</p> },
+    { field: "tiempo_servicio", headerName: "Min", width: 40 },
     {
       field: "hora_estimada",
-      headerName: "H_estimado",
-      width: 100,
+      headerName: "H. est.",
+      width: 65,
       renderCell: (params) => <p className="centered-cell">{format(new Date(params.row.hora_estimada), "p")}</p>,
     },
-    { field: "nombreEstilsta", headerName: "Estilista", width: 90 },
+    { field: "nombreEstilsta", headerName: "Estilista", width: 150 },
     {
       field: "atendido",
-      headerName: "Tipo Cita",
-      width: 100,
+      headerName: "Tipo",
+      width: 80,
       renderCell: (params) => (
         <p className="centered-cell" style={{ color: (params.row.atendido === true || params.row.atendido === 1) ? "#d33" : "#3085d6", fontWeight: "bold" }}>
           {(params.row.atendido === true || params.row.atendido === 1) ? "Asignado" : "Requerido"}
         </p>
       ),
     },
-    { field: "observacion", headerName: "Observacion", width: 500 },
+    { field: "observacion", headerName: "Obs.", width: 70 },
   ];
   const putListaEspera = async (id) => {
     if (
@@ -875,7 +839,6 @@ function ListaEspera() {
   const timeZone = "America/Mexico_City"; // Ajusta esto a tu zona horaria
   const closeOpenListaEspera = () => {
     setOpenListaEspera(false);
-    setPendingAction(null);
     if (!formClienteEspera.esEdicion) return;
     const defaultValues = {
       id: null,
@@ -906,10 +869,10 @@ function ListaEspera() {
         styleOverrides: {
           root: {
             "& .MuiDataGrid-cell": {
-              fontSize: "16px", // Cambia el tamaño de la fuente aquí
+              fontSize: "14px", // Cambia el tamaño de la fuente aquí
             },
             "& .MuiDataGrid-columnHeaders": {
-              fontSize: "16px", // Cambia el tamaño de la fuente de los encabezados aquí
+              fontSize: "14px", // Cambia el tamaño de la fuente de los encabezados aquí
             },
           },
         },
@@ -918,25 +881,37 @@ function ListaEspera() {
   });
   return (
     <>
-      <Container>
-        <h1>Lista de espera</h1>
-        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "end" }}>
+      <Container fluid style={{ padding: "10px 12px 0" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+          <h1 style={{ fontSize: "1.5rem", margin: 0 }}>Lista de espera</h1>
           <Button
-            style={{ marginBottom: "10px" }}
+            size="sm"
             color="success"
             onClick={() => {
               setOpenListaEspera(true);
               setformClienteEspera({ ...formClienteEspera, esEdicion: false });
             }}
           >
-            Agregar Lista de espera
+            Agregar
           </Button>
         </div>
       </Container>
       <ThemeProvider theme={theme}>
-        <DataGrid rows={dataListaEspera} columns={columnListaEspera} />
+        <div style={{ height: "calc(100vh - 60px)", padding: "0 8px 8px" }}>
+          <DataGrid
+            rows={dataListaEspera}
+            columns={columnListaEspera}
+            density="compact"
+            style={{ height: "100%", width: "100%" }}
+          />
+        </div>
       </ThemeProvider>
-      <Modal isOpen={openListaEspera} toggle={() => closeOpenListaEspera()} size="lg">
+      <Modal
+        isOpen={openListaEspera}
+        toggle={() => closeOpenListaEspera()}
+        size="lg"
+        className="lista-espera-modal-dialog"
+      >
         <ModalHeader toggle={() => closeOpenListaEspera()}>
           {formClienteEspera.esEdicion ? "Edicion	de lista de espera" : "Agregar Lista de espera"}
         </ModalHeader>
@@ -1117,44 +1092,23 @@ function ListaEspera() {
         <ModalFooter>
           <Button
             color="primary"
-            onClick={async () => {
-              if (pendingAction?.type === 'post') {
-                // Capturar valores antes de limpiar el state
-                const snapId = formClienteEspera.id;
-                const snapTiempo = formClienteEspera.tiempo_servicio;
-                const snapEstilista = formClienteEspera.estilista;
-                const snapHora = new Date(formClienteEspera.hora_estimada);
-                await putListaEspera();
-                setOpenListaEspera(false);
-                setformClienteEspera([]);
-                setPendingAction(null);
-                await listaEsperaPost(snapId, 1, snapTiempo, snapEstilista, snapHora);
-              } else if (pendingAction?.type === 'open') {
-                // Guardar edición y luego abrir modalCitaServicio con datos actualizados
-                await putListaEspera();
-                setOpenListaEspera(false);
-                setFormListaEsperaVerificacion({
-                  ...pendingAction.verificacion,
-                  hora_estimada: formClienteEspera.hora_estimada,
-                  estilista: formClienteEspera.estilista,
-                  estilista_descripcion: formClienteEspera.estilista_descripcion,
-                });
-                setformClienteEspera([]);
-                setPendingAction(null);
-                setModalCitaServicio(true);
-              } else {
-                if (!formClienteEspera.esEdicion) postListaEspera();
-                else putListaEspera();
-                setOpenListaEspera(!openListaEspera);
-                setformClienteEspera([]);
-              }
+            onClick={() => {
+              if (!formClienteEspera.esEdicion) postListaEspera();
+              else putListaEspera();
+              setOpenListaEspera(!openListaEspera);
+              setformClienteEspera([]);
             }}
           >
-            Agregar
+            {formClienteEspera.esEdicion ? "Guardar" : "Agregar"}
           </Button>
         </ModalFooter>
       </Modal>
-      <Modal isOpen={clientesModal} toggle={() => setClientesModal(!clientesModal)} size="lg" centered={true}>
+      <Modal
+        isOpen={clientesModal}
+        toggle={() => setClientesModal(!clientesModal)}
+        size="xl"
+        className="lista-espera-modal-dialog"
+      >
         <ModalHeader toggle={() => setClientesModal(!clientesModal)}>Agregar cliente</ModalHeader>
         <ModalBody>
           {/* <DataGrid rows={dataClientes} columns={columnsClientes} /> */}
@@ -1179,7 +1133,13 @@ function ListaEspera() {
           </Button>
         </ModalFooter>
       </Modal>
-      <Modal isOpen={productosModal} toggle={() => setProductosModal(!productosModal)} size="lg" centered>
+      <Modal
+        isOpen={productosModal}
+        toggle={() => setProductosModal(!productosModal)}
+        size="lg"
+        centered
+        className="lista-espera-modal-dialog"
+      >
         <ModalHeader toggle={() => setProductosModal(!productosModal)}>Agregar producto</ModalHeader>
         <ModalBody>
           {/* <DataGrid rows={dataProductos} columns={columnsProductosMRT} /> */}
@@ -1203,7 +1163,12 @@ function ListaEspera() {
           </Button>
         </ModalFooter>
       </Modal>
-      <Modal isOpen={estilistasModal} toggle={() => setEstilistasModal(!estilistasModal)} size="xl">
+      <Modal
+        isOpen={estilistasModal}
+        toggle={() => setEstilistasModal(!estilistasModal)}
+        size="xl"
+        className="lista-espera-modal-dialog"
+      >
         <ModalHeader toggle={() => setEstilistasModal(!estilistasModal)}>Agregar estilista</ModalHeader>
         <ModalBody>
           <ThemeProvider theme={theme}>
@@ -1216,7 +1181,12 @@ function ListaEspera() {
           </Button>
         </ModalFooter>
       </Modal>
-      <Modal isOpen={modalCitaServicio} toggle={() => setModalCitaServicio(!modalCitaServicio)} size="xl">
+      <Modal
+        isOpen={modalCitaServicio}
+        toggle={() => setModalCitaServicio(!modalCitaServicio)}
+        size="xl"
+        className="lista-espera-modal-dialog"
+      >
         <ModalHeader toggle={() => setModalCitaServicio(!modalCitaServicio)}>Servicio y Hora</ModalHeader>
         <ModalBody>
           <FormGroup>

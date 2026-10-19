@@ -1878,8 +1878,8 @@ function Basic() {
     // },
   ];
 
-    //const ligaPruebas = "http://localhost:5173/";
-     const ligaPruebas = "http://217.216.95.62:9019/";
+    const ligaPruebas = "http://localhost:5173/";
+    //  const ligaPruebas = "http://217.216.95.62:9019/";
   const handleOpenNewWindow = ({ idCita, idUser, idCliente, fecha, flag }) => {
     const url = `${ligaPruebas}miliga/crearcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idSuc=${1}&idRec=${1}&flag=${flag}`; // Reemplaza esto con la URL que desees abrir
     const width = 390;
@@ -1928,10 +1928,12 @@ function Basic() {
   };
   const handleOpenNewWindowListaEspera = () => {
     const url = `${ligaPruebas}miliga/listaEspera?idUser=${idRec}&fecha=${fecha}&idSuc=${idSuc}&password_chk=${password_chk}`; // Reemplaza esto con la URL que desees abrir
-    const width = 1500;
-    const height = 900;
-    const left = (window.screen.width - width) / 2;
-    const top = (window.screen.height - height) / 2;
+    const screenWidth = window.screen.availWidth || window.screen.width;
+    const screenHeight = window.screen.availHeight || window.screen.height;
+    const width = Math.min(880, screenWidth - 40);
+    const height = Math.min(700, screenHeight - 80);
+    const left = (screenWidth - width) / 2;
+    const top = (screenHeight - height) / 2;
     const features = `width=${width},height=${height},left=${left},top=${top},toolbar=0,location=0,menubar=0,scrollbars=1,resizable=1`;
     window.open(url, "_blank", features);
   };
@@ -2252,6 +2254,8 @@ function Basic() {
     otros: 0,
     precioTotalyOtros: 0,
   });
+  const [minutosEditables, setMinutosEditables] = useState("");
+  const [actualizandoTiempoServicios, setActualizandoTiempoServicios] = useState(false);
   const [formCitaServicio, setFormCitaServicio] = useState({
     idCita: null,
     clave_prod: "",
@@ -2288,6 +2292,8 @@ function Basic() {
   const [ModalVentasOperaciones, setModalVentasOperaciones] = useState(false);
   const [ventaTemporal, setVentaTemporal] = useState([]);
   const [dataClientes, setDataClientes] = useState([]);
+  const [loadingClientes, setLoadingClientes] = useState(false);
+  const clientesLoadingRef = useRef(false);
   const [dataClientesPuntos, setDataClientesPuntos] = useState({});
 
   const [dataProductos, setDataProductos] = useState([]);
@@ -2378,10 +2384,19 @@ function Basic() {
       setDataEstilistas(response.data);
     });
   };
-  const getClientes = () => {
-    peinadosApi.get(`/clientesZonas?id=0&idSuc=${idSuc ? idSuc : 0}`).then((response) => {
-      setDataClientes(response.data);
-    });
+  const getClientes = async () => {
+    if (clientesLoadingRef.current) return;
+    clientesLoadingRef.current = true;
+    setLoadingClientes(true);
+    try {
+      const response = await peinadosApi.get(`/clientesZonas?id=0&idSuc=${idSuc ? idSuc : 0}`);
+      setDataClientes(response.data || []);
+    } catch (error) {
+      console.error("Error al obtener clientes:", error);
+    } finally {
+      clientesLoadingRef.current = false;
+      setLoadingClientes(false);
+    }
   };
 
   const getClientesePuntos = () => {
@@ -2498,7 +2513,7 @@ function Basic() {
     no_estilista: formCita.no_estilista,
     tiempoCita: formVentaTemporal.tiempo,
   });
-  const { dataCumpleañosProximos, fetchCumpleañosProximos } = useCumpleañosProximos();
+  const { dataCumpleañosProximos, loadingCumpleaños, fetchCumpleañosProximos } = useCumpleañosProximos();
   const { dataCitaEmpalme5, fetchCitaEmpalme5 } = useCitaEmpalme5({
     fechacita: formCita.fecha,
     no_estilista: formCita.no_estilista,
@@ -2750,6 +2765,7 @@ function Basic() {
       tiempo: totalTime,
       precioTotalyOtros: totalPrice + formVentaTemporal.otros,
     }));
+    setMinutosEditables(totalTime > 0 ? String(totalTime) : "0");
   }, [dataCitasServicios]);
 
   const columnsCitasServicios = [
@@ -3984,6 +4000,124 @@ function Basic() {
     }
   };
 
+  const handleActualizarTiempoServicios = async () => {
+    if (!dataCitasServicios || dataCitasServicios.length === 0) return;
+
+    const nuevoTiempoTotal = Math.round(Number(minutosEditables));
+    if (!Number.isFinite(nuevoTiempoTotal) || nuevoTiempoTotal <= 0) {
+      Swal.fire({
+        icon: "warning",
+        title: "Tiempo inválido",
+        text: "Ingrese una cantidad de minutos válida mayor a 0.",
+        confirmButtonColor: "#3085d6",
+      });
+      return;
+    }
+
+    const serviciosConTiempo = dataCitasServicios.filter(
+      (s) => Number(s.cantidad) > 0 && Number(s.tiempo) > 0,
+    );
+    const serviciosObjetivo =
+      serviciosConTiempo.length > 0
+        ? serviciosConTiempo
+        : dataCitasServicios.filter((s) => Number(s.cantidad) > 0);
+
+    if (serviciosObjetivo.length === 0) return;
+
+    if (nuevoTiempoTotal < serviciosObjetivo.length) {
+      Swal.fire({
+        icon: "warning",
+        title: "Tiempo insuficiente",
+        text: `El tiempo mínimo es de ${serviciosObjetivo.length} minuto(s), uno por servicio.`,
+        confirmButtonColor: "#3085d6",
+      });
+      return;
+    }
+
+    const usarTiempoActual = serviciosConTiempo.length > 0;
+    const pesoDe = (servicio) => {
+      const cantidad = Math.max(1, Number(servicio.cantidad) || 1);
+      return usarTiempoActual ? Number(servicio.tiempo) * cantidad : cantidad;
+    };
+    const pesoTotal = serviciosObjetivo.reduce((acc, servicio) => acc + pesoDe(servicio), 0);
+    if (pesoTotal <= 0) return;
+
+    // Reparto proporcional en minutos enteros por renglón (la API recibe tiempo como INT)
+    const items = serviciosObjetivo.map((servicio, index) => {
+      const cantidad = Math.max(1, Number(servicio.cantidad) || 1);
+      const cuotaFilaExacta = (nuevoTiempoTotal * pesoDe(servicio)) / pesoTotal;
+      const tiempoUnitarioExacto = cuotaFilaExacta / cantidad;
+      const tiempoUnitario = Math.floor(tiempoUnitarioExacto);
+      return {
+        index,
+        servicio,
+        cantidad,
+        tiempoUnitario,
+        resto: tiempoUnitarioExacto - tiempoUnitario,
+      };
+    });
+
+    const totalAsignado = () => items.reduce((acc, item) => acc + item.tiempoUnitario * item.cantidad, 0);
+
+    let faltante = nuevoTiempoTotal - totalAsignado();
+    const ordenPorResto = [...items].sort((a, b) => b.resto - a.resto || a.index - b.index);
+    for (const item of ordenPorResto) {
+      if (faltante <= 0) break;
+      item.tiempoUnitario += 1;
+      faltante -= item.cantidad;
+    }
+
+    // Ajuste final para que la suma coincida exactamente con los minutos solicitados
+    let diferencia = nuevoTiempoTotal - totalAsignado();
+    if (diferencia !== 0) {
+      const ordenAjuste = [...items].sort((a, b) => a.cantidad - b.cantidad || b.resto - a.resto);
+      for (const item of ordenAjuste) {
+        if (diferencia === 0) break;
+        const pasos = Math.trunc(diferencia / item.cantidad);
+        if (pasos !== 0 && item.tiempoUnitario + pasos >= 1) {
+          item.tiempoUnitario += pasos;
+          diferencia -= pasos * item.cantidad;
+        }
+      }
+    }
+
+    try {
+      setActualizandoTiempoServicios(true);
+      for (const item of items) {
+        const servicio = item.servicio;
+        await putDetalleCitasServiciosUpd4(
+          servicio.id,
+          idSuc,
+          formCitaServicio.idCita || servicio.id_cita,
+          item.tiempoUnitario,
+          servicio.idEstilista || formCita.no_estilista,
+          1,
+          servicio.id_servicio,
+          idUser,
+          servicio.cantidad,
+          servicio.precio,
+          servicio.fecha || formCita.fecha,
+          true, // skipValidation: la contraseña se valida al Guardar la cita
+          Number(servicio.tipo_descuento || 0),
+          servicio.observacion_descuento || "",
+          Number(servicio.descuento || 0),
+        );
+      }
+      await fetchDetalleCitasServicios();
+      getCitasDia();
+    } catch (error) {
+      console.error("Error al actualizar el tiempo de los servicios:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "No se pudo actualizar el tiempo de los servicios.",
+        confirmButtonColor: "#3085d6",
+      });
+    } finally {
+      setActualizandoTiempoServicios(false);
+    }
+  };
+
 
   const putDetalleCitasServiciosUpd7 = async (
     id,
@@ -4083,6 +4217,24 @@ function Basic() {
       setModalCitasObservaciones(false);
     });
   };
+  const verificarCierreCita = async (tiempo, fecha) => {
+    if (!horariosAgenda || !horariosAgenda.hora_final || !fecha) return true;
+    const [hFinSuc, mFinSuc] = horariosAgenda.hora_final.split(":").map(Number);
+    const dFecha = new Date(fecha);
+    const horaCitaMin = dFecha.getHours() * 60 + dFecha.getMinutes();
+    const horaCierreMin = hFinSuc * 60 + (mFinSuc || 0);
+    const duracion = Number(tiempo) || 0;
+    if (horaCitaMin >= horaCierreMin || horaCitaMin + duracion > horaCierreMin) {
+      await Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Cita fuera del horario de cierre de la sucursal. Imposible agendar.",
+        confirmButtonColor: "#3085d6",
+      });
+      return false;
+    }
+    return true;
+  };
   const putCitasServiciosTerminadoFunction = async (usuarioValidado) => {
     await peinadosApi.put(`/sp_detalleCitasServiciosTerminado3`, null, {
       params: {
@@ -4092,6 +4244,9 @@ function Basic() {
     });
   };
   const putCitasServiciosTerminado = async () => {
+    // La validación de cierre se hace aquí (al Guardar) para que el usuario pueda ajustar la hora de la cita
+    const cierreValido = await verificarCierreCita(formVentaTemporal.tiempo, formCita.fecha);
+    if (!cierreValido) return;
     setModalCrear(false);
     Swal.fire({
       title: "Confirmación de cita",
@@ -4280,6 +4435,7 @@ function Basic() {
         formCita.fecha,
         formCita.no_estilista,
         formCitaServicio.idCita,
+        true, // Al agregar servicios no se bloquea por cierre: se valida al Guardar
       );
       disponible = disponibilidad.disponible;
     }
@@ -4522,10 +4678,11 @@ function Basic() {
     return { disponible: true };
   }
 
-  async function verificarDisponibilidad(tiempo, fecha, estilista, idCita) {
+  async function verificarDisponibilidad(tiempo, fecha, estilista, idCita, omitirValidacionCierre = false) {
     const claveCierre = `${new Date(fecha).getTime()}|${estilista || 0}`;
     // Si la cita inicia a la hora de cierre de la sucursal o termina después: imposible agendar de ninguna manera
-    if (horariosAgenda && horariosAgenda.hora_final) {
+    // Al agregar servicios se omite esta validación para permitir ajustar la hora antes de Guardar.
+    if (!omitirValidacionCierre && horariosAgenda && horariosAgenda.hora_final) {
       const [hFinSuc, mFinSuc] = horariosAgenda.hora_final.split(":").map(Number);
       const dFecha = new Date(fecha);
       const horaCitaMin = dFecha.getHours() * 60 + dFecha.getMinutes();
@@ -4575,8 +4732,10 @@ function Basic() {
       claveEmpleado === "Cita fuera del horario de cierre de la sucursal. Imposible agendar." ||
       claveEmpleado.toLowerCase().includes("imposible")
     ) {
-      await mostrarErrorCierre(claveCierre, claveEmpleado);
-      return { disponible: false };
+      if (!omitirValidacionCierre) {
+        await mostrarErrorCierre(claveCierre, claveEmpleado);
+        return { disponible: false };
+      }
     } else if (
       claveEmpleado === "Cita fuera del horario de salida del estilista ¿desea asignar la cita?" ||
       claveEmpleado === "Cita dentro del horario de la comida ¿desea asignar la cita?" ||
@@ -4643,31 +4802,41 @@ function Basic() {
     // Aquí puedes poner la acción que quieras realizar.
     console.log({ params });
   };
-  const formatFecha22 = (fechaCompleta1) => {
-    try {
-      // Handle both ISO strings and simple date strings like "2000-09-23"
-      let fecha;
-      if (typeof fechaCompleta1 === "string") {
-        // If it's a simple date string without time (like "2000-09-23")
-        if (fechaCompleta1.length === 10 && fechaCompleta1.includes("-")) {
-          fecha = new Date(fechaCompleta1);
-        } else {
-          // Otherwise use parseISO for ISO format strings
-          fecha = parseISO(fechaCompleta1);
-        }
-      } else if (fechaCompleta1 instanceof Date) {
-        fecha = fechaCompleta1;
-      }
+  // Intenta parsear distintas formas de fecha y regresa un Date o null
+  const parseCumple = (v) => {
+    if (!v) return null;
+    const s = String(v).trim();
+    // descarta placeholders comunes
+    if (["0000-00-00", "1900-01-01", "0001-01-01"].includes(s)) return null;
 
-      if (isValid(fecha)) {
-        return format(fecha, "dd/MM");
-      }
-      return "Fecha inválida";
-    } catch (error) {
-      console.error("Error al formatear la fecha:", error);
-      return "Error";
+    // ISO: 2025-09-22 o 2025-09-22T00:00:00
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+      const d = parseISO(s);
+      return isValid(d) ? d : null;
     }
+
+    // dd/MM o d/M
+    if (/^\d{1,2}\/\d{1,2}$/.test(s)) {
+      const [dd, mm] = s.split("/").map(Number);
+      const year = new Date().getFullYear();
+      const d = new Date(year, (mm || 1) - 1, dd || 1);
+      return isValid(d) ? d : null;
+    }
+
+    // Fallback: Date nativo
+    const d = new Date(s);
+    return isValid(d) ? d : null;
   };
+
+  const formatCumpleDDMM = (v) => {
+    const d = parseCumple(v);
+    return d ? format(d, "dd/MM") : "Fecha inválida";
+  };
+
+  const dataCumplesFiltrada = useMemo(
+    () => dataCumpleañosProximos.filter((c) => parseCumple(c.cumpleaños)),
+    [dataCumpleañosProximos]
+  );
 
   const columnsCumple = useMemo(
     () => [
@@ -4687,11 +4856,7 @@ function Basic() {
         accessorKey: "cumpleaños",
         header: "Cumpleaños",
         size: 5,
-        Cell: ({ cell }) => {
-          const fechaCompleta1 = cell.row.original.cumpleaños;
-          const fechaFormateada1 = fechaCompleta1 ? formatFecha22(fechaCompleta1) : "";
-          return <span>{fechaFormateada1}</span>;
-        },
+        Cell: ({ cell }) => <span>{formatCumpleDDMM(cell.row.original.cumpleaños)}</span>,
       },
       {
         header: "Felicitado",
@@ -4926,9 +5091,10 @@ function Basic() {
     return horas + ":" + (minutosRestantes < 10 ? "0" : "") + minutosRestantes + " Hrs";
   }
   useEffect(() => {
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       getClientes();
     }, 1000);
+    return () => clearTimeout(timer);
   }, []);
   return (
     <>
@@ -4966,7 +5132,13 @@ function Basic() {
                 <RiDiscountPercentLine size={20}></RiDiscountPercentLine>
                 Promociones - v{useVersion().CURRENT_VERSION}
               </Button>
-              <Button onClick={() => setModalCumpleanios(true)} size="sm">
+              <Button
+                onClick={() => {
+                  setModalCumpleanios(true);
+                  fetchCumpleañosProximos();
+                }}
+                size="sm"
+              >
                 <FaBirthdayCake size={20}></FaBirthdayCake>
               </Button>
             </ButtonGroup>
@@ -5281,19 +5453,25 @@ console.log(event.idsVenta)
             <AiOutlineClose onClick={() => setClientesModal(false)} />
           </div>
           <Typography variant="h4">Seleccionar cliente</Typography>
-          <MaterialReactTable
-            columns={columnsClientes2}
-            data={dataClientes}
-            initialState={{ density: "compact" }}
-            muiTableContainerProps={{ sx: { maxHeight: "500px", overflow: "auto" } }}
-            muiTableBodyProps={{ sx: { fontSize: "16px" } }}
-            muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
-            muiTableBodyCellProps={{
-              sx: {
-                fontSize: "16px", // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
-              },
-            }}
-          />
+          {loadingClientes ? (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+              <AiOutlineLoading3Quarters size={40} className="loading-spinner" />
+            </Box>
+          ) : (
+            <MaterialReactTable
+              columns={columnsClientes2}
+              data={dataClientes}
+              initialState={{ density: "compact" }}
+              muiTableContainerProps={{ sx: { maxHeight: "500px", overflow: "auto" } }}
+              muiTableBodyProps={{ sx: { fontSize: "16px" } }}
+              muiTableHeadCellProps={{ sx: { fontSize: "16px" } }}
+              muiTableBodyCellProps={{
+                sx: {
+                  fontSize: "16px", // Cambia el tamaño de la fuente de las celdas del cuerpo aquí
+                },
+              }}
+            />
+          )}
         </Box>
       </Modal>
       <Draggable>
@@ -7409,9 +7587,14 @@ console.log(event.idsVenta)
       <Modal open={modalCumpleanios} onClose={() => setModalCumpleanios(false)} disableAutoFocus disableEnforceFocus>
         <Box sx={{ ...styleAltaServicio }}>
           <h3>Cumpleaños del mes</h3>
+          {loadingCumpleaños ? (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+              <AiOutlineLoading3Quarters size={40} className="loading-spinner" />
+            </Box>
+          ) : (
           <MaterialReactTable
             columns={columnsCumple}
-            data={dataCumpleañosProximos.filter((cliente) => formatFecha(cliente.cumpleaños) !== "Fecha inválida")}
+            data={dataCumplesFiltrada}
             enableRowSelection={false}
             enableRowExport={false}
             muiTableBodyProps={{ sx: { fontSize: "16px" } }}
@@ -7434,6 +7617,7 @@ console.log(event.idsVenta)
               },
             }}
           />
+          )}
           <br />
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <Button color="danger" onClick={() => setModalCumpleanios(false)}>
@@ -7572,7 +7756,14 @@ console.log(event.idsVenta)
                         id="cliente"
                         style={{ fontSize: "1.1rem" }}
                       />
-                      <Button size="sm" onClick={() => setClientesModal(true)} style={{ fontSize: "1.1rem" }}>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          if (dataClientes.length === 0 && !loadingClientes) getClientes();
+                          setClientesModal(true);
+                        }}
+                        style={{ fontSize: "1.1rem" }}
+                      >
                         Buscar
                       </Button>
                     </InputGroup>
@@ -7888,13 +8079,30 @@ console.log(event.idsVenta)
                     <div style={{ height: "100%" }}>
                       <FormGroup className="mb-2">
                         <Label for="minutos">Minutos</Label>
-                        <Input
-                          type="text"
-                          name="minutos"
-                          id="minutos"
-                          placeholder={formVentaTemporal.tiempo + " Min"}
-                          disabled
-                        />
+                        <InputGroup>
+                          <Input
+                            type="number"
+                            min="1"
+                            step="1"
+                            name="minutos"
+                            id="minutos"
+                            value={minutosEditables}
+                            onChange={(e) => setMinutosEditables(e.target.value)}
+                            placeholder={formVentaTemporal.tiempo + " Min"}
+                            style={{ minWidth: 70 }}
+                            disabled={dataCitasServicios.length === 0 || actualizandoTiempoServicios}
+                          />
+                          <Button
+                            color="primary"
+                            onClick={handleActualizarTiempoServicios}
+                            disabled={dataCitasServicios.length === 0 || actualizandoTiempoServicios}
+                            title="Actualizar tiempo de los servicios"
+                            aria-label="Actualizar tiempo de los servicios"
+                            style={{ padding: "0 10px" }}
+                          >
+                            <AiOutlineReload size={18} />
+                          </Button>
+                        </InputGroup>
                       </FormGroup>
 
                       <FormGroup className="mb-3">
