@@ -1878,8 +1878,8 @@ function Basic() {
     // },
   ];
 
-    const ligaPruebas = "http://localhost:5173/";
-    //  const ligaPruebas = "http://217.216.95.62:9019/";
+    // const ligaPruebas = "http://localhost:5173/";
+      const ligaPruebas = "http://217.216.95.62:9019/";
   const handleOpenNewWindow = ({ idCita, idUser, idCliente, fecha, flag }) => {
     const url = `${ligaPruebas}miliga/crearcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idSuc=${1}&idRec=${1}&flag=${flag}`; // Reemplaza esto con la URL que desees abrir
     const width = 390;
@@ -2639,6 +2639,8 @@ function Basic() {
   const handleCerrarModalCrear = useCallback(() => {
     horariosAutorizadosRef.current.clear();
     setModalCrear(false);
+    setProductosModal(false);
+    setClientesModal(false);
     setModalCrearPos({ x: 0, y: 0 });
     if (modalCrearBoxRef.current) {
       modalCrearBoxRef.current.style.transform = "translate(0px, 0px)";
@@ -5447,7 +5449,7 @@ console.log(event.idsVenta)
         </Box>
       </Modal>
 
-      <Modal open={clientesModal} onClose={() => setClientesModal(false)}>
+      <Modal open={clientesModal} onClose={() => setClientesModal(false)} sx={{ zIndex: 1400 }}>
         <Box sx={style}>
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <AiOutlineClose onClick={() => setClientesModal(false)} />
@@ -5798,7 +5800,7 @@ console.log(event.idsVenta)
           </Container>
         </Box>
       </Modal>
-      <Modal open={productosModal} onClose={() => setProductosModal(false)}>
+      <Modal open={productosModal} onClose={() => setProductosModal(false)} sx={{ zIndex: 1400 }}>
         <Box sx={styleAltaServicio}>
           <Typography variant="h4">Agregar productos</Typography>
           {/* <DataGrid rows={dataProductos} columns={columnsProductos} /> */}
@@ -5840,7 +5842,7 @@ console.log(event.idsVenta)
           ) : null}
         </Box>
       </Modal>
-      <Modal open={productosModalGrupos} onClose={() => setproductosModalGrupos(false)}>
+      <Modal open={productosModalGrupos} onClose={() => setproductosModalGrupos(false)} sx={{ zIndex: 1400 }}>
         <Box sx={styleAltaServicio}>
           <Typography variant="h4">Productos del grupo</Typography>
           {/* <DataGrid rows={dataProductos} columns={columnsProductos} /> */}
@@ -5863,7 +5865,7 @@ console.log(event.idsVenta)
         </Box>
       </Modal>
 
-      <Modal open={modalCitasObservaciones} onClose={() => setModalCitasObservaciones(false)}>
+      <Modal open={modalCitasObservaciones} onClose={() => setModalCitasObservaciones(false)} sx={{ zIndex: 1400 }}>
         <Box sx={styleObservaciones}>
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <AiOutlineClose onClick={() => setModalCitasObservaciones(false)} />
@@ -6239,7 +6241,7 @@ console.log(event.idsVenta)
         </Box>
       </Modal>
 
-      <Modal open={ProductosModalEdicion} onClose={() => setProductosModalEdicion(false)}>
+      <Modal open={ProductosModalEdicion} onClose={() => setProductosModalEdicion(false)} sx={{ zIndex: 1400 }}>
         <Box sx={styleAltaServicio}>
           <Typography variant="h4">Agregar productos</Typography>
           {/* <DataGrid rows={dataProductos} columns={columnsProductos} /> */}
@@ -6260,7 +6262,7 @@ console.log(event.idsVenta)
           ) : null}
         </Box>
       </Modal>
-      <Modal open={ProductosModalEdicionServicios} onClose={() => setProductosModalEdicionServicios(false)}>
+      <Modal open={ProductosModalEdicionServicios} onClose={() => setProductosModalEdicionServicios(false)} sx={{ zIndex: 1400 }}>
         <Box sx={style}>
           <Typography variant="h4">Agregar productos</Typography>
           {/* <DataGrid rows={dataProductos} columns={columnsProductos} /> */}
