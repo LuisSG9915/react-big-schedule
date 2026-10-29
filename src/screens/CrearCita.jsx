@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 // import Modal from "../components/Modal";
 import { DataGrid } from "@mui/x-data-grid";
 import { peinadosApi } from "../api/peinadosApi";
-import { FormControl, TextField, FormControlLabel, Checkbox, Box, ButtonGroup, Modal, Typography } from "@mui/material";
+import { FormControl, TextField, FormControlLabel, Checkbox, Box, ButtonGroup, Modal, Typography, IconButton, Tooltip } from "@mui/material";
 import { FormGroup, Label, Input, Button, Container, Row, Col, InputGroup, InputGroupText, Collapse } from "reactstrap";
 import { styled } from "@mui/material/styles";
 import Draggable from "react-draggable";
@@ -28,6 +28,7 @@ import { useNominaTrabajadores } from "../functions/crearCita/useNominaTrabajado
 import { useDetalleCitasObservaciones } from "../functions/crearCita/useDetalleCitasObservaciones";
 import { AiFillDelete, AiFillEdit, AiOutlineClose, AiOutlineArrowRight } from "react-icons/ai";
 import { useObservaciones } from "../functions/crearCita/useObservaciones";
+import BusquedaRapidaProducto from "../components/BusquedaRapidaProducto";
 
 function CrearCita() {
   const style = {
@@ -648,9 +649,79 @@ function CrearCita() {
       }
     });
   };
+  const seleccionarProductoCita = (producto) => {
+    if (!producto) return;
+    const yaAgregado =
+      ventaTemporal.find((x) => x.clave === producto.id) ||
+      (Array.isArray(dataCitasServicios) &&
+        dataCitasServicios.find((x) => x.id_servicio === producto.id || x.idServicio === producto.id));
+    if (yaAgregado) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: `El producto ya fue agregado`,
+        confirmButtonColor: "#3085d6",
+        confirmButtonText: "Entendido",
+      });
+      return;
+    }
+    if (formVentaHistoriales.botonConsultar) {
+      setFormVentaHistoriales({
+        claveProd: producto.id,
+        claveProdDescripcion: producto.descripcion,
+      });
+      return;
+    }
+    setDataVentaTemporal({
+      clave: producto.id,
+      clave_prod: producto.clave_prod,
+      descripcion: producto.descripcion,
+      precio: producto.precio_lista,
+      tiempo: producto.tiempox,
+    });
+    postCitasServicios(producto.id, producto.tiempox, producto.precio);
+  };
+
+  const seleccionarProductoEdicion = (producto) => {
+    if (!producto) return;
+    if (ventaTemporal.find((x) => x.clave === producto.id)) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: `El producto ya fue agregado`,
+        confirmButtonColor: "#3085d6",
+        confirmButtonText: "Entendido",
+      });
+      return;
+    }
+    if (formVentaHistoriales.botonConsultar) {
+      setFormVentaHistoriales({
+        claveProd: producto.id,
+        claveProdDescripcion: producto.descripcion,
+      });
+      return;
+    }
+    setFormDetalleCitasServicios({
+      ...formDetalleCitasServicios,
+      idServicio: producto.id,
+      d_clave_prod: producto.descripcion,
+      tiempo: producto.tiempox,
+      precio: producto.precio,
+    });
+  };
+
+  const seleccionarProductoHistorial = (producto) => {
+    if (!producto) return;
+    setFormVentaHistoriales({
+      ...formVentaHistoriales,
+      botonConsultar: false,
+      claveProd: producto.id,
+      claveProdDescripcion: producto.descripcion,
+    });
+  };
+
   const postCrearCita = async () => {
     if (formCitaServicio.idCita) {
-      setProductosModal(true);
       return;
     }
 
@@ -774,7 +845,6 @@ function CrearCita() {
                       servDomicilio: formCita.esServicioDomicilio == false ? 0 : 1,
                     },
                   });
-                  setProductosModal(true);
                   setFormCitaServicio({ ...formCitaServicio, idCita: response.data.mensaje2 });
                   setOpen(true);
                   setAgregarServicios(true);
@@ -818,7 +888,6 @@ function CrearCita() {
               servDomicilio: formCita.esServicioDomicilio == false ? 0 : 1,
             },
           });
-          setProductosModal(true);
           setFormCitaServicio({ ...formCitaServicio, idCita: response.data.mensaje2 });
           setOpen(true);
           setAgregarServicios(true);
@@ -1695,15 +1764,32 @@ function CrearCita() {
       <hr />
       <Container>
         <Box marginLeft={0} marginRight={0} gap={2} alignItems={"center"} justifyContent={"center"}>
-          <Button
-            color={"success"}
-            onClick={() => {
-              postCrearCita();
-            }}
-            variant="contained"
-          >
-            Ingresar servicios...
-          </Button>
+          {formCitaServicio.idCita > 0 ? null : (
+            <Button
+              color={"success"}
+              onClick={() => {
+                postCrearCita();
+              }}
+              variant="contained"
+            >
+              Guardar cita
+            </Button>
+          )}
+          {formCitaServicio.idCita > 0 ? (
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", width: "100%", marginBottom: "8px" }}>
+              <BusquedaRapidaProducto
+                sucursal={idSuc}
+                cia={1}
+                onSelect={seleccionarProductoCita}
+                placeholder="Buscar servicio o producto..."
+              />
+              <Tooltip title="Catálogo de productos">
+                <IconButton size="small" onClick={() => setProductosModal(true)}>
+                  <MdOutlineFolder size={22} />
+                </IconButton>
+              </Tooltip>
+            </div>
+          ) : null}
           <DataGrid
             autoHeight
             slots={{ noRowsOverlay: CustomNoRowsOverlay }}
@@ -1978,24 +2064,25 @@ function CrearCita() {
             <Col md={1}>
               <Label>Servicio:</Label>
             </Col>
-            <Col md={4}>
-              <Input
-                disabled
-                value={formVentaHistoriales.claveProdDescripcion}
-                onChange={(e) => setFormVentaHistoriales({ ...formVentaHistoriales, claveProd: e.target.value })}
+            <Col md={5} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <BusquedaRapidaProducto
+                sucursal={formVentaHistoriales.sucursal || idSuc}
+                cia={1}
+                displayValue={formVentaHistoriales.claveProdDescripcion}
+                onSelect={seleccionarProductoHistorial}
                 placeholder="Escoja un servicio"
-              ></Input>
-            </Col>
-            <Col md={2}>
-              <Button
-                onClick={() => {
-                  setFormVentaHistoriales({ ...formVentaHistoriales, botonConsultar: true });
-                  setProductosModal(true);
-                }}
-              >
-                {" "}
-                Buscar
-              </Button>
+              />
+              <Tooltip title="Catálogo de productos">
+                <IconButton
+                  size="small"
+                  onClick={() => {
+                    setFormVentaHistoriales({ ...formVentaHistoriales, botonConsultar: true });
+                    setProductosModal(true);
+                  }}
+                >
+                  <MdOutlineFolder size={20} />
+                </IconButton>
+              </Tooltip>
             </Col>
           </Row>
           <Row style={{ marginBottom: "18px" }}>
@@ -2168,18 +2255,18 @@ function CrearCita() {
           <FormGroup>
             <Label for="cliente">Producto</Label>
             <InputGroup addonType="append">
-              <Input
-                bsSize="sm"
-                disabled
-                value={formDetalleCitasServicios.d_clave_prod}
-                type="text"
-                name="cliente"
-                id="cliente"
-                size={"small"}
+              <BusquedaRapidaProducto
+                sucursal={idSuc}
+                cia={1}
+                displayValue={formDetalleCitasServicios.d_clave_prod}
+                onSelect={seleccionarProductoEdicion}
+                placeholder="Buscar producto..."
               />
-              <Button size="sm" onClick={() => setProductosModalEdicion(true)}>
-                Buscar
-              </Button>
+              <Tooltip title="Catálogo de productos">
+                <IconButton size="small" onClick={() => setProductosModalEdicion(true)}>
+                  <MdOutlineFolder size={20} />
+                </IconButton>
+              </Tooltip>
             </InputGroup>
           </FormGroup>
           <Label>Ingrese la cantidad a modificiar</Label>

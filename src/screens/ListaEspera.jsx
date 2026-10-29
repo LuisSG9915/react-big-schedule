@@ -4,7 +4,7 @@ import { Button, Modal, ModalHeader, ModalBody, ModalFooter, Input, FormGroup, L
 import { peinadosApi } from "../api/peinadosApi";
 import { startOfToday, setHours, parseISO, isValid } from "date-fns";
 import { format } from "date-fns-tz";
-import { MdOutlineDelete, MdFolderOpen, MdCalendarMonth } from "react-icons/md";
+import { MdOutlineDelete, MdFolderOpen, MdCalendarMonth, MdOutlineFolder } from "react-icons/md";
 import Swal from "sweetalert2";
 import { MaterialReactTable } from "material-react-table";
 import { useListaEspera } from "../functions/listaEspera/useListaEspera";
@@ -14,6 +14,8 @@ import { useCitaEmpalme } from "../functions/crearCita/useCitaEmpalme4";
 import { useHorarioDisponibleEstilistas6 } from "../functions/crearCita/useHorarioDisponibleEstilistas6";
 import { AiFillDelete, AiFillEdit, AiOutlineClose, AiOutlineSearch, AiOutlineReload } from "react-icons/ai";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
+import { IconButton, Tooltip } from "@mui/material";
+import BusquedaRapidaProducto from "../components/BusquedaRapidaProducto";
 
 const formatLocalDate = (value) => {
   if (typeof value === "string") {
@@ -134,6 +136,17 @@ function ListaEspera() {
       .then((response) => {
         setDataProductos(response.data);
       });
+  };
+
+  const seleccionarProductoEspera = (producto) => {
+    if (!producto) return;
+    setformClienteEspera({
+      ...formClienteEspera,
+      tiempo_servicio: producto.tiempox,
+      descripcion_clave_prod: producto.descripcion,
+      clave_prod: producto.id,
+      precio: producto.precio_lista,
+    });
   };
   const { dataCitaEmpalme, fetchCitaEmpalme } = useCitaEmpalme({
     fechacita: new Date(),
@@ -1013,21 +1026,23 @@ function ListaEspera() {
                   Producto/Servicio
                 </Label>
                 <InputGroup>
-                  <Input
-                    style={{ fontSize: "1.2rem" }}
-                    type="text"
-                    name="productoServicio"
-                    id="productoServicio"
-                    disabled
-                    value={formClienteEspera.descripcion_clave_prod}
+                  <BusquedaRapidaProducto
+                    sucursal={idSuc}
+                    cia={1}
+                    displayValue={formClienteEspera.descripcion_clave_prod}
+                    onSelect={seleccionarProductoEspera}
+                    placeholder="Buscar producto o servicio..."
                   />
-                  <Button
-                    onClick={() => {
-                      setProductosModal(true);
-                    }}
-                  >
-                    Agregar
-                  </Button>
+                  <Tooltip title="Catálogo de productos">
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        setProductosModal(true);
+                      }}
+                    >
+                      <MdOutlineFolder size={22} />
+                    </IconButton>
+                  </Tooltip>
                 </InputGroup>
               </FormGroup>{" "}
               <FormGroup>

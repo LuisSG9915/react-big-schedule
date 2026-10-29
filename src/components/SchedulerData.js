@@ -546,11 +546,20 @@ export default class SchedulerData {
   }
 
   _attachEvent(event) {
+    const getLayer = (ev) => {
+      if (!ev.idCita && !ev.idVenta) return 1; // 1ro: No disponible siempre en el carril superior (atrás)
+      if (ev.estadoCita == 6) return 3; // 3ro: Conflicto siempre sobrepuesto abajo
+      return 2; // 2do: Cita/venta en su color original
+    };
     let pos = 0;
+    const eventLayer = getLayer(event);
     const eventStart = this.localeDayjs(new Date(event.start));
     this.events.forEach((item, index) => {
+      const itemLayer = getLayer(item);
       const start = this.localeDayjs(new Date(item.start));
-      if (eventStart >= start) pos = index + 1;
+      if (eventLayer > itemLayer || (eventLayer === itemLayer && eventStart >= start)) {
+        pos = index + 1;
+      }
     });
     this.events.splice(pos, 0, event);
   }
@@ -1137,15 +1146,27 @@ export default class SchedulerData {
         const span = this._getSpan(item.start, item.end, this.headers);
         const eventStart = new Date(item.start);
         const eventEnd = new Date(item.end);
-        let pos = -1;
+        // Elegir un carril vertical (pos) libre en TODAS las celdas que abarca el evento,
+        // para que nunca pise ni oculte un evento que empiece más adelante (ej. No Disponible).
+        let pos = 0;
+        while (
+          resourceEvents.headerItems.some((header) => {
+            const headerStart = new Date(header.start);
+            const headerEnd = new Date(header.end);
+            return headerEnd > eventStart && headerStart < eventEnd && header.events[pos] !== undefined;
+          })
+        ) {
+          pos += 1;
+        }
 
         resourceEvents.headerItems.forEach((header, index) => {
           const headerStart = new Date(header.start);
           const headerEnd = new Date(header.end);
           if (headerEnd > eventStart && headerStart < eventEnd) {
             header.count += 1;
-            if (header.count > resourceEvents.rowMaxCount) {
-              resourceEvents.rowMaxCount = header.count;
+            const requiredRows = Math.max(header.count, pos + 1);
+            if (requiredRows > resourceEvents.rowMaxCount) {
+              resourceEvents.rowMaxCount = requiredRows;
               const rowsCount =
                 cellMaxEventsCount <= cellMaxEventsCountValue && resourceEvents.rowMaxCount > cellMaxEventsCount
                   ? cellMaxEventsCount
@@ -1155,12 +1176,6 @@ export default class SchedulerData {
               if (newRowHeight > resourceEvents.rowHeight) resourceEvents.rowHeight = newRowHeight;
             }
 
-            if (pos === -1) {
-              let tmp = 0;
-              while (header.events[tmp] !== undefined) tmp += 1;
-
-              pos = tmp;
-            }
             let render = headerStart <= eventStart || index === 0;
             if (render === false) {
               const previousHeader = resourceEvents.headerItems[index - 1];

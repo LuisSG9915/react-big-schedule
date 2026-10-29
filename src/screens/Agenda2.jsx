@@ -55,6 +55,7 @@ import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { useProductosAreaDeptoSub } from "../functions/crearCita/useProductosAreaDeptoSub";
 import { usePrepagos } from "../functions/crearCita/usePrepagos";
 import { useVentasOperacionesMediosPagos2 } from "../functions/crearCita/useVentasOperacionesMediosPagos2";
+import { esCitaSinAtencion, obtenerColorCita, COLORES_CITA } from "../helper/estadoCitaVisual";
 
 let schedulerData;
 
@@ -162,6 +163,32 @@ function Agenda2() {
       document.body.classList.remove("special-body");
     };
   }, []);
+
+  // Revisa cada 15 segundos si alguna cita ya superó su hora1 en >= 1 minuto
+  // (ej. cita 5:30 -> a las 5:31 se pinta en rojo "Sin atención") sin recargar la página.
+  // Solo actualiza arregloCita; el useEffect reconstructor se encarga de re-renderizar el scheduler.
+  useEffect(() => {
+    const intervalSinAtencion = setInterval(() => {
+      if (!Array.isArray(arregloCita) || arregloCita.length === 0) return;
+      const ahora = new Date();
+      let huboCambio = false;
+
+      const citasActualizadas = arregloCita.map((cita) => {
+        const horaInicio = new Date(cita.inicioReal || cita.start);
+        const nuevoColor = obtenerColorCita(cita, horaInicio, ahora);
+        const nuevoSinAtencion = esCitaSinAtencion(cita, horaInicio, ahora);
+        if (cita.bgColor !== nuevoColor || Boolean(cita.sinAtencion) !== nuevoSinAtencion) {
+          huboCambio = true;
+          return { ...cita, bgColor: nuevoColor, sinAtencion: nuevoSinAtencion };
+        }
+        return cita;
+      });
+
+      if (huboCambio) setArregloCita(citasActualizadas);
+    }, 15000); // 15 segundos
+
+    return () => clearInterval(intervalSinAtencion);
+  }, [arregloCita]);
 
   const [clavePrepago, setClavePrepago] = useState(0);
   const [arreglo, setArreglo] = useState([]);
@@ -310,22 +337,8 @@ function Agenda2() {
             title: "",
             type: 2,
             clickable1: item.estadoCita != 4,
-            bgColor:
-              item.estadoCita == 6
-                ? "#bababa"
-                : item.estadoCita == 1
-                ? "#F8C471" // Sandy Orange
-                : item.esDomicilio == true
-                ? "#DDA0DD" // Plum
-                : item.estadoCita == 2
-                ? "#AFEEEE" // Pale Turquoise
-                : item.estadoCita == 3
-                ? "#FFF26C" // Lemon Chiffon
-                : item.estadoCita == 4
-                ? "#90EE90" // Light Green
-                : item.estadoCita == 5
-                ? "#DDA0DD" // Plum
-                : "#bababa", // Light Gray
+            sinAtencion: esCitaSinAtencion(item, hora1),
+            bgColor: obtenerColorCita(item, hora1),
           };
         }),
       );
@@ -344,21 +357,8 @@ function Agenda2() {
           title: "",
           type: 2,
           clickable1: item.estadoCita != 4,
-          // bgColor: "red",
-          bgColor:
-            item.estadoCita == 6
-              ? "#bababa"
-              : item.estadoCita == 1
-              ? "#F8C471" // Sandy Orange
-              : item.esDomicilio == true
-              ? "#DDA0DD" // Plum
-              : item.estadoCita == 2
-              ? "#AFEEEE" // Pale Turquoise
-              : item.estadoCita == 3
-              ? "#FFF26C" // Lemon Chiffon
-              : item.estadoCita == 4
-              ? "#90EE90" // Light Green
-              : "#bababa", // Light Gray
+          sinAtencion: esCitaSinAtencion(item, hora1),
+          bgColor: obtenerColorCita(item, hora1),
         };
       });
     } catch (err) {
@@ -1221,8 +1221,13 @@ function Agenda2() {
       padding: "5px",
       color: "black",
     },
+    servicioPagado: {
+      backgroundColor: COLORES_CITA.servicioPagado,
+      padding: "5px",
+      color: "black",
+    },
     domicilio: {
-      backgroundColor: "#DDA0DD",
+      backgroundColor: COLORES_CITA.domicilio,
       padding: "5px",
       color: "black",
     },
@@ -1230,6 +1235,11 @@ function Agenda2() {
       backgroundColor: "#bababa",
       padding: "5px",
       color: "black",
+    },
+    sinAtencion: {
+      backgroundColor: COLORES_CITA.sinAtencion,
+      padding: "5px",
+      color: "white",
     },
   };
   const editCita2 = async (eventItem) => {
@@ -3599,8 +3609,10 @@ function Agenda2() {
             <div style={boxStyles.requerido}>REQUERIDO</div>
             <div style={boxStyles.asignado}>ASIGNADO</div>
             <div style={boxStyles.enServicio}>EN SERVICIO</div>
+            <div style={boxStyles.servicioPagado}>SERVICIO PAGADO</div>
             <div style={boxStyles.domicilio}>DOMICILIO</div>
             <div style={boxStyles.conflicto}>CONFLICTO</div>
+            <div style={boxStyles.sinAtencion}>SIN ATENCIÓN</div>
           </div>
         </div>
       </div>

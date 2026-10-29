@@ -53,7 +53,7 @@ import { useDetalleCitasObservaciones } from "../functions/crearCita/useDetalleC
 import { AiFillDelete, AiFillEdit, AiOutlineClose, AiOutlineSearch, AiOutlineReload, AiFillBook } from "react-icons/ai";
 import { useObservaciones } from "../functions/crearCita/useObservaciones";
 import { styled } from "@mui/material/styles";
-import { Box, Typography, Modal, FormControlLabel, Checkbox, FormControl } from "@mui/material";
+import { Box, Typography, Modal, FormControlLabel, Checkbox, FormControl, IconButton, Tooltip } from "@mui/material";
 import Draggable from "react-draggable";
 import debounce from "lodash.debounce";
 import { IoIosAddCircle } from "react-icons/io";
@@ -70,6 +70,8 @@ import { usePrepagos } from "../functions/crearCita/usePrepagos";
 import { useVentasOperacionesMediosPagos2 } from "../functions/crearCita/useVentasOperacionesMediosPagos2";
 import { ConsoleSqlOutlined } from "@ant-design/icons";
 import { useListaEspera } from "../functions/listaEspera/useListaEspera";
+import { esCitaSinAtencion, obtenerColorCita, COLORES_CITA } from "../helper/estadoCitaVisual";
+import BusquedaRapidaProducto from "../components/BusquedaRapidaProducto";
 
 let schedulerData;
 
@@ -177,7 +179,7 @@ const OptimizedScheduler = memo(
 );
 
 // Recorta las citas al horario de cierre (dayStopTo + 1) para que el render no se descuadre.
-// Detecta citas antes del horario de entrada (sucursal o estilista) y después de la salida.
+// Detecta citas antes del horario de entrada de la sucursal y después de la salida.
 // Los bloqueos de no disponible del personal se preservan íntegros.
 const recortarCitasPorCierre = (citas, horaCierre, horaApertura) => {
   if (!Array.isArray(citas)) return citas;
@@ -191,30 +193,6 @@ const recortarCitasPorCierre = (citas, horaCierre, horaApertura) => {
       "0",
     )}:00`;
   };
-
-  // Mapear horarios de entrada y salida de cada estilista a partir de los bloques 'No disponible'
-  const estilistasHorarios = {};
-  citas.forEach((c) => {
-    if (!c.idCita && !c.idVenta && c.resourceId) {
-      const d1 = new Date(c.start);
-      const d2 = new Date(c.end);
-      if (!estilistasHorarios[c.resourceId]) {
-        estilistasHorarios[c.resourceId] = { entrada: null, salida: null };
-      }
-      // Bloque de no disponible en la mañana: su fin (d2) es la hora de entrada del estilista
-      if (horaApertura != null && d1.getHours() <= horaApertura + 1) {
-        if (!estilistasHorarios[c.resourceId].entrada || d2 > estilistasHorarios[c.resourceId].entrada) {
-          estilistasHorarios[c.resourceId].entrada = d2;
-        }
-      }
-      // Bloque de no disponible en la tarde/noche: su inicio (d1) es la salida del estilista
-      if (horaCierre != null && d2.getHours() >= horaCierre - 1) {
-        if (!estilistasHorarios[c.resourceId].salida || d1 < estilistasHorarios[c.resourceId].salida) {
-          estilistasHorarios[c.resourceId].salida = d1;
-        }
-      }
-    }
-  });
 
   return citas.reduce((acc, cita) => {
     // Los bloqueos de no disponible del personal no se recortan
@@ -236,19 +214,15 @@ const recortarCitasPorCierre = (citas, horaCierre, horaApertura) => {
       apertura.setHours(horaApertura, 0, 0, 0);
     }
 
-    const estilistaH = estilistasHorarios[cita.resourceId];
     let iniciaAntes = Boolean(cita.iniciaAntesDeEntrada);
     let superaSalida = Boolean(cita.superaHoraSalida);
 
-    // 1. Detectar si inicia antes del horario de entrada de sucursal o del estilista
+    // 1. Detectar si inicia antes del horario de entrada de la sucursal
     if (apertura && inicio < apertura) {
       iniciaAntes = true;
     }
-    if (estilistaH && estilistaH.entrada && inicio < estilistaH.entrada) {
-      iniciaAntes = true;
-    }
 
-    // 2. Detectar si supera el horario de salida de la sucursal o del estilista
+    // 2. Detectar si supera el horario de salida de la sucursal
     if (cierre && fin > cierre) {
       superaSalida = true;
     }
@@ -574,6 +548,32 @@ function Basic() {
     };
   }, [fetchListaEspera]);
 
+  // Revisa cada 15 segundos si alguna cita ya superó su hora1 en >= 1 minuto
+  // (ej. cita 5:30 -> a las 5:31 se pinta en rojo "Sin atención") sin recargar la página.
+  // Solo actualiza el estado; el useEffect reconstructor se encarga de re-renderizar el scheduler.
+  useEffect(() => {
+    const intervalSinAtencion = setInterval(() => {
+      if (!Array.isArray(arregloCita) || arregloCita.length === 0) return;
+      const ahora = new Date();
+      let huboCambio = false;
+
+      const citasActualizadas = arregloCita.map((cita) => {
+        const horaInicio = new Date(cita.inicioReal || cita.start);
+        const nuevoColor = obtenerColorCita(cita, horaInicio, ahora);
+        const nuevoSinAtencion = esCitaSinAtencion(cita, horaInicio, ahora);
+        if (cita.bgColor !== nuevoColor || Boolean(cita.sinAtencion) !== nuevoSinAtencion) {
+          huboCambio = true;
+          return { ...cita, bgColor: nuevoColor, sinAtencion: nuevoSinAtencion };
+        }
+        return cita;
+      });
+
+      if (huboCambio) setArregloCita(citasActualizadas);
+    }, 15000); // 15 segundos
+
+    return () => clearInterval(intervalSinAtencion);
+  }, [arregloCita]);
+
   const getCitas = async (fecha) => {
     try {
       // Formatear fecha en local (no UTC) para evitar corrimiento de día en México (UTC-6)
@@ -596,7 +596,7 @@ function Basic() {
         "0",
       )}${String(fechaLocal.getDate()).padStart(2, "0")}`;
       const response = await peinadosApi.get(
-        `/DetalleAgendaSelv21?fecha=${fechaFormateadaCitas}&suc=${idSuc}&nomberEstilista=${"%"}&nombreCliente=${"%"}`,
+        `/DetalleAgendaSelv20?fecha=${fechaFormateadaCitas}&suc=${idSuc}&nomberEstilista=${"%"}&nombreCliente=${"%"}`,
       );
 
       const getHM = (str) => {
@@ -658,22 +658,8 @@ function Basic() {
           title: "",
           type: 2,
           clickable1: item.estadoCita != 4,
-          bgColor:
-            item.estadoCita == 6
-              ? "#bababa"
-              : item.estadoCita == 1
-              ? "#F8C471" // Sandy Orange
-              : item.esDomicilio == true
-              ? "#DDA0DD" // Plum
-              : item.estadoCita == 2
-              ? "#AFEEEE" // Pale Turquoise
-              : item.estadoCita == 3
-              ? "#FFF26C" // Lemon Chiffon
-              : item.estadoCita == 4
-              ? "#90EE90" // Light Green
-              : item.estadoCita == 5
-              ? "#DDA0DD" // Plum
-              : "#bababa", // Light Gray
+          sinAtencion: esCitaSinAtencion(item, hora1),
+          bgColor: obtenerColorCita(item, hora1),
         };
       };
 
@@ -1609,7 +1595,7 @@ function Basic() {
     {
       field: "d_stilista",
       headerName: "Estilista",
-      width: 85,
+      width: 115,
       align: "center",
       sortable: false,
       style: { fontSize: "16px" },
@@ -1878,8 +1864,8 @@ function Basic() {
     // },
   ];
 
-    // const ligaPruebas = "http://localhost:5173/";
-      const ligaPruebas = "http://217.216.95.62:9019/";
+    //  const ligaPruebas = "http://localhost:5173/";
+       const ligaPruebas = "http://217.216.95.62:9019/";
   const handleOpenNewWindow = ({ idCita, idUser, idCliente, fecha, flag }) => {
     const url = `${ligaPruebas}miliga/crearcita?idCita=${idCita}&idUser=${idUser}&idCliente=${idCliente}&fecha=${fecha}&idSuc=${1}&idRec=${1}&flag=${flag}`; // Reemplaza esto con la URL que desees abrir
     const width = 390;
@@ -2058,8 +2044,13 @@ function Basic() {
       padding: "5px",
       color: "black",
     },
+    servicioPagado: {
+      backgroundColor: COLORES_CITA.servicioPagado,
+      padding: "5px",
+      color: "black",
+    },
     domicilio: {
-      backgroundColor: "#DDA0DD",
+      backgroundColor: COLORES_CITA.domicilio,
       padding: "5px",
       color: "black",
     },
@@ -2067,6 +2058,11 @@ function Basic() {
       backgroundColor: "#bababa",
       padding: "5px",
       color: "black",
+    },
+    sinAtencion: {
+      backgroundColor: COLORES_CITA.sinAtencion,
+      padding: "5px",
+      color: "white",
     },
   };
   const editCita2 = async (eventItem) => {
@@ -2455,6 +2451,88 @@ function Basic() {
   const agregarServicioPromo = (producto) => {
     postCitasServicios(producto.id, producto.tiempox, producto.precio, null, null, false, "promo");
     setModalPromoServ(false);
+  };
+
+  const seleccionarProductoCita = (producto) => {
+    if (!producto) return;
+    const yaAgregado =
+      ventaTemporal.find((x) => x.clave === producto.id) ||
+      (Array.isArray(dataCitasServicios) &&
+        dataCitasServicios.find((x) => x.id_servicio === producto.id || x.idServicio === producto.id));
+    if (yaAgregado) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: `El producto ya fue agregado`,
+        confirmButtonColor: "#3085d6",
+        confirmButtonText: "Entendido",
+      });
+      return;
+    }
+    if (formVentaHistoriales.botonConsultar) {
+      setFormVentaHistoriales({
+        claveProd: producto.id,
+        claveProdDescripcion: producto.descripcion,
+      });
+      return;
+    }
+    setDataVentaTemporal({
+      clave: producto.id,
+      clave_prod: producto.clave_prod,
+      descripcion: producto.descripcion,
+      precio: producto.precio_lista,
+      tiempo: producto.tiempox,
+    });
+    postCitasServicios(producto.id, producto.tiempox, producto.precio);
+  };
+
+  const seleccionarProductoEdicion = (producto) => {
+    if (!producto) return;
+    if (ventaTemporal.find((x) => x.clave === producto.id)) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: `El producto ya fue agregado`,
+        confirmButtonColor: "#3085d6",
+        confirmButtonText: "Entendido",
+      });
+      return;
+    }
+    if (formVentaHistoriales.botonConsultar) {
+      setFormVentaHistoriales({
+        claveProd: producto.id,
+        claveProdDescripcion: producto.descripcion,
+      });
+      return;
+    }
+    setFormDetalleCitasServicios({
+      ...formDetalleCitasServicios,
+      idServicio: producto.id,
+      d_clave_prod: producto.descripcion,
+      tiempo: producto.tiempox,
+      precio: producto.precio,
+    });
+  };
+
+  const seleccionarProductoEdicionServicios = (producto) => {
+    if (!producto) return;
+    setFormCitaServioActualizacion({
+      ...formCitaServioActualizacion,
+      idServicio: producto.id,
+      descripcion: producto.descripcion,
+      tiempo: producto.tiempox,
+      precio: producto.precio,
+    });
+  };
+
+  const seleccionarProductoHistorial = (producto) => {
+    if (!producto) return;
+    setFormVentaHistoriales({
+      ...formVentaHistoriales,
+      botonConsultar: false,
+      claveProd: producto.id,
+      claveProdDescripcion: producto.descripcion,
+    });
   };
 
   const getOperaciones = () => {
@@ -3130,7 +3208,6 @@ function Basic() {
     console.log("[postCrearCita] iniciando");
     if (formCitaServicio.idCita) {
       postCrearCitaEnCursoRef.current = false;
-      setProductosModal(true);
       return;
     }
 
@@ -3306,7 +3383,6 @@ function Basic() {
                     });
 
                     citaId = response.data.mensaje2;
-                    setProductosModal(true);
                     setFormCitaServicio({ ...formCitaServicio, idCita: citaId });
 
                     // Ejecutar putDetalleCitasServiciosUpd7 si se creó correctamente la cita
@@ -3372,7 +3448,6 @@ function Basic() {
                 servDomicilio: formCita.esServicioDomicilio == false ? 0 : 1,
               },
             });
-            setProductosModal(true);
             setFormCitaServicio({ ...formCitaServicio, idCita: response.data.mensaje2 });
 
             // Si hay servicio a domicilio, también usar el usuario validado
@@ -5247,8 +5322,10 @@ function Basic() {
             <div style={boxStyles.requerido}>REQUERIDO</div>
             <div style={boxStyles.asignado}>ASIGNADO</div>
             <div style={boxStyles.enServicio}>EN SERVICIO</div>
+            <div style={boxStyles.servicioPagado}>SERVICIO PAGADO</div>
             <div style={boxStyles.domicilio}>DOMICILIO</div>
             <div style={boxStyles.conflicto}>CONFLICTO</div>
+            <div style={boxStyles.sinAtencion}>SIN ATENCIÓN</div>
           </div>
         </div>
       </div>
@@ -5740,12 +5817,22 @@ console.log(event.idsVenta)
             </Row>
           </Container>
           <br />
-          <Button color="primary" onClick={() => setProductosModal(true)}>
-            Ingresar servicios
-          </Button>
-          <Button color="success" style={{ marginLeft: "10px" }} onClick={() => getPromoServVigentes()}>
-            <RiDiscountPercentLine size={20} /> Promociones
-          </Button>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", width: "100%" }}>
+            <BusquedaRapidaProducto
+              sucursal={idSuc}
+              cia={1}
+              onSelect={seleccionarProductoCita}
+              placeholder="Buscar servicio o producto..."
+            />
+            <Tooltip title="Catálogo de productos">
+              <IconButton size="small" onClick={() => setProductosModal(true)}>
+                <MdOutlineFolder size={22} />
+              </IconButton>
+            </Tooltip>
+            <Button color="success" onClick={() => getPromoServVigentes()}>
+              <RiDiscountPercentLine size={20} /> Promociones
+            </Button>
+          </div>
           <ThemeProvider theme={theme}>
             <DataGrid autoHeight rows={dataCitasServicios} columns={columnsCitasServiciosAltaServicio}></DataGrid>
           </ThemeProvider>
@@ -6064,24 +6151,25 @@ console.log(event.idsVenta)
             <Col md={1}>
               <Label>Servicio:</Label>
             </Col>
-            <Col md={4}>
-              <Input
-                disabled
-                value={formVentaHistoriales.claveProdDescripcion}
-                onChange={(e) => setFormVentaHistoriales({ ...formVentaHistoriales, claveProd: e.target.value })}
+            <Col md={5} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <BusquedaRapidaProducto
+                sucursal={formVentaHistoriales.sucursal || idSuc}
+                cia={1}
+                displayValue={formVentaHistoriales.claveProdDescripcion}
+                onSelect={seleccionarProductoHistorial}
                 placeholder="Escoja un servicio"
-              ></Input>
-            </Col>
-            <Col md={2}>
-              <Button
-                onClick={() => {
-                  setFormVentaHistoriales({ ...formVentaHistoriales, botonConsultar: true });
-                  setProductosModal(true);
-                }}
-              >
-                {" "}
-                Buscar
-              </Button>
+              />
+              <Tooltip title="Catálogo de productos">
+                <IconButton
+                  size="small"
+                  onClick={() => {
+                    setFormVentaHistoriales({ ...formVentaHistoriales, botonConsultar: true });
+                    setProductosModal(true);
+                  }}
+                >
+                  <MdOutlineFolder size={20} />
+                </IconButton>
+              </Tooltip>
             </Col>
           </Row>
           <Row style={{ marginBottom: "18px" }}>
@@ -6327,18 +6415,18 @@ console.log(event.idsVenta)
                   Producto
                 </Label>
                 <InputGroup addonType="append">
-                  <Input
-                    bsSize="sm"
-                    disabled
-                    value={formDetalleCitasServicios.d_clave_prod}
-                    type="text"
-                    name="cliente"
-                    id="cliente"
-                    size={"small"}
+                  <BusquedaRapidaProducto
+                    sucursal={idSuc}
+                    cia={1}
+                    displayValue={formDetalleCitasServicios.d_clave_prod}
+                    onSelect={seleccionarProductoEdicion}
+                    placeholder="Buscar producto..."
                   />
-                  <Button size="sm" onClick={() => setProductosModalEdicion(true)}>
-                    Buscar
-                  </Button>
+                  <Tooltip title="Catálogo de productos">
+                    <IconButton size="small" onClick={() => setProductosModalEdicion(true)}>
+                      <MdOutlineFolder size={20} />
+                    </IconButton>
+                  </Tooltip>
                 </InputGroup>
               </FormGroup>
             </Col>
@@ -6650,19 +6738,18 @@ console.log(event.idsVenta)
                   Producto
                 </Label>
                 <InputGroup addonType="append">
-                  <Input
-                    style={{ fontSize: "1.2rem" }}
-                    bsSize="sm"
-                    disabled
-                    value={formDetalleCitasServicios.d_clave_prod}
-                    type="text"
-                    name="cliente"
-                    id="cliente"
-                    size={"small"}
+                  <BusquedaRapidaProducto
+                    sucursal={idSuc}
+                    cia={1}
+                    displayValue={formDetalleCitasServicios.d_clave_prod}
+                    onSelect={seleccionarProductoEdicion}
+                    placeholder="Buscar producto..."
                   />
-                  <Button size="sm" onClick={() => setProductosModalEdicion(true)}>
-                    Buscar
-                  </Button>
+                  <Tooltip title="Catálogo de productos">
+                    <IconButton size="small" onClick={() => setProductosModalEdicion(true)}>
+                      <MdOutlineFolder size={20} />
+                    </IconButton>
+                  </Tooltip>
                 </InputGroup>
               </FormGroup>
             </Col>
@@ -7108,7 +7195,20 @@ console.log(event.idsVenta)
                 ></Input>
               </Col>
               <Col>
-                <Button onClick={() => setProductosModalEdicionServicios(true)}>Cambio</Button>
+                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                  <BusquedaRapidaProducto
+                    sucursal={idSuc}
+                    cia={1}
+                    displayValue={formCitaServioActualizacion?.descripcion}
+                    onSelect={seleccionarProductoEdicionServicios}
+                    placeholder="Buscar producto..."
+                  />
+                  <Tooltip title="Catálogo de productos">
+                    <IconButton size="small" onClick={() => setProductosModalEdicionServicios(true)}>
+                      <MdOutlineFolder size={20} />
+                    </IconButton>
+                  </Tooltip>
+                </div>
               </Col>
               <Col>
                 <Label style={{ marginRight: "4px", fontSize: "1.2rem" }}>Tiempo</Label>
@@ -7296,7 +7396,20 @@ console.log(event.idsVenta)
           {colummEdit == "descripcion" ? (
             <>
               <Input value={formCitaServioActualizacion?.descripcion}></Input>
-              <Button onClick={() => setProductosModalEdicionServicios(true)}>Cambio</Button>
+              <div style={{ display: "flex", alignItems: "center", gap: "4px", flex: 1 }}>
+                <BusquedaRapidaProducto
+                  sucursal={idSuc}
+                  cia={1}
+                  displayValue={formCitaServioActualizacion?.descripcion}
+                  onSelect={seleccionarProductoEdicionServicios}
+                  placeholder="Buscar producto..."
+                />
+                <Tooltip title="Catálogo de productos">
+                  <IconButton size="small" onClick={() => setProductosModalEdicionServicios(true)}>
+                    <MdOutlineFolder size={20} />
+                  </IconButton>
+                </Tooltip>
+              </div>
               <Label>Tiempo Venta</Label>
               <Input
                 value={formCitaServioActualizacion?.tiempo}
@@ -7998,15 +8111,17 @@ console.log(event.idsVenta)
             </div>
             <hr />
             <Box marginLeft={0} marginRight={0} gap={2} alignItems={"center"} justifyContent={"center"}>
-              <Button
-                color={"success"}
-                onClick={() => {
-                  postCrearCita();
-                }}
-                variant="contained"
-              >
-                {formCitaServicio.idCita > 0 ? "Modificar cita" : "Ingresar servicios..."}
-              </Button>
+              {formCitaServicio.idCita > 0 ? null : (
+                <Button
+                  color={"success"}
+                  onClick={() => {
+                    postCrearCita();
+                  }}
+                  variant="contained"
+                >
+                  Guardar cita
+                </Button>
+              )}
                <Button
                   size="sm"
                   color="success"
@@ -8016,6 +8131,21 @@ console.log(event.idsVenta)
                   <RiDiscountPercentLine size={20} /> Promociones
                 </Button>
               <hr />
+              {formCitaServicio.idCita > 0 ? (
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", width: "100%", marginBottom: "8px" }}>
+                  <BusquedaRapidaProducto
+                    sucursal={idSuc}
+                    cia={1}
+                    onSelect={seleccionarProductoCita}
+                    placeholder="Buscar servicio o producto..."
+                  />
+                  <Tooltip title="Catálogo de productos">
+                    <IconButton size="small" onClick={() => setProductosModal(true)}>
+                      <MdOutlineFolder size={22} />
+                    </IconButton>
+                  </Tooltip>
+                </div>
+              ) : null}
               <ThemeProvider theme={theme}>
                 <DataGrid rows={dataCitasServicios} columns={columnsCitasServicios} />
               </ThemeProvider>

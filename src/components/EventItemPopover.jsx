@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import { Col, Row } from "antd";
 import { peinadosApi } from "../api/peinadosApi";
 import { useObservaciones } from "../functions/crearCita/useObservaciones";
+import { obtenerNombreEstadoCita, obtenerNombreEstatusBase } from "../helper/estadoCitaVisual";
 import { AiFillEye } from "react-icons/ai";
 
 function EventItemPopover({
@@ -31,7 +32,7 @@ function EventItemPopover({
   const start = localeDayjs(startDate);
   const end = localeDayjs(endDate);
 
-  // Detectar si la cita supera la hora de salida de la sucursal o estilista
+  // Detectar si la cita supera la hora de salida de la sucursal
   const finRealDate = eventItem?.finReal
     ? eventItem.finReal instanceof Date
       ? eventItem.finReal
@@ -42,7 +43,7 @@ function EventItemPopover({
     eventItem?.superaHoraSalida ||
     (finRealDate && finRealDate.getTime() > endDate.getTime());
 
-  // Detectar si la cita inicia antes de la hora de entrada de la sucursal o estilista
+  // Detectar si la cita inicia antes de la hora de entrada de la sucursal
   const inicioRealDate = eventItem?.inicioReal
     ? eventItem.inicioReal instanceof Date
       ? eventItem.inicioReal
@@ -65,6 +66,16 @@ function EventItemPopover({
           : `${horas}h (${minutosReales} min)`
         : `${minutosReales} min`;
   }
+
+  // Estado visible de la cita (coincide con el color pintado; incluye
+  // Sin atención y Servicio pagado que son estados solo visuales)
+  const inicioCita = eventItem?.hora1 ? new Date(eventItem.hora1) : startDate;
+  const nombreEstadoCita = eventItem ? obtenerNombreEstadoCita(eventItem, inicioCita) : null;
+  // Si la cita está en conflicto, estadoCita2 conserva el estatus original de la cita
+  const nombreEstadoAnterior =
+    eventItem && Number(eventItem.estadoCita) === 6 && Number(eventItem.estadoCita2) !== 6
+      ? obtenerNombreEstatusBase(eventItem.estadoCita2)
+      : null;
 
   if (eventItemPopoverTemplateResolver) {
     return eventItemPopoverTemplateResolver(schedulerData, eventItem, title, start, end, statusColor);
@@ -154,6 +165,35 @@ function EventItemPopover({
           )}
         </Col>
       </Row>
+      {nombreEstadoCita && (
+        <Row type="flex" align="middle" style={{ marginTop: "4px" }}>
+          <Col span={2}>
+            <div />
+          </Col>
+          <Col span={22}>
+            <span className="header2-text" style={{ fontWeight: 600 }}>
+              Estado:{" "}
+            </span>
+            <span
+              className="header2-text"
+              style={{
+                backgroundColor: statusColor,
+                color: nombreEstadoCita === "SIN ATENCIÓN" ? "#fff" : "#262626",
+                padding: "1px 8px",
+                borderRadius: "4px",
+                fontWeight: 600,
+              }}
+            >
+              {nombreEstadoCita}
+            </span>
+            {nombreEstadoAnterior && (
+              <span className="header2-text" style={{ marginLeft: "6px", color: "#8c8c8c" }}>
+                (era: {nombreEstadoAnterior})
+              </span>
+            )}
+          </Col>
+        </Row>
+      )}
       {antesDeEntrada && (
         <Row type="flex" align="middle" style={{ marginTop: "6px", marginBottom: "6px" }}>
           <Col span={2}>

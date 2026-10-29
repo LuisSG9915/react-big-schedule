@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 // import Modal from "../components/Modal";
 import { DataGrid } from "@mui/x-data-grid";
 import { peinadosApi } from "../api/peinadosApi";
-import { FormControl, TextField, FormControlLabel, Checkbox, Box, ButtonGroup, Modal, Typography } from "@mui/material";
+import { FormControl, TextField, FormControlLabel, Checkbox, Box, ButtonGroup, Modal, Typography, IconButton, Tooltip } from "@mui/material";
 import {
   FormGroup,
   Label,
@@ -32,6 +32,7 @@ import { useDetalleCuentaPendietes } from "../functions/crearCita/useDetalleCuen
 import { useDetalleSaldosPendientes } from "../functions/crearCita/useDetalleSaldosPendientes";
 import { useHorarioDisponibleEstilistas6 } from "../functions/crearCita/useHorarioDisponibleEstilistas6";
 import { useCitaEmpalme5 } from "../functions/crearCita/useCitaEmpalme5";
+import BusquedaRapidaProducto from "../components/BusquedaRapidaProducto";
 function EditarCita() {
   const style = {
     position: "absolute",
@@ -422,6 +423,17 @@ function EditarCita() {
           confirmButtonText: "Ok",
         });
       });
+  };
+
+  const seleccionarProductoEdit = (producto) => {
+    if (!producto) return;
+    setTempCitaServicio({
+      ...tempCitaServicio,
+      id_servicio: producto.id,
+      observaciones: producto.descripcion,
+      precio: producto.precio_lista,
+      tiempo: producto.tiempox,
+    });
   };
 
   const editarServicio = () => {
@@ -1445,8 +1457,20 @@ function EditarCita() {
           {/* Voy a hacer un formulario para cmabiar la cantidad, producto y el precio */}
           <Typography variant="h4">Editar producto</Typography>
           <Label>Ingresar producto</Label>
-          <Input disabled value={tempCitaServicio.observaciones}></Input>
-          <Button onClick={() => setProductosModalEdit(true)}>Elegir producto</Button>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <BusquedaRapidaProducto
+              sucursal={idSuc}
+              cia={1}
+              displayValue={tempCitaServicio.observaciones}
+              onSelect={seleccionarProductoEdit}
+              placeholder="Buscar producto..."
+            />
+            <Tooltip title="Catálogo de productos">
+              <IconButton size="small" onClick={() => setProductosModalEdit(true)}>
+                <MdOutlineFolder size={22} />
+              </IconButton>
+            </Tooltip>
+          </div>
           <br />
 
           <Label>Cantidad</Label>
